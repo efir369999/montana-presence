@@ -856,6 +856,13 @@ class WesolowskiVDF:
 
     # Checkpoint interval (save state every N iterations)
     CHECKPOINT_INTERVAL = 100_000
+    
+    # Minimum iterations for security (prevents trivial proofs)
+    # 1000 iterations ≈ 20ms on typical CPU, provides minimal time guarantee
+    MIN_ITERATIONS = 1000
+    
+    # Maximum iterations to prevent DoS (10 billion ≈ ~55 hours max)
+    MAX_ITERATIONS = 10_000_000_000
 
     def __init__(
         self,
@@ -1013,6 +1020,12 @@ class WesolowskiVDF:
         """
         import time as time_module
 
+        # Validate iterations
+        if iterations < self.MIN_ITERATIONS:
+            raise VDFError(f"Iterations {iterations} below minimum {self.MIN_ITERATIONS}")
+        if iterations > self.MAX_ITERATIONS:
+            raise VDFError(f"Iterations {iterations} exceeds maximum {self.MAX_ITERATIONS}")
+
         # Normalize input to 32 bytes
         if len(input_data) != 32:
             input_data = sha256(input_data)
@@ -1056,30 +1069,38 @@ class WesolowskiVDF:
             # Derive challenge prime from (g, y) via Fiat-Shamir
             l = self._derive_challenge_prime(g, y)
 
-            # Second pass: compute proof π using the challenge l
-            # π = g^⌊2^T/l⌋ mod N
-            # We use long division: track b = 2^i mod l, accumulate g^(2^i) into π when b overflows l
+            # Second pass: compute proof π = g^⌊2^T/l⌋ mod N
+            # 
+            # Algorithm (from Wesolowski's paper):
+            # We compute π iteratively using the recurrence:
+            #   q_{i+1} = 2*q_i + (1 if 2*b_i >= l else 0)
+            # where q_i = ⌊2^i/l⌋ and b_i = 2^i mod l
+            #
+            # This translates to:
+            #   π_{i+1} = π_i^2 * g^{overflow_bit}
+            # 
+            # Starting with π_0 = g^0 = 1, after T iterations π_T = g^{q_T} = g^⌊2^T/l⌋
             pi = 1
-            b = 1  # Will become 2^i mod l
-            g_power = g  # Will become g^(2^i)
+            b = 1  # b_i = 2^i mod l
 
             for i in range(iterations):
-                # Double b (this is 2^(i+1) mod l)
-                b = (b * 2)
-
-                # If b >= l, this bit contributes to quotient ⌊2^T/l⌋
+                # First, square π: this computes g^{2*q_i}
+                pi = pow(pi, 2, self.modulus)
+                
+                # Double b to get 2*b_i
+                b = b * 2
+                
+                # If overflow (2*b_i >= l), then q_{i+1} = 2*q_i + 1
+                # So multiply π by g
                 if b >= l:
                     b = b - l
-                    pi = (pi * g_power) % self.modulus
-
-                # Square g_power for next iteration
-                g_power = pow(g_power, 2, self.modulus)
+                    pi = (pi * g) % self.modulus
 
                 # Checkpoint and progress
                 if checkpoint_callback and i > 0 and i % self.CHECKPOINT_INTERVAL == 0:
                     cp = VDFCheckpoint(
                         input_hash=input_data,
-                        current_value=y,  # y is already computed
+                        current_value=y,
                         current_iteration=i,
                         target_iterations=iterations,
                         proof_accumulator=pi,
@@ -1114,13 +1135,14 @@ class WesolowskiVDF:
         progress_callback: Optional[callable] = None
     ) -> VDFProof:
         """
-        Optimized VDF computation using Trapdoor-free variant.
-
-        This version pre-computes the challenge prime using a hash commitment,
-        allowing single-pass computation of both y and π.
-
-        The security is slightly different: l = H(g, input_data) instead of H(g, y),
-        but this is secure under the low-order assumption and allows 2x speedup.
+        Streamlined VDF computation without checkpointing overhead.
+        
+        This is a simplified version of compute() without checkpoint callbacks.
+        Both y and π computation require T sequential squarings each (2T total),
+        as this is fundamental to Wesolowski VDF where l = H(g, y).
+        
+        For production use, prefer compute() which supports checkpointing
+        for crash recovery during long computations.
 
         Args:
             input_data: Input seed (32 bytes)
@@ -1132,6 +1154,12 @@ class WesolowskiVDF:
         """
         import time as time_module
 
+        # Validate iterations
+        if iterations < self.MIN_ITERATIONS:
+            raise VDFError(f"Iterations {iterations} below minimum {self.MIN_ITERATIONS}")
+        if iterations > self.MAX_ITERATIONS:
+            raise VDFError(f"Iterations {iterations} exceeds maximum {self.MAX_ITERATIONS}")
+
         # Normalize input
         if len(input_data) != 32:
             input_data = sha256(input_data)
@@ -1139,51 +1167,46 @@ class WesolowskiVDF:
         # Map input to group element
         g = self._hash_to_group(input_data)
 
-        # Pre-compute challenge prime using commitment scheme
-        # l = H(g, H(input_data, "vdf_challenge"))
-        # This is secure because input_data is unpredictable (prev block hash)
-        commitment = sha256(input_data + b'vdf_challenge_commitment')
-        h = hashlib.sha256()
-        h.update(b'wesolowski_precommit')
-        h.update(g.to_bytes(self.byte_size, 'big'))
-        h.update(commitment)
-        seed = int.from_bytes(h.digest()[:16], 'big')
-        l = seed | (1 << 127) | 1
-        while not self._is_probable_prime(l, k=25):
-            l += 2
-            if l >= (1 << 128):
-                l = (1 << 127) | 1
-
-        logger.debug(f"Computing optimized VDF with T={iterations}, l={l.bit_length()}-bit prime")
-
-        # Single pass: compute y and π simultaneously
-        y = g
-        pi = 1
-        b = 1
-        g_power = g
-
+        logger.debug(f"Computing VDF with T={iterations} iterations...")
         start_time = time_module.perf_counter()
 
+        # Phase 1: Compute y = g^(2^T) via T sequential squarings
+        y = g
         for i in range(iterations):
-            # Update y = g^(2^(i+1))
             y = pow(y, 2, self.modulus)
-
-            # Update proof accumulator
-            b = b * 2
-            if b >= l:
-                b = b - l
-                pi = (pi * g_power) % self.modulus
-
-            g_power = pow(g_power, 2, self.modulus)
-
-            # Progress
+            
             if progress_callback and i % 10000 == 0:
                 progress_callback(i, iterations)
 
             if iterations > 100000 and i % 100000 == 0 and i > 0:
                 elapsed = time_module.perf_counter() - start_time
                 eta = elapsed * (iterations - i) / i
-                logger.debug(f"VDF progress: {i}/{iterations} ({100*i/iterations:.1f}%), ETA: {eta:.1f}s")
+                logger.debug(f"VDF y-phase: {i}/{iterations} ({100*i/iterations:.1f}%), ETA: {eta:.1f}s")
+
+        phase1_time = time_module.perf_counter() - start_time
+
+        # Phase 2: Derive challenge prime l = H(g, y)
+        l = self._derive_challenge_prime(g, y)
+
+        # Phase 3: Compute proof π = g^⌊2^T/l⌋
+        # Using recurrence: π_{i+1} = π_i^2 * g^{overflow_bit}
+        pi = 1
+        b = 1
+
+        for i in range(iterations):
+            pi = pow(pi, 2, self.modulus)
+            b = b * 2
+            if b >= l:
+                b = b - l
+                pi = (pi * g) % self.modulus
+
+            if iterations > 100000 and i % 100000 == 0 and i > 0:
+                elapsed = time_module.perf_counter() - start_time - phase1_time
+                eta = elapsed * (iterations - i) / i
+                logger.debug(f"VDF π-phase: {i}/{iterations} ({100*i/iterations:.1f}%), ETA: {eta:.1f}s")
+
+        elapsed = time_module.perf_counter() - start_time
+        logger.debug(f"VDF computation complete in {elapsed:.2f}s")
 
         # Serialize
         output_bytes = y.to_bytes(self.byte_size, 'big')
@@ -1262,20 +1285,52 @@ class WesolowskiVDF:
             logger.error(f"VDF verification error: {e}")
             return False
 
-    def batch_verify(self, proofs: List[VDFProof]) -> List[bool]:
+    def batch_verify(self, proofs: List[VDFProof], parallel: bool = True) -> List[bool]:
         """
-        Verify multiple VDF proofs.
+        Verify multiple VDF proofs, optionally in parallel.
 
-        Currently sequential, but could be parallelized since
-        verifications are independent.
+        Since verifications are independent, we can use thread pool
+        for significant speedup on multi-core systems.
 
         Args:
             proofs: List of VDFProof to verify
+            parallel: Whether to use parallel verification (default True)
 
         Returns:
-            List of verification results
+            List of verification results in same order as input
         """
-        return [self.verify(proof) for proof in proofs]
+        if not proofs:
+            return []
+        
+        if not parallel or len(proofs) == 1:
+            return [self.verify(proof) for proof in proofs]
+        
+        # Use thread pool for parallel verification
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        import os
+        
+        # Use up to 4 threads or CPU count, whichever is smaller
+        max_workers = min(4, os.cpu_count() or 2, len(proofs))
+        
+        results = [False] * len(proofs)
+        
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all verification tasks
+            future_to_idx = {
+                executor.submit(self.verify, proof): idx 
+                for idx, proof in enumerate(proofs)
+            }
+            
+            # Collect results
+            for future in as_completed(future_to_idx):
+                idx = future_to_idx[future]
+                try:
+                    results[idx] = future.result()
+                except Exception as e:
+                    logger.error(f"Batch verify error for proof {idx}: {e}")
+                    results[idx] = False
+        
+        return results
 
     def estimate_time(self, iterations: int) -> float:
         """
