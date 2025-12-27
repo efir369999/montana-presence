@@ -38,8 +38,6 @@ from abc import ABC, abstractmethod
 # NO FALLBACK - P2P without encryption is NOT allowed in production
 try:
     from noise.connection import NoiseConnection, Keypair
-    from noise.backends.default import DefaultBackend
-    from noise.backends.default.keypairs import KeyPair25519
     NOISE_AVAILABLE = True
 except ImportError:
     NOISE_AVAILABLE = False
