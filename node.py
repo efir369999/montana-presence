@@ -901,13 +901,23 @@ class FullNode:
     
     def _sync_loop(self):
         """Synchronization loop."""
+        solo_wait_time = 0  # Seconds waiting for peers
+        solo_timeout = 10   # After 10 seconds with no peers, assume solo node
+
         while self._running:
             try:
                 if self.sync_state == SyncState.CONNECTING:
-                    if self.network.get_peer_count() >= PROTOCOL.MIN_NODES:
+                    peer_count = self.network.get_peer_count()
+                    if peer_count >= PROTOCOL.MIN_NODES:
                         self.sync_state = SyncState.SYNCING_HEADERS
                         logger.info("Connected to peers, starting sync")
-                
+                    elif peer_count == 0:
+                        solo_wait_time += 1
+                        if solo_wait_time >= solo_timeout:
+                            # Solo node - no peers found, start producing
+                            self.sync_state = SyncState.SYNCED
+                            logger.info("No peers found - starting as solo node")
+
                 elif self.sync_state == SyncState.SYNCING_HEADERS:
                     # Request headers from peers
                     self._request_headers()
@@ -1082,7 +1092,7 @@ def _render_dashboard(node, db_path: str = '/var/lib/proofoftime/blockchain.db')
         return f"{color}{text}{N}" if sys.stdout.isatty() else str(text)
 
     # Get metrics
-    m = {'height': 0, 'nodes': 0, 'mempool': 0, 'last_block_age': 0, 'time_to_block': 0, 'status': 'running'}
+    m = {'height': 0, 'nodes': 0, 'mempool': 0, 'last_block_age': -1, 'time_to_block': 600, 'status': 'running'}
 
     try:
         if hasattr(node, 'db') and node.db:
@@ -1090,7 +1100,7 @@ def _render_dashboard(node, db_path: str = '/var/lib/proofoftime/blockchain.db')
             if state:
                 m['height'] = state.get('tip_height', 0)
             latest = node.db.get_latest_block()
-            if latest:
+            if latest and latest.timestamp > 0:
                 m['last_block_age'] = int(time.time()) - latest.timestamp
                 m['time_to_block'] = max(0, 600 - m['last_block_age'])
         if hasattr(node, 'network') and node.network:
@@ -1110,6 +1120,12 @@ def _render_dashboard(node, db_path: str = '/var/lib/proofoftime/blockchain.db')
     ttb = m['time_to_block']
     ttb_col = G if ttb > 300 else (Y if ttb > 60 else R)
 
+    # Last block display
+    if m['last_block_age'] < 0:
+        last_block_str = col("--:--", D)
+    else:
+        last_block_str = f"{fmt_time(m['last_block_age'])} ago"
+
     now = datetime.now().strftime('%H:%M:%S')
 
     # Clear and render
@@ -1125,7 +1141,7 @@ def _render_dashboard(node, db_path: str = '/var/lib/proofoftime/blockchain.db')
     print(f"  {col('MEMPOOL', C)}     {m['mempool']} tx")
     print()
     print(f"  {col('NEXT BLOCK', C)}  {col(fmt_time(ttb), ttb_col)}")
-    print(f"  {col('LAST BLOCK', C)}  {fmt_time(m['last_block_age'])} ago")
+    print(f"  {col('LAST BLOCK', C)}  {last_block_str}")
     print()
     print(col("  ─────────────────────────────────────────", D))
     print(col(f"  {now}  │  Ctrl+C to stop", D))
@@ -1202,6 +1218,26 @@ def main():
 
     node = FullNode(config)
 
+    # Load or create node keys
+    key_file = os.path.join(data_dir, 'node_key.json')
+    if os.path.exists(key_file):
+        with open(key_file, 'r') as f:
+            key_data = json.load(f)
+            secret_key = bytes.fromhex(key_data['secret_key'])
+            public_key = bytes.fromhex(key_data['public_key'])
+    else:
+        # Generate new keys
+        from crypto import Ed25519
+        secret_key, public_key = Ed25519.generate_keypair()
+        os.makedirs(data_dir, exist_ok=True)
+        with open(key_file, 'w') as f:
+            json.dump({
+                'secret_key': secret_key.hex(),
+                'public_key': public_key.hex()
+            }, f, indent=2)
+        os.chmod(key_file, 0o600)  # Secure permissions
+        logger.info(f"Generated new node keys: {public_key.hex()[:16]}...")
+
     # Graceful shutdown handler
     shutdown_event = threading.Event()
 
@@ -1213,6 +1249,7 @@ def main():
 
     try:
         node.start()
+        node.enable_mining(secret_key, public_key)
 
         # Main loop with dashboard
         while not shutdown_event.is_set():
