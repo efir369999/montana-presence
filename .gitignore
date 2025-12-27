@@ -97,3 +97,4 @@ noise_keys/
 config.json
 
 .claude/
+*.txt
