@@ -85,8 +85,8 @@ As long as there is anything, there is time. As long as there is time, PoT works
 
 ## The Whitepaper
 
-📄 [Proof of Time: A Peer-to-Peer Digital Time System](ProofOfTime.pdf)  
-📚 [IACR ePrint Archive](https://eprint.iacr.org/) *(under review)*
+25.12.2025 Proof of Time: A Peer-to-Peer Temporal Consensus System 
+
 
 ## Consensus of Obviousness
 
