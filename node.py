@@ -1071,6 +1071,7 @@ def _self_test():
 
 def _render_dashboard(node, db_path: str = '/var/lib/proofoftime/blockchain.db'):
     """Render live dashboard."""
+    import os
     import sys
     from datetime import datetime
 
