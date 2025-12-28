@@ -24,13 +24,11 @@ import argparse
 import logging
 from datetime import datetime
 
-# Terminal colors
-class C:
+# Simple ANSI colors (work on all terminals)
+if sys.stdout.isatty():
     RESET = '\033[0m'
     BOLD = '\033[1m'
     DIM = '\033[2m'
-
-    BLACK = '\033[30m'
     RED = '\033[91m'
     GREEN = '\033[92m'
     YELLOW = '\033[93m'
@@ -38,39 +36,27 @@ class C:
     MAGENTA = '\033[95m'
     CYAN = '\033[96m'
     WHITE = '\033[97m'
-
-    BG_BLACK = '\033[40m'
-    BG_RED = '\033[41m'
-    BG_GREEN = '\033[42m'
     BG_BLUE = '\033[44m'
-
-    @staticmethod
-    def rgb(r, g, b):
-        return f'\033[38;2;{r};{g};{b}m'
-
-# Disable if not TTY
-if not sys.stdout.isatty():
-    for attr in dir(C):
-        if not attr.startswith('_') and attr != 'rgb':
-            setattr(C, attr, '')
+else:
+    RESET = BOLD = DIM = RED = GREEN = YELLOW = BLUE = MAGENTA = CYAN = WHITE = BG_BLUE = ''
 
 # ============================================================================
-# PANTHEON GODS
+# PANTHEON GODS - Full data for each god
 # ============================================================================
 
 GODS = [
-    ("Chronos",    "Time/VDF",     C.YELLOW,  "active"),
-    ("Adonis",     "Reputation",   C.MAGENTA, "active"),
-    ("Hermes",     "Network",      C.CYAN,    "active"),
-    ("Hades",      "Storage",      C.BLUE,    "active"),
-    ("Athena",     "Consensus",    C.rgb(147,112,219), "active"),
-    ("Prometheus", "Crypto",       C.RED,     "active"),
-    ("Mnemosyne",  "Memory",       C.rgb(32,178,170), "active"),
-    ("Plutus",     "Wallet",       C.GREEN,   "active"),
-    ("Nyx",        "Privacy",      C.rgb(25,25,112), "limited"),
-    ("Themis",     "Validation",   C.rgb(220,20,60), "active"),
-    ("Iris",       "API",          C.rgb(255,20,147), "active"),
-    ("Ananke",     "Governance",   C.rgb(139,69,19), "planned"),
+    {"num": 1,  "name": "Chronos",    "domain": "Time/VDF",     "status": "active",  "module": "crypto.py",    "desc": "VDF proof generation"},
+    {"num": 2,  "name": "Adonis",     "domain": "Reputation",   "status": "active",  "module": "adonis.py",    "desc": "6-dimension scoring"},
+    {"num": 3,  "name": "Hermes",     "domain": "Network/P2P",  "status": "active",  "module": "network.py",   "desc": "Noise protocol"},
+    {"num": 4,  "name": "Hades",      "domain": "Storage",      "status": "active",  "module": "database.py",  "desc": "SQLite + DAG"},
+    {"num": 5,  "name": "Athena",     "domain": "Consensus",    "status": "active",  "module": "consensus.py", "desc": "VRF leader select"},
+    {"num": 6,  "name": "Prometheus", "domain": "Cryptography", "status": "active",  "module": "crypto.py",    "desc": "ECVRF + Ed25519"},
+    {"num": 7,  "name": "Mnemosyne",  "domain": "Memory",       "status": "active",  "module": "structures.py","desc": "Mempool + cache"},
+    {"num": 8,  "name": "Plutus",     "domain": "Wallet",       "status": "active",  "module": "wallet.py",    "desc": "Key management"},
+    {"num": 9,  "name": "Nyx",        "domain": "Privacy",      "status": "limited", "module": "privacy.py",   "desc": "Stealth + Ring"},
+    {"num": 10, "name": "Themis",     "domain": "Validation",   "status": "active",  "module": "node.py",      "desc": "Block validation"},
+    {"num": 11, "name": "Iris",       "domain": "API/RPC",      "status": "active",  "module": "node.py",      "desc": "JSON-RPC server"},
+    {"num": 12, "name": "Ananke",     "domain": "Governance",   "status": "planned", "module": "-",            "desc": "Protocol upgrades"},
 ]
 
 # ============================================================================
@@ -84,28 +70,36 @@ class TerminalDashboard:
         self.running = True
         self.current_tab = 0
         self.tabs = ["PANTHEON", "ADONIS", "GEOGRAPHY", "NODES", "EVENTS"]
-        self.width = 80
-        self.last_refresh = 0
 
     def clear(self):
         os.system('clear' if os.name != 'nt' else 'cls')
 
-    def get_terminal_size(self):
-        try:
-            size = os.get_terminal_size()
-            self.width = max(60, size.columns)
-        except:
-            self.width = 80
+    def box(self, title, width=70):
+        """Draw box header."""
+        print(f"+{'-' * (width-2)}+")
+        padding = width - 4 - len(title)
+        print(f"| {BOLD}{title}{RESET}{' ' * padding} |")
+        print(f"+{'-' * (width-2)}+")
+
+    def line(self, text, width=70):
+        """Draw line inside box."""
+        # Strip ANSI codes for length calculation
+        import re
+        clean = re.sub(r'\033\[[0-9;]*m', '', text)
+        padding = width - 4 - len(clean)
+        if padding < 0:
+            padding = 0
+        print(f"| {text}{' ' * padding} |")
+
+    def end_box(self, width=70):
+        """Draw box footer."""
+        print(f"+{'-' * (width-2)}+")
 
     def header(self):
         """Draw header."""
         print()
-        title = "PANTHEON"
-        subtitle = "Proof of Time Protocol"
-
-        print(f"  {C.BOLD}{C.YELLOW}{title}{C.RESET}  {C.DIM}{subtitle}{C.RESET}")
-        print(f"  {C.DIM}{'─' * 50}{C.RESET}")
-        print(f"  {C.DIM}\"Chronos proves, Athena selects, Adonis trusts.\"{C.RESET}")
+        print(f"  {BOLD}{YELLOW}PROOF OF TIME{RESET} - Pantheon Protocol v2.2")
+        print(f"  {DIM}\"Chronos proves, Athena selects, Adonis trusts.\"{RESET}")
         print()
 
     def tab_bar(self):
@@ -113,111 +107,140 @@ class TerminalDashboard:
         tabs_str = "  "
         for i, tab in enumerate(self.tabs):
             if i == self.current_tab:
-                tabs_str += f"{C.BG_BLUE}{C.WHITE} {i+1}:{tab} {C.RESET} "
+                tabs_str += f"[{BOLD}{i+1}:{tab}{RESET}] "
             else:
-                tabs_str += f"{C.DIM}[{i+1}:{tab}]{C.RESET} "
+                tabs_str += f" {DIM}{i+1}:{tab}{RESET}  "
         print(tabs_str)
-        print(f"  {C.DIM}{'─' * 50}{C.RESET}")
+        print(f"  {'=' * 68}")
         print()
 
     def render_gods(self):
-        """Render Pantheon gods."""
-        print(f"  {C.BOLD}The 12 Gods of Protocol{C.RESET}")
-        print()
+        """Render Pantheon gods with all parameters."""
+        self.box("THE 12 GODS OF PROTOCOL")
+        self.line("")
+        self.line(f"{DIM}#   Name         Domain         Status    Module         Description{RESET}")
+        self.line(f"{DIM}{'-' * 66}{RESET}")
 
-        for i, (name, domain, color, status) in enumerate(GODS, 1):
-            status_icon = "●" if status == "active" else "○" if status == "limited" else "◌"
-            status_color = C.GREEN if status == "active" else C.YELLOW if status == "limited" else C.DIM
+        for god in GODS:
+            # Status with color
+            if god["status"] == "active":
+                status = f"{GREEN}ACTIVE {RESET}"
+                icon = "*"
+            elif god["status"] == "limited":
+                status = f"{YELLOW}LIMITED{RESET}"
+                icon = "~"
+            else:
+                status = f"{DIM}PLANNED{RESET}"
+                icon = "-"
 
-            print(f"  {C.DIM}{i:2}.{C.RESET} {color}{C.BOLD}{name:12}{C.RESET} "
-                  f"{C.DIM}│{C.RESET} {domain:12} "
-                  f"{status_color}{status_icon} {status}{C.RESET}")
+            self.line(
+                f"{icon} {god['num']:2}  {BOLD}{god['name']:10}{RESET}  "
+                f"{god['domain']:13}  {status}  "
+                f"{CYAN}{god['module']:13}{RESET}  {DIM}{god['desc']}{RESET}"
+            )
 
-        print()
+        self.line("")
+        self.line(f"  {GREEN}* Active: 10{RESET}   {YELLOW}~ Limited: 1{RESET}   {DIM}- Planned: 1{RESET}")
+        self.end_box()
 
     def render_adonis(self):
         """Render Adonis reputation data."""
-        print(f"  {C.BOLD}Adonis Reputation Engine{C.RESET}")
-        print()
+        self.box("ADONIS REPUTATION ENGINE")
 
         if self.engine:
             stats = self.engine.get_stats()
 
-            # Stats grid
-            print(f"  {C.CYAN}Total Nodes:{C.RESET}    {stats['total_profiles']}")
-            print(f"  {C.GREEN}Active:{C.RESET}         {stats['active_profiles']}")
-            print(f"  {C.RED}Penalized:{C.RESET}      {stats['penalized_profiles']}")
-            print(f"  {C.YELLOW}Vouches:{C.RESET}        {stats['total_vouches']}")
-            print(f"  {C.MAGENTA}Avg Score:{C.RESET}      {stats['average_score']:.3f}")
-            print(f"  {C.CYAN}Cities:{C.RESET}         {stats['unique_cities']}")
-            print()
+            self.line("")
+            self.line(f"{BOLD}Network Statistics:{RESET}")
+            self.line(f"  Total Nodes:     {CYAN}{stats['total_profiles']:5}{RESET}")
+            self.line(f"  Active Nodes:    {GREEN}{stats['active_profiles']:5}{RESET}")
+            self.line(f"  Penalized:       {RED}{stats['penalized_profiles']:5}{RESET}")
+            self.line(f"  Total Vouches:   {YELLOW}{stats['total_vouches']:5}{RESET}")
+            self.line(f"  Average Score:   {MAGENTA}{stats['average_score']:.3f}{RESET}")
+            self.line(f"  Unique Cities:   {CYAN}{stats['unique_cities']:5}{RESET}")
+            self.line("")
+            self.line(f"{BOLD}Dimension Weights:{RESET}")
+            self.line(f"{DIM}{'=' * 50}{RESET}")
 
-            # Dimensions
-            print(f"  {C.BOLD}Dimensions:{C.RESET}")
             dim_colors = {
-                'INTEGRITY': C.RED, 'RELIABILITY': C.BLUE,
-                'LONGEVITY': C.MAGENTA, 'CONTRIBUTION': C.GREEN,
-                'COMMUNITY': C.YELLOW, 'GEOGRAPHY': C.CYAN
+                'INTEGRITY': RED, 'RELIABILITY': BLUE,
+                'LONGEVITY': MAGENTA, 'CONTRIBUTION': GREEN,
+                'COMMUNITY': YELLOW, 'GEOGRAPHY': CYAN
             }
+
             for name, weight in stats['dimension_weights'].items():
-                color = dim_colors.get(name, C.WHITE)
-                bar_len = int(weight * 30)
-                bar = "█" * bar_len + "░" * (30 - bar_len)
-                print(f"  {color}{name:12}{C.RESET} {bar} {int(weight*100):3}%")
+                color = dim_colors.get(name, WHITE)
+                bar_len = int(weight * 40)
+                bar = "#" * bar_len + "." * (40 - bar_len)
+                pct = int(weight * 100)
+                self.line(f"  {color}{name:12}{RESET} [{bar}] {pct:2}%")
         else:
-            print(f"  {C.DIM}No data available{C.RESET}")
-        print()
+            self.line(f"{DIM}No data available{RESET}")
+
+        self.end_box()
 
     def render_geography(self):
         """Render geographic data."""
-        print(f"  {C.BOLD}Geographic Diversity{C.RESET}")
-        print()
+        self.box("GEOGRAPHIC DIVERSITY")
 
         if self.engine:
             diversity = self.engine.get_geographic_diversity_score()
             cities = self.engine.get_city_distribution()
 
-            print(f"  {C.CYAN}Unique Cities:{C.RESET}  {len(cities)}")
-            print(f"  {C.MAGENTA}Diversity:{C.RESET}      {diversity*100:.1f}%")
-            print()
+            self.line("")
+            self.line(f"  Unique Cities:     {CYAN}{len(cities)}{RESET}")
+            self.line(f"  Diversity Score:   {MAGENTA}{diversity*100:.1f}%{RESET}")
+            self.line("")
 
             if cities:
-                print(f"  {C.BOLD}City Distribution:{C.RESET}")
+                self.line(f"{BOLD}City Distribution (by hash prefix):{RESET}")
+                self.line(f"{DIM}{'=' * 50}{RESET}")
+
                 sorted_cities = sorted(cities.items(), key=lambda x: x[1], reverse=True)
-                for hash_prefix, count in sorted_cities[:10]:
-                    bar = "█" * min(count, 20)
-                    print(f"  {C.CYAN}{hash_prefix}{C.RESET} {bar} {count}")
+                for hash_prefix, count in sorted_cities[:12]:
+                    bar_len = min(count * 2, 30)
+                    bar = "#" * bar_len
+                    self.line(f"  {CYAN}{hash_prefix}{RESET} {bar} {count}")
         else:
-            print(f"  {C.DIM}No data available{C.RESET}")
-        print()
+            self.line(f"{DIM}No data available{RESET}")
+
+        self.end_box()
 
     def render_nodes(self):
         """Render top nodes."""
-        print(f"  {C.BOLD}Top Nodes by Reputation{C.RESET}")
-        print()
+        self.box("TOP NODES BY REPUTATION")
 
         if self.engine:
             top = self.engine.get_top_nodes(15)
 
-            print(f"  {C.DIM}{'#':3} {'Node':18} {'Score':8} {'City':10} {'Vouches':8}{C.RESET}")
-            print(f"  {C.DIM}{'─'*50}{C.RESET}")
+            self.line("")
+            self.line(f"{DIM}  #   Node ID            Score   City      Vouches{RESET}")
+            self.line(f"{DIM}  {'-' * 55}{RESET}")
 
             for i, (pubkey, score) in enumerate(top, 1):
                 profile = self.engine.get_profile(pubkey)
-                city = profile.city_hash.hex()[:8] if profile and profile.city_hash else "-"
+                city = profile.city_hash.hex()[:8] if profile and profile.city_hash else "--------"
                 vouches = len(profile.trusted_by) if profile else 0
 
-                score_color = C.GREEN if score > 0.5 else C.YELLOW
-                print(f"  {i:3} {pubkey.hex()[:16]}.. {score_color}{score:.3f}{C.RESET}   "
-                      f"{C.CYAN}{city}{C.RESET}   {vouches}")
+                if score > 0.7:
+                    score_color = GREEN
+                elif score > 0.4:
+                    score_color = YELLOW
+                else:
+                    score_color = RED
+
+                self.line(
+                    f"  {i:2}.  {pubkey.hex()[:16]}..  "
+                    f"{score_color}{score:.3f}{RESET}   {CYAN}{city}{RESET}   {vouches:3}"
+                )
         else:
-            print(f"  {C.DIM}No data available{C.RESET}")
-        print()
+            self.line(f"{DIM}No data available{RESET}")
+
+        self.end_box()
 
     def render_events(self):
         """Render recent events."""
-        print(f"  {C.BOLD}Recent Events{C.RESET}")
-        print()
+        self.box("RECENT EVENTS")
 
         if self.engine:
             events = []
@@ -227,27 +250,38 @@ class TerminalDashboard:
 
             events.sort(key=lambda x: x[0], reverse=True)
 
+            self.line("")
+            self.line(f"{DIM}  Time      Node ID         Event             Impact{RESET}")
+            self.line(f"{DIM}  {'-' * 55}{RESET}")
+
             for ts, pk, event, impact in events[:15]:
                 time_str = datetime.fromtimestamp(ts).strftime("%H:%M:%S")
-                impact_color = C.GREEN if impact >= 0 else C.RED
-                impact_str = f"+{impact:.2f}" if impact >= 0 else f"{impact:.2f}"
 
-                print(f"  {C.DIM}{time_str}{C.RESET}  {pk.hex()[:12]}..  "
-                      f"{event:16}  {impact_color}{impact_str}{C.RESET}")
+                if impact >= 0:
+                    impact_color = GREEN
+                    impact_str = f"+{impact:.2f}"
+                else:
+                    impact_color = RED
+                    impact_str = f"{impact:.2f}"
+
+                self.line(
+                    f"  {DIM}{time_str}{RESET}  {pk.hex()[:12]}..  "
+                    f"{event:16}  {impact_color}{impact_str}{RESET}"
+                )
         else:
-            print(f"  {C.DIM}No data available{C.RESET}")
-        print()
+            self.line(f"{DIM}No data available{RESET}")
+
+        self.end_box()
 
     def footer(self):
         """Draw footer."""
-        now = datetime.now().strftime("%H:%M:%S")
-        print(f"  {C.DIM}{'─' * 50}{C.RESET}")
-        print(f"  {C.DIM}Updated: {now}  │  [1-5] Tabs  [r] Refresh  [q] Quit{C.RESET}")
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print()
+        print(f"  {DIM}Updated: {now}  |  [1-5] Switch Tab  [r] Refresh  [q] Quit{RESET}")
         print()
 
     def render(self):
         """Render current view."""
-        self.get_terminal_size()
         self.clear()
         self.header()
         self.tab_bar()
@@ -409,7 +443,7 @@ def main():
 
         def signal_handler(sig, frame):
             dashboard.running = False
-            print(f"\n{C.DIM}Shutting down...{C.RESET}")
+            print(f"\n{DIM}Shutting down...{RESET}")
             sys.exit(0)
 
         signal.signal(signal.SIGINT, signal_handler)
@@ -419,7 +453,7 @@ def main():
         except KeyboardInterrupt:
             pass
         finally:
-            print(f"\n{C.DIM}Goodbye!{C.RESET}\n")
+            print(f"\n{DIM}Goodbye!{RESET}\n")
     else:
         # Just run without TUI
         print("Node running... Press Ctrl+C to stop")
