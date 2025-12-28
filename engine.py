@@ -30,6 +30,12 @@ from consensus import (
     SybilDetector, SlashingManager, WeightRebalancer, ProbabilityWeights
 )
 
+# Adonis reputation module
+from adonis import (
+    AdonisEngine, AdonisProfile, ReputationEvent, ReputationDimension,
+    compute_f_rep_adonis, create_reputation_modifier
+)
+
 # DAG modules
 from dag import (
     DAGBlock, DAGBlockHeader, PHANTOMOrdering, 
@@ -135,6 +141,9 @@ class ProofOfTimeNode:
         
         # Weight rebalancer with default weights
         self.weight_rebalancer = WeightRebalancer(ProbabilityWeights())
+
+        # Adonis reputation engine
+        self.adonis = AdonisEngine()
         
         # Node state
         self.node_state = NodeState(
@@ -322,6 +331,13 @@ class ProofOfTimeNode:
 
                     # Update node state
                     self.node_state.signed_blocks += 1
+
+                    # Update Adonis reputation
+                    self.adonis.record_event(
+                        self.public_key,
+                        ReputationEvent.BLOCK_PRODUCED,
+                        height=block.header.height
+                    )
 
                     # Notify handlers
                     if self.on_new_block:
@@ -533,16 +549,34 @@ class ProofOfTimeNode:
         """Get comprehensive statistics."""
         storage_stats = self.storage.get_stats()
         anon_stats = self.anonymity_manager.get_pool_stats()
-        
+        adonis_stats = self.adonis.get_stats()
+
         return {
             'node': self.get_status(),
             'storage': storage_stats,
             'anonymity': anon_stats,
+            'adonis': adonis_stats,
             'tier_specs': {
                 tier.name: TIER_SPECS[tier]
                 for tier in PrivacyTier
             }
         }
+
+    def get_adonis_profile(self, pubkey: Optional[bytes] = None) -> Optional[AdonisProfile]:
+        """Get Adonis reputation profile for a node."""
+        if pubkey is None:
+            pubkey = self.public_key
+        return self.adonis.get_profile(pubkey)
+
+    def vouch_for_node(self, peer_pubkey: bytes) -> bool:
+        """Vouch for a peer node's reputation."""
+        return self.adonis.add_vouch(self.public_key, peer_pubkey)
+
+    def get_reputation_score(self, pubkey: Optional[bytes] = None) -> float:
+        """Get Adonis reputation score for a node."""
+        if pubkey is None:
+            pubkey = self.public_key
+        return self.adonis.get_reputation_score(pubkey)
     
     # =========================================================================
     # NETWORK INTERFACE

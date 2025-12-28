@@ -28,6 +28,13 @@ from crypto import sha256, Ed25519, ECVRF, VRFOutput, WesolowskiVDF, VDFProof
 from structures import Block, BlockHeader, Transaction, create_genesis_block
 from config import PROTOCOL, NodeConfig, get_block_reward
 
+# Optional Adonis integration (for enhanced reputation)
+try:
+    from adonis import AdonisEngine, compute_f_rep_adonis
+    ADONIS_AVAILABLE = True
+except ImportError:
+    ADONIS_AVAILABLE = False
+
 logger = logging.getLogger("proof_of_time.consensus")
 
 
@@ -213,28 +220,38 @@ class ProbabilityWeights:
 class ConsensusCalculator:
     """
     Calculates node probabilities for leader selection.
-    
+
     Probability formula (per whitepaper):
     P_i = (w_time × f_time(t_i) + w_space × f_space(s_i) + w_rep × f_rep(r_i)) / Z
-    
+
     where:
     - f_time(t) = min(t / k_time, 1) with k_time = 180 days
     - f_space(s) = min(s / k_space, 1) with k_space = 80% of chain
     - f_rep(r) = min(r / k_rep, 1) with k_rep = 2016 blocks
     - Z = Σ raw_P_i (normalization constant)
-    
+
     Weights: w_time=0.60, w_space=0.20, w_rep=0.20
-    
+
     This ensures:
     - Time (presence) is the dominant factor (60%)
     - Storage and reputation are supporting factors (20% each)
     - New nodes can participate but with lower probability
     - Saturation prevents infinite advantage accumulation
+
+    With Adonis integration:
+    - f_rep is enhanced with multi-dimensional reputation scoring
+    - Reputation includes reliability, integrity, contribution, longevity, community
+    - Trust graph adds social proof to reputation calculation
     """
-    
-    def __init__(self, weights: Optional[ProbabilityWeights] = None):
+
+    def __init__(
+        self,
+        weights: Optional[ProbabilityWeights] = None,
+        adonis: Optional['AdonisEngine'] = None
+    ):
         self.weights = weights or ProbabilityWeights()
         self.weights.normalize()  # Ensure weights sum to 1
+        self.adonis = adonis  # Optional Adonis engine for enhanced reputation
     
     def compute_f_time(self, uptime_seconds: int) -> float:
         """
@@ -274,23 +291,41 @@ class ConsensusCalculator:
         # k_space = 0.80 (80% of chain)
         return min(storage_ratio / PROTOCOL.K_SPACE, 1.0)
     
-    def compute_f_rep(self, signed_blocks: int) -> float:
+    def compute_f_rep(
+        self,
+        signed_blocks: int,
+        pubkey: Optional[bytes] = None
+    ) -> float:
         """
         Compute reputation component (saturating at k_rep = 2016 blocks).
-        
+
         This measures how many blocks the node has successfully signed
         without equivocation. ~2016 blocks ≈ 2 weeks at 10 min/block.
-        
+
+        With Adonis integration, reputation is enhanced with multi-dimensional
+        scoring including reliability, integrity, contribution, longevity,
+        and community trust.
+
         Args:
             signed_blocks: Number of blocks signed without equivocation
-            
+            pubkey: Optional node public key for Adonis lookup
+
         Returns:
             Value in [0, 1] representing reputation factor
         """
+        # Base reputation from signed blocks
         if signed_blocks <= 0:
-            return 0.0
-        # k_rep = 2016 blocks
-        return min(signed_blocks / PROTOCOL.K_REP, 1.0)
+            base_rep = 0.0
+        else:
+            base_rep = min(signed_blocks / PROTOCOL.K_REP, 1.0)
+
+        # Enhance with Adonis if available
+        if self.adonis is not None and pubkey is not None and ADONIS_AVAILABLE:
+            adonis_score = self.adonis.get_reputation_score(pubkey)
+            # Combine: 30% basic blocks, 70% Adonis multi-dimensional
+            return 0.3 * base_rep + 0.7 * adonis_score
+
+        return base_rep
     
     def compute_raw_probability(
         self,
@@ -323,9 +358,9 @@ class ConsensusCalculator:
         
         # Space component
         f_space = self.compute_f_space(node.stored_blocks, total_blocks)
-        
-        # Reputation component
-        f_rep = self.compute_f_rep(node.signed_blocks)
+
+        # Reputation component (with Adonis if available)
+        f_rep = self.compute_f_rep(node.signed_blocks, pubkey=node.pubkey)
         
         # Weighted sum
         raw_prob = (
@@ -382,16 +417,17 @@ class ConsensusCalculator:
     ) -> Dict[str, float]:
         """
         Get detailed breakdown of probability components for debugging.
-        
+
         Returns:
             Dict with 'f_time', 'f_space', 'f_rep', 'weighted_sum' values
+            and Adonis details if available
         """
         uptime = node.get_uptime(current_time)
         f_time = self.compute_f_time(uptime)
         f_space = self.compute_f_space(node.stored_blocks, total_blocks)
-        f_rep = self.compute_f_rep(node.signed_blocks)
-        
-        return {
+        f_rep = self.compute_f_rep(node.signed_blocks, pubkey=node.pubkey)
+
+        result = {
             'uptime_seconds': uptime,
             'uptime_days': uptime / 86400,
             'f_time': f_time,
@@ -408,6 +444,22 @@ class ConsensusCalculator:
                 'rep': self.weights.w_rep
             }
         }
+
+        # Add Adonis details if available
+        if self.adonis is not None and ADONIS_AVAILABLE:
+            profile = self.adonis.get_profile(node.pubkey)
+            if profile:
+                result['adonis'] = {
+                    'aggregate_score': profile.aggregate_score,
+                    'is_penalized': profile.is_penalized,
+                    'trust_score': profile.get_trust_score(),
+                    'dimensions': {
+                        dim.name: score.value
+                        for dim, score in profile.dimensions.items()
+                    }
+                }
+
+        return result
 
 
 # ============================================================================
