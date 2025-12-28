@@ -1170,7 +1170,8 @@ def _render_dashboard(node, db_path: str = '/var/lib/proofoftime/blockchain.db')
         'last_block_age': 0, 'pot_next': 600, 'blocks_produced': 0, 'status': 'STARTING',
         'reward': 0, 'epoch': 1, 'blocks_to_halving': 0, 'total_emitted': 0,
         'remaining': 0, 'percent_emitted': 0, 'wallet_balance': 0,
-        'expected_slot': 0, 'slot_drift': 0, 'utc_now': '', 'genesis_ts': 0
+        'expected_slot': 0, 'slot_drift': 0, 'utc_now': '', 'genesis_ts': 0,
+        'wallet_address': '', 'wallet_address_full': '', 'session_earned': 0, 'next_reward_in': 1
     }
 
     try:
@@ -1212,12 +1213,26 @@ def _render_dashboard(node, db_path: str = '/var/lib/proofoftime/blockchain.db')
                 if node.producer.last_block_time > 0:
                     m['last_block_age'] = int(time.time() - node.producer.last_block_time)
 
-        # Wallet balance
+        # Wallet balance and address
         if hasattr(node, 'wallet') and node.wallet:
             try:
                 m['wallet_balance'] = node.wallet.get_balance()
+                # Get primary address (view_public + spend_public = 64 bytes)
+                addr = node.wallet.get_primary_address()
+                if addr and len(addr) >= 32:
+                    m['wallet_address'] = addr[:32].hex()[:16] + '...' + addr[:32].hex()[-8:]
+                    m['wallet_address_full'] = addr.hex()
             except:
                 pass
+
+        # Session earnings (blocks produced × reward at time of production)
+        if m['blocks_produced'] > 0 and m['reward'] > 0:
+            m['session_earned'] = m['blocks_produced'] * m['reward']
+
+        # Next reward timing (time until next block)
+        if m['expected_slot'] > 0:
+            now_frac = time.time() - int(time.time())
+            m['next_reward_in'] = max(0, 1.0 - now_frac)
 
     except Exception as e:
         logger.debug(f"Dashboard metrics error: {e}")
@@ -1302,9 +1317,15 @@ def _render_dashboard(node, db_path: str = '/var/lib/proofoftime/blockchain.db')
     print()
 
     # Wallet section
-    if m['wallet_balance'] > 0 or (hasattr(node, 'wallet') and node.wallet):
-        print(col("  ─── WALLET ───────────────────────────────────────────────", D))
+    if m['wallet_address'] or (hasattr(node, 'wallet') and node.wallet):
+        print(col("  ─── WALLET & REWARDS ─────────────────────────────────────", D))
+        if m['wallet_address']:
+            print(f"  {col('ADDRESS', G)}        {col(m['wallet_address'], W)}")
         print(f"  {col('BALANCE', G)}        {col(fmt_amount(m['wallet_balance']), W)}")
+        if m['blocks_produced'] > 0:
+            print(f"  {col('SESSION', G)}        {col(fmt_amount(m['session_earned']), Y)} ({m['blocks_produced']} blocks)")
+        next_ms = int(m['next_reward_in'] * 1000)
+        print(f"  {col('NEXT BLOCK', G)}     {col(f'in {next_ms}ms', C if next_ms < 500 else W)} → {col(fmt_amount(m['reward']), Y)}")
         print()
 
     # Footer
