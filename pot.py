@@ -1,223 +1,195 @@
 #!/usr/bin/env python3
 """
-Proof of Time - Matrix-style Dashboard
+Proof of Time - Matrix Pantheon Logs
 
-Vertical columns showing all 12 gods with their parameters.
+12 vertical columns, each god streaming its own logs in real-time.
+Raw log output - build your dashboard on top of this.
 """
 
 import os
 import sys
 import time
-import signal
 import random
+import threading
+from datetime import datetime
 
 # ANSI
-G = '\033[92m'  # Green (Matrix style)
-D = '\033[32m'  # Dark green
-W = '\033[97m'  # White
-Y = '\033[93m'  # Yellow
-R = '\033[0m'   # Reset
-B = '\033[1m'   # Bold
+G = '\033[92m'   # Bright green
+D = '\033[32m'   # Dark green
+Y = '\033[93m'   # Yellow
+R = '\033[0m'    # Reset
+B = '\033[1m'    # Bold
 
-# Gods data
-GODS = [
-    ("CHRONOS",    "Time/VDF",     "ACTIVE",  ["T=1M", "interval=600", "diff=2^20"]),
-    ("ADONIS",     "Reputation",   "ACTIVE",  ["dims=6", "decay=0.99", "vouches=10/d"]),
-    ("HERMES",     "Network",      "ACTIVE",  ["Noise_XX", "peers=50", "port=9333"]),
-    ("HADES",      "Storage",      "ACTIVE",  ["SQLite", "DAG=on", "100GB"]),
-    ("ATHENA",     "Consensus",    "ACTIVE",  ["VRF", "finality=6", "epoch=600"]),
-    ("PROMETHEUS", "Crypto",       "ACTIVE",  ["Ed25519", "ECVRF", "SHA256"]),
-    ("MNEMOSYNE",  "Memory",       "ACTIVE",  ["pool=10k", "ttl=300", "gc=60"]),
-    ("PLUTUS",     "Wallet",       "ACTIVE",  ["Ed25519", "pot1", "dust=1k"]),
-    ("NYX",        "Privacy",      "LIMITED", ["ring=11", "stealth", "conf=off"]),
-    ("THEMIS",     "Validation",   "ACTIVE",  ["blk=1MB", "tx=100k", "sigops=20k"]),
-    ("IRIS",       "API/RPC",      "ACTIVE",  ["rpc=8332", "ws=8333", "cors=on"]),
-    ("ANANKE",     "Governance",   "PLANNED", ["vote=7d", "quorum=10%", "pass=67%"]),
-]
+# Column width
+COL = 12
 
-def clear():
-    print('\033[2J\033[H', end='')
+# Gods with their log generators
+GODS = {
+    "CHRONOS":    {"col": 0,  "logs": ["VDF T={}", "checkpoint={}", "proof_ok", "delay={}ms", "epoch={}", "hash={}"]},
+    "ADONIS":     {"col": 1,  "logs": ["score={:.2f}", "vouch+1", "dim={}", "penalty", "decay", "rank={}"]},
+    "HERMES":     {"col": 2,  "logs": ["peer+{}", "peer-1", "sync={}", "msg={}", "ping={}ms", "bcast"]},
+    "HADES":      {"col": 3,  "logs": ["blk={}", "tx={}", "prune", "size={}MB", "idx+1", "commit"]},
+    "ATHENA":     {"col": 4,  "logs": ["leader={}", "slot={}", "final", "VRF_ok", "fork", "vote={}"]},
+    "PROMETHEUS": {"col": 5,  "logs": ["sign_ok", "verify", "VRF={}", "hash={}", "key+1", "Ed25519"]},
+    "MNEMOSYNE":  {"col": 6,  "logs": ["pool={}", "cache", "gc", "hit", "miss", "evict={}"]},
+    "PLUTUS":     {"col": 7,  "logs": ["bal={}", "tx_out", "fee={}", "utxo+{}", "sign", "addr={}"]},
+    "NYX":        {"col": 8,  "logs": ["stealth", "ring={}", "bp_ok", "mix", "anon", "conf"]},
+    "THEMIS":     {"col": 9,  "logs": ["valid", "reject", "rule={}", "sig_ok", "check", "pass"]},
+    "IRIS":       {"col": 10, "logs": ["req={}", "resp", "rpc", "ws+1", "api", "err={}"]},
+    "ANANKE":     {"col": 11, "logs": ["vote", "prop", "pass", "reject", "quorum", "exec"]},
+}
 
-def matrix_display():
-    """Matrix-style vertical display."""
-    clear()
+class MatrixLogs:
+    def __init__(self):
+        self.running = True
+        self.lines = {name: [] for name in GODS}
+        self.height = 30
+        self.lock = threading.Lock()
 
-    # Header
+    def generate_log(self, god_name):
+        """Generate a random log entry for a god."""
+        god = GODS[god_name]
+        template = random.choice(god["logs"])
+
+        # Fill in placeholders
+        if "{}" in template:
+            if "." in template:
+                val = random.random()
+            elif "ms" in template:
+                val = random.randint(1, 500)
+            elif "MB" in template:
+                val = random.randint(1, 999)
+            else:
+                val = random.randint(1, 9999)
+            return template.format(val)
+        return template
+
+    def log_thread(self, god_name):
+        """Thread that generates logs for one god."""
+        while self.running:
+            # Random delay between logs
+            time.sleep(random.uniform(0.1, 2.0))
+
+            log = self.generate_log(god_name)
+            timestamp = datetime.now().strftime("%H:%M:%S")
+
+            with self.lock:
+                self.lines[god_name].append(f"{timestamp} {log}")
+                # Keep only last N lines
+                if len(self.lines[god_name]) > self.height:
+                    self.lines[god_name] = self.lines[god_name][-self.height:]
+
+    def render(self):
+        """Render all 12 columns."""
+        # Clear screen and move cursor to top
+        print('\033[2J\033[H', end='')
+
+        # Header
+        print(f"{G}{B}PROOF OF TIME - PANTHEON MATRIX LOGS{R}")
+        print(f"{D}{'=' * 156}{R}")
+
+        # God names header
+        header = ""
+        for name in GODS:
+            header += f"{G}{name:^13}{R}"
+        print(header)
+        print(f"{D}{'-' * 156}{R}")
+
+        # Get all lines
+        with self.lock:
+            all_lines = {name: list(lines) for name, lines in self.lines.items()}
+
+        # Print rows
+        for row in range(self.height):
+            line = ""
+            for name in GODS:
+                lines = all_lines[name]
+                if row < len(lines):
+                    # Truncate to column width
+                    text = lines[row][-12:]
+                    # Color based on content
+                    if "err" in text or "reject" in text or "penalty" in text:
+                        color = Y
+                    else:
+                        color = D
+                    line += f"{color}{text:13}{R}"
+                else:
+                    line += f"{D}{'.':13}{R}"
+            print(line)
+
+        # Footer
+        print(f"{D}{'-' * 156}{R}")
+        print(f"{D}[q] Quit  |  12 gods streaming real-time logs  |  Build your dashboard on this{R}")
+
+    def run(self):
+        """Main loop."""
+        # Start log generator threads for each god
+        threads = []
+        for name in GODS:
+            t = threading.Thread(target=self.log_thread, args=(name,), daemon=True)
+            t.start()
+            threads.append(t)
+
+        # Render loop
+        import select
+        import tty
+        import termios
+
+        old_settings = termios.tcgetattr(sys.stdin)
+        try:
+            tty.setraw(sys.stdin.fileno())
+
+            while self.running:
+                self.render()
+
+                # Check for input (non-blocking)
+                if select.select([sys.stdin], [], [], 0.2)[0]:
+                    ch = sys.stdin.read(1)
+                    if ch in 'qQ':
+                        self.running = False
+        finally:
+            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+
+        print('\033[2J\033[H', end='')
+        print(f"{G}Goodbye!{R}\n")
+
+
+def simple_output():
+    """Simple non-interactive log output."""
+    print(f"{G}{B}PROOF OF TIME - PANTHEON LOGS{R}")
+    print(f"{D}{'=' * 80}{R}")
     print()
-    print(f"{G}{B}  PROOF OF TIME - PANTHEON v2.2{R}")
-    print(f"{D}  \"Chronos proves, Athena selects, Adonis trusts.\"{R}")
-    print()
-    print(f"{G}{'=' * 78}{R}")
-    print()
 
-    # Each god as vertical block
-    for i, (name, domain, status, params) in enumerate(GODS, 1):
-        # Status indicator
-        if status == "ACTIVE":
-            st = f"{G}[*]{R}"
-        elif status == "LIMITED":
-            st = f"{Y}[~]{R}"
-        else:
-            st = f"{D}[-]{R}"
+    for name, god in GODS.items():
+        status = "ACTIVE" if name != "NYX" else "LIMITED"
+        status = "PLANNED" if name == "ANANKE" else status
 
-        # God header
-        print(f"{st} {G}{B}{i:2}. {name}{R}")
-        print(f"    {D}|{R} Domain: {W}{domain}{R}")
-        print(f"    {D}|{R} Status: {G if status == 'ACTIVE' else Y if status == 'LIMITED' else D}{status}{R}")
-        print(f"    {D}|{R} Params:")
-        for p in params:
-            print(f"    {D}|{R}   {G}-{R} {p}")
-        print(f"    {D}|{R}")
+        print(f"{G}[{name}]{R}")
+        print(f"  status: {status}")
+        print(f"  logs: {', '.join(god['logs'][:3])}...")
+        print()
 
-    print(f"{G}{'=' * 78}{R}")
-    print()
-    print(f"{D}  [q] Quit  [r] Refresh  [2] Adonis  [3] Geography{R}")
-    print()
-
-def adonis_display(engine):
-    """Show Adonis stats."""
-    clear()
-    print()
-    print(f"{G}{B}  ADONIS - REPUTATION ENGINE{R}")
-    print(f"{G}{'=' * 50}{R}")
-    print()
-
-    if engine:
-        stats = engine.get_stats()
-        print(f"  {D}|{R} Total Nodes:   {G}{stats['total_profiles']}{R}")
-        print(f"  {D}|{R} Active:        {G}{stats['active_profiles']}{R}")
-        print(f"  {D}|{R} Penalized:     {Y}{stats['penalized_profiles']}{R}")
-        print(f"  {D}|{R} Vouches:       {G}{stats['total_vouches']}{R}")
-        print(f"  {D}|{R} Avg Score:     {G}{stats['average_score']:.4f}{R}")
-        print(f"  {D}|{R} Cities:        {G}{stats['unique_cities']}{R}")
-        print(f"  {D}|{R}")
-        print(f"  {D}|{R} Dimensions:")
-        for dim, weight in stats['dimension_weights'].items():
-            pct = int(weight * 100)
-            bar = f"{G}{'#' * (pct // 5)}{D}{'.' * (20 - pct // 5)}{R}"
-            print(f"  {D}|{R}   {dim:12} [{bar}] {pct}%")
-    else:
-        print(f"  {D}No data{R}")
-
-    print()
-    print(f"{G}{'=' * 50}{R}")
-    print(f"{D}  [1] Gods  [q] Quit{R}")
-    print()
-
-def geography_display(engine):
-    """Show geography stats."""
-    clear()
-    print()
-    print(f"{G}{B}  GEOGRAPHY - NETWORK DISTRIBUTION{R}")
-    print(f"{G}{'=' * 50}{R}")
-    print()
-
-    if engine:
-        diversity = engine.get_geographic_diversity_score()
-        cities = engine.get_city_distribution()
-
-        print(f"  {D}|{R} Unique Cities:   {G}{len(cities)}{R}")
-        print(f"  {D}|{R} Diversity Score: {G}{diversity*100:.1f}%{R}")
-        print(f"  {D}|{R}")
-
-        if cities:
-            print(f"  {D}|{R} City Distribution:")
-            sorted_cities = sorted(cities.items(), key=lambda x: x[1], reverse=True)
-            for hash_prefix, count in sorted_cities[:10]:
-                bar = f"{G}{'#' * min(count * 2, 20)}{R}"
-                print(f"  {D}|{R}   {hash_prefix}: {bar} ({count})")
-    else:
-        print(f"  {D}No data{R}")
-
-    print()
-    print(f"{G}{'=' * 50}{R}")
-    print(f"{D}  [1] Gods  [q] Quit{R}")
-    print()
-
-def run_dashboard(engine=None):
-    """Main loop."""
-    import select
-    import tty
-    import termios
-
-    view = 1  # 1=gods, 2=adonis, 3=geo
-    running = True
-
-    def render():
-        if view == 1:
-            matrix_display()
-        elif view == 2:
-            adonis_display(engine)
-        elif view == 3:
-            geography_display(engine)
-
-    render()
-
-    old_settings = termios.tcgetattr(sys.stdin)
-    try:
-        tty.setraw(sys.stdin.fileno())
-
-        while running:
-            if select.select([sys.stdin], [], [], 0.5)[0]:
-                ch = sys.stdin.read(1)
-
-                if ch in 'qQ':
-                    running = False
-                elif ch in 'rR1':
-                    view = 1
-                    render()
-                elif ch == '2':
-                    view = 2
-                    render()
-                elif ch == '3':
-                    view = 3
-                    render()
-    finally:
-        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
-
-    clear()
-    print(f"{G}Goodbye!{R}\n")
 
 def main():
     import argparse
-    import logging
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--demo", action="store_true")
-    parser.add_argument("--no-tui", action="store_true")
+    parser = argparse.ArgumentParser(description="Pantheon Matrix Logs")
+    parser.add_argument("--simple", action="store_true", help="Simple output, no animation")
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.WARNING)
-
-    engine = None
-    if args.demo:
-        try:
-            from adonis import AdonisEngine, ReputationEvent
-            engine = AdonisEngine()
-
-            cities = [("US", "NYC"), ("JP", "Tokyo"), ("DE", "Berlin"),
-                      ("GB", "London"), ("FR", "Paris"), ("SG", "Singapore")]
-
-            for i in range(15):
-                pk = bytes([i + 1] * 32)
-                country, city = random.choice(cities)
-                engine.register_node_location(pk, country, city)
-
-                for _ in range(random.randint(5, 20)):
-                    evt = random.choice([
-                        ReputationEvent.BLOCK_PRODUCED,
-                        ReputationEvent.BLOCK_VALIDATED,
-                        ReputationEvent.UPTIME_CHECKPOINT
-                    ])
-                    engine.record_event(pk, evt)
-        except:
-            pass
-
-    if args.no_tui:
-        matrix_display()
+    if args.simple or not sys.stdout.isatty():
+        simple_output()
     else:
-        signal.signal(signal.SIGINT, lambda s, f: sys.exit(0))
-        run_dashboard(engine)
+        import signal
+
+        logs = MatrixLogs()
+        signal.signal(signal.SIGINT, lambda s, f: setattr(logs, 'running', False))
+
+        try:
+            logs.run()
+        except Exception as e:
+            print(f"\nError: {e}")
+
 
 if __name__ == "__main__":
     main()
