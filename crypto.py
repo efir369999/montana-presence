@@ -61,6 +61,16 @@ except ImportError:
 
 from config import PROTOCOL
 
+# High-performance VDF using GMP (optional but recommended)
+try:
+    from vdf_fast import VDFEngine as GMPVDFEngine, VDFProof as GMPVDFProof, GMP_AVAILABLE, VDFError as GMPVDFError
+    USE_GMP_VDF = GMP_AVAILABLE
+except ImportError:
+    USE_GMP_VDF = False
+    GMPVDFEngine = None
+    GMPVDFProof = None
+    GMPVDFError = None
+
 logger = logging.getLogger("proof_of_time.crypto")
 
 
@@ -905,6 +915,10 @@ class WesolowskiVDF:
             auto_calibrate: If True, calibrate on init for target_time
             target_time: Target total computation time in seconds (default 10 min)
         """
+        # Use high-performance GMP engine if available
+        self._use_gmp = USE_GMP_VDF
+        self._gmp_engine: Optional['GMPVDFEngine'] = None
+
         if setup_params:
             self.modulus = setup_params.modulus
             self.modulus_bits = setup_params.modulus_bits
@@ -913,7 +927,19 @@ class WesolowskiVDF:
             # Use RSA-2048 challenge by default - secure without trusted setup
             self.modulus = self.DEFAULT_MODULUS
             self.modulus_bits = self.modulus.bit_length()
-            logger.info("VDF initialized with RSA-2048 challenge modulus")
+
+            # Initialize GMP engine for high performance
+            if self._use_gmp:
+                try:
+                    self._gmp_engine = GMPVDFEngine(auto_calibrate=auto_calibrate, target_time=target_time)
+                    logger.info("VDF initialized with GMP acceleration (production mode)")
+                except Exception as e:
+                    logger.warning(f"GMP VDF init failed, falling back to Python: {e}")
+                    self._use_gmp = False
+                    self._gmp_engine = None
+
+            if not self._use_gmp:
+                logger.info("VDF initialized with RSA-2048 challenge modulus (Python fallback)")
 
         self.byte_size = (self.modulus_bits + 7) // 8
 
@@ -1226,6 +1252,21 @@ class WesolowskiVDF:
         """
         import time as time_module
 
+        # Use GMP engine if available (4-5x faster)
+        if self._use_gmp and self._gmp_engine is not None:
+            try:
+                gmp_proof = self._gmp_engine.compute(input_data, iterations, progress_callback)
+                # Convert to local VDFProof format
+                return VDFProof(
+                    output=gmp_proof.output,
+                    proof=gmp_proof.proof,
+                    iterations=gmp_proof.iterations,
+                    input_hash=gmp_proof.input_hash
+                )
+            except GMPVDFError as e:
+                # Re-raise as local VDFError for API consistency
+                raise VDFError(str(e)) from e
+
         # Validate iterations
         if iterations < self.MIN_ITERATIONS:
             raise VDFError(f"Iterations {iterations} below minimum {self.MIN_ITERATIONS}")
@@ -1446,6 +1487,17 @@ class WesolowskiVDF:
         Returns:
             True if proof is valid, False otherwise
         """
+        # Use GMP engine if available (faster modexp)
+        if self._use_gmp and self._gmp_engine is not None:
+            # Convert to GMP proof format
+            gmp_proof = GMPVDFProof(
+                output=vdf_proof.output,
+                proof=vdf_proof.proof,
+                iterations=vdf_proof.iterations,
+                input_hash=vdf_proof.input_hash
+            )
+            return self._gmp_engine.verify(gmp_proof)
+
         try:
             if not vdf_proof.input_hash or not vdf_proof.output or not vdf_proof.proof:
                 logger.warning("VDF proof has missing fields")
