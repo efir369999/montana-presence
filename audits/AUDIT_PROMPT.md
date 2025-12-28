@@ -158,7 +158,8 @@ Send this prompt + repository files to any AI API.
 
 | Model | Date | Overall Score | File |
 |-------|------|---------------|------|
-| Claude Opus 4.5 | 2025-12-28 | 8.2/10 | [claude_opus_4.5_audit.md](claude_opus_4.5_audit.md) |
+| Claude Opus 4.5 (v2.0) | 2025-12-28 | 9.0/10 | [claude_opus_4.5_v2.0_audit.md](anthropic/claude_opus_4.5_v2.0_audit.md) |
+| Claude Opus 4.5 (v1.2) | 2025-12-28 | 8.2/10 | [claude_opus_4.5_audit.md](anthropic/claude_opus_4.5_audit.md) |
 | GPT-4o | - | - | Pending |
 | Gemini 1.5 Pro | - | - | Pending |
 | DeepSeek V2 | - | - | Pending |

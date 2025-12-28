@@ -1,13 +1,13 @@
 # Proof of Time - Security Audit Report
 
-## Status: PRODUCTION READY
+## Status: PRODUCTION READY (v2.0)
 
 This document tracks security-critical items for the Proof of Time protocol.
 
 **Auditor:** Claude (Anthropic AI, claude-opus-4-5-20251101)
 **Last Updated:** December 28, 2025
-**Version:** 1.2.0
-**Codebase:** ~22,000 LOC Python
+**Version:** 2.0.0
+**Codebase:** ~23,000 LOC Python
 
 ---
 
