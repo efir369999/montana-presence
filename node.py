@@ -1193,7 +1193,7 @@ def _render_dashboard(node, db_path: str = '/var/lib/proofoftime/blockchain.db')
     # Clear and render
     os.system('clear' if os.name != 'nt' else 'cls')
     print()
-    print(col("  PROOF OF TIME", G) + col(" │ ", D) + col("Dual-Layer Consensus", D))
+    print(col("  PROOF OF TIME", G))
     print(col("  ═══════════════════════════════════════════════", D))
     print()
     print(f"  {col('STATUS', C)}        {col(status, status_col)}")

@@ -143,7 +143,7 @@ def render(m):
         pot_color = R
 
     print()
-    print(c("  PROOF OF TIME", G) + c(" │ ", D) + c("Dual-Layer Consensus", D))
+    print(c("  PROOF OF TIME", G))
     print(c("  ═══════════════════════════════════════════════", D))
     print()
     print(f"  {c('STATUS', C)}        {status}")
