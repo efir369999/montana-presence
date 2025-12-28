@@ -210,12 +210,13 @@ None. v2.0 is fully backward compatible with v1.x.
 
 ---
 
-## What's Next (v2.1 Roadmap)
+## What's Next
 
-1. **Ristretto255 Integration**: Enhanced privacy primitives
-2. **Remote Attestation**: Hardware security module support
-3. **Formal Verification**: Mathematical proofs for consensus
-4. **Cross-Chain Bridge**: Interoperability layer
+See [RELEASE_v2.1.md](RELEASE_v2.1.md) for:
+- Geographic diversity dimension in Adonis
+- Anonymous city detection
+- Testnet deployment infrastructure
+- Network decentralization incentives
 
 ---
 
