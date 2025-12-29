@@ -22,8 +22,8 @@ from typing import List, Tuple, Optional, Dict
 from dataclasses import dataclass, field
 from enum import IntEnum
 
-from crypto import sha256, sha256d, Ed25519, hmac_sha256
-from privacy import (
+from pantheon.prometheus import sha256, sha256d, Ed25519, hmac_sha256
+from pantheon.nyx import (
     StealthKeys, StealthAddress, StealthOutput,
     LSAG, LSAGSignature, Pedersen, PedersenCommitment,
     Bulletproof, RangeProof, RingCT, Ed25519Point,

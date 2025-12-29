@@ -24,35 +24,35 @@ from collections import defaultdict
 
 # Core modules
 from config import PROTOCOL, NodeConfig, get_block_reward, TemporalCompression
-from crypto import sha256, sha256d, Ed25519, WesolowskiVDF, ECVRF
-from consensus import (
+from pantheon.prometheus import sha256, sha256d, Ed25519, WesolowskiVDF, ECVRF
+from pantheon.athena import (
     NodeState, NodeStatus, ConsensusCalculator, LeaderSelector,
     SybilDetector, SlashingManager, WeightRebalancer, ProbabilityWeights
 )
 
 # Adonis reputation module
-from adonis import (
+from pantheon.adonis import (
     AdonisEngine, AdonisProfile, ReputationEvent, ReputationDimension,
     compute_f_rep_adonis, create_reputation_modifier
 )
 
 # DAG modules
-from dag import (
+from pantheon.hades import (
     DAGBlock, DAGBlockHeader, PHANTOMOrdering, 
     DAGConsensusEngine, DAGBlockProducer,
     MAX_PARENTS, MIN_WEIGHT_THRESHOLD
 )
-from dag_storage import DAGStorage
+from pantheon.hades import DAGStorage
 
 # Privacy modules
-from tiered_privacy import (
+from pantheon.nyx import (
     PrivacyTier, TieredOutput, TieredInput, TieredTransaction,
     TieredTransactionBuilder, TierValidator, AnonymitySetManager,
     TIER_SPECS
 )
 
 # Data structures
-from structures import Transaction, Block, MerkleTree
+from pantheon.themis import Transaction, Block, MerkleTree
 
 logger = logging.getLogger("proof_of_time.engine")
 

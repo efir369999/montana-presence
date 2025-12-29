@@ -25,9 +25,9 @@ from enum import IntEnum
 from collections import defaultdict
 
 import os
-from crypto import sha256, sha256d, Ed25519, WesolowskiVDF, VDFProof, ECVRF
+from pantheon.prometheus import sha256, sha256d, Ed25519, WesolowskiVDF, VDFProof, ECVRF
 from config import PROTOCOL
-from tiered_privacy import TierValidator, EXPERIMENTAL_PRIVACY_ENABLED
+from pantheon.nyx import TierValidator, EXPERIMENTAL_PRIVACY_ENABLED
 
 logger = logging.getLogger("proof_of_time.dag")
 

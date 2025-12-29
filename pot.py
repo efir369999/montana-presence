@@ -287,7 +287,7 @@ def _short_hash():
 def _get_adonis_stats():
     """Get Adonis reputation stats."""
     try:
-        from adonis import AdonisEngine
+        from pantheon.adonis import AdonisEngine
         engine = AdonisEngine()
         stats = engine.get_stats()
         return {
@@ -449,16 +449,131 @@ def print_all():
     print()
     print("12 gods x 12 params = 144 total")
 
+def run_node(args):
+    """Run full node with carousel output."""
+    import signal
+    import threading
+    from config import NodeConfig
+    from node import FullNode
+    from pantheon.prometheus import Ed25519
+    from pantheon.plutus import Wallet
+
+    data_dir = args.data_dir or '/var/lib/proofoftime'
+    config = NodeConfig()
+
+    # Load config file if exists
+    config_file = args.config or os.path.join(data_dir, 'config.json')
+    if os.path.exists(config_file):
+        with open(config_file, 'r') as f:
+            cfg_data = json.load(f)
+            config.network.default_port = cfg_data.get('p2p_port', 9333)
+            config.rpc_port = cfg_data.get('rpc_port', 8332)
+
+    # Command line overrides
+    from config import StorageConfig
+    os.makedirs(data_dir, exist_ok=True)
+    config.storage = StorageConfig(db_path=os.path.join(data_dir, 'blockchain.db'))
+    if args.p2p_port:
+        config.network.default_port = args.p2p_port
+    if args.rpc_port:
+        config.rpc_port = args.rpc_port
+
+    node = FullNode(config)
+
+    # Load or create node keys
+    key_file = os.path.join(data_dir, 'node_key.json')
+    if os.path.exists(key_file):
+        with open(key_file, 'r') as f:
+            key_data = json.load(f)
+            secret_key = bytes.fromhex(key_data['secret_key'])
+            public_key = bytes.fromhex(key_data['public_key'])
+    else:
+        secret_key, public_key = Ed25519.generate_keypair()
+        with open(key_file, 'w') as f:
+            json.dump({
+                'secret_key': secret_key.hex(),
+                'public_key': public_key.hex()
+            }, f, indent=2)
+        os.chmod(key_file, 0o600)
+        print(f"Generated new node keys: {public_key.hex()[:16]}...")
+
+    # Graceful shutdown
+    shutdown_event = threading.Event()
+    def signal_handler(signum, frame):
+        shutdown_event.set()
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    # Load or create wallet
+    wallet_file = os.path.join(data_dir, 'wallet.dat')
+    if os.path.exists(wallet_file):
+        wallet = Wallet.load(wallet_file)
+    else:
+        wallet = Wallet()
+        wallet.save(wallet_file)
+        os.chmod(wallet_file, 0o600)
+
+    try:
+        node.start()
+        node.set_wallet(wallet)
+        node.enable_mining(secret_key, public_key)
+
+        # Main loop with carousel
+        print("PROOF OF TIME NODE (carousel mode)")
+        print(f"Genesis: {GENESIS_TIMESTAMP} | Ctrl+C to stop")
+        print()
+
+        while not shutdown_event.is_set():
+            now = int(time.time())
+            god_num = (now - GENESIS_TIMESTAMP) % 12 + 1
+            ts = datetime.now().strftime("%H:%M:%S")
+            god = GODS[god_num]
+            params = god["get"]()
+            line = ", ".join(params)
+            print(f"{ts} [{god_num:2}] {god['name']:10} {line}")
+            shutdown_event.wait(timeout=1.0)
+
+    except KeyboardInterrupt:
+        pass
+    finally:
+        print("\nShutting down...")
+        node.stop()
+
+
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="Pantheon Carousel (synced to genesis)")
-    parser.add_argument("--static", "-s", action="store_true", help="Static view (all 12 rows once)")
+    parser = argparse.ArgumentParser(
+        description="Proof of Time - Pantheon",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  pot.py              # Carousel (default)
+  pot.py --static     # Static view
+  pot.py --node       # Run full node with carousel
+  pot.py --node -d /path/to/data
+"""
+    )
+    parser.add_argument("--static", "-s", action="store_true",
+                        help="Static view (all 12 rows once)")
+    parser.add_argument("--node", "-n", action="store_true",
+                        help="Run full node with carousel output")
+    parser.add_argument("--config", "-c", type=str,
+                        help="Config file path")
+    parser.add_argument("--data-dir", "-d", type=str,
+                        help="Data directory")
+    parser.add_argument("--p2p-port", type=int,
+                        help="P2P port (default: 9333)")
+    parser.add_argument("--rpc-port", type=int,
+                        help="RPC port (default: 8332)")
     args = parser.parse_args()
 
-    if args.static:
+    if args.node:
+        run_node(args)
+    elif args.static:
         print_all()
     else:
-        carousel()  # Default: run synced carousel
+        carousel()  # Default: carousel
+
 
 if __name__ == "__main__":
     main()

@@ -1413,7 +1413,7 @@ def main():
             public_key = bytes.fromhex(key_data['public_key'])
     else:
         # Generate new keys
-        from crypto import Ed25519
+        from pantheon.prometheus import Ed25519
         secret_key, public_key = Ed25519.generate_keypair()
         os.makedirs(data_dir, exist_ok=True)
         with open(key_file, 'w') as f:
@@ -1434,7 +1434,6 @@ def main():
     signal.signal(signal.SIGTERM, signal_handler)
 
     # Load or create wallet
-    from wallet import Wallet
     wallet_file = os.path.join(data_dir, 'wallet.dat')
     if os.path.exists(wallet_file):
         wallet = Wallet.load(wallet_file)

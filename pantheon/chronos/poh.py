@@ -20,7 +20,7 @@ from typing import List, Optional, Dict, Tuple, Set
 from dataclasses import dataclass, field
 from enum import IntEnum
 
-from crypto import sha256, sha256d, Ed25519
+from pantheon.prometheus import sha256, sha256d, Ed25519
 from config import PROTOCOL
 
 logger = logging.getLogger("proof_of_time.poh")

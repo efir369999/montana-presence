@@ -19,11 +19,11 @@ from typing import List, Optional, Tuple, Dict, Any
 from dataclasses import dataclass, field
 from enum import IntEnum
 
-from crypto import (
+from pantheon.prometheus import (
     sha256, sha256d, Ed25519, MerkleTree,
     VDFProof, VRFOutput, WesolowskiVDF, ECVRF
 )
-from privacy import (
+from pantheon.nyx import (
     LSAGSignature, StealthOutput, RangeProof,
     RingCTInput, RingCTOutput
 )

@@ -22,8 +22,8 @@ from typing import List, Optional, Dict, Tuple, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 
-from structures import Block, BlockHeader, Transaction, TxOutput
-from consensus import NodeState, NodeStatus
+from pantheon.themis import Block, BlockHeader, Transaction, TxOutput
+from pantheon.athena import NodeState, NodeStatus
 from config import PROTOCOL, StorageConfig
 
 logger = logging.getLogger("proof_of_time.database")

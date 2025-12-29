@@ -24,8 +24,8 @@ from dataclasses import dataclass, field
 from enum import IntEnum, auto
 from collections import defaultdict
 
-from crypto import sha256, Ed25519, ECVRF, VRFOutput, WesolowskiVDF, VDFProof
-from structures import Block, BlockHeader, Transaction, create_genesis_block
+from pantheon.prometheus import sha256, Ed25519, ECVRF, VRFOutput, WesolowskiVDF, VDFProof
+from pantheon.themis import Block, BlockHeader, Transaction, create_genesis_block
 from config import PROTOCOL, NodeConfig, get_block_reward
 
 # Optional Adonis integration (for enhanced reputation)

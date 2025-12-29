@@ -26,8 +26,8 @@ from dataclasses import dataclass
 from functools import wraps
 
 from node import FullNode
-from wallet import Wallet
-from structures import Block, Transaction
+from pantheon.plutus import Wallet
+from pantheon.themis import Block, Transaction
 from config import PROTOCOL
 
 logger = logging.getLogger("proof_of_time.rpc")

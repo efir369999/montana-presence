@@ -62,8 +62,8 @@ try:
 except ImportError:
     CRYPTOGRAPHY_AVAILABLE = False
 
-from crypto import sha256, sha256d, Ed25519, X25519
-from structures import Block, BlockHeader, Transaction
+from pantheon.prometheus import sha256, sha256d, Ed25519, X25519
+from pantheon.themis import Block, BlockHeader, Transaction
 from config import PROTOCOL, NetworkConfig
 
 logger = logging.getLogger("proof_of_time.network")

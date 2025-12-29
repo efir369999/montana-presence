@@ -24,7 +24,7 @@ from dataclasses import dataclass, field
 from enum import IntEnum, auto
 from collections import defaultdict
 
-from crypto import sha256
+from pantheon.prometheus import sha256
 from config import PROTOCOL
 
 logger = logging.getLogger("proof_of_time.adonis")
