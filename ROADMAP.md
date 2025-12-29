@@ -25,16 +25,31 @@ The body as a timestamp server. Life itself proves the passage of time through i
 
 ---
 
-## Technical Milestones
+## Releases
+
+| Version | Date | Description |
+|---------|------|-------------|
+| v1.0.0 | Dec 2025 | DAG-PHANTOM, tiered privacy, VDF/VRF |
+| v1.1.0 | Dec 2025 | UTC sync, dashboard |
+| v1.2.0 | Dec 2025 | Wallet dashboard, security audit |
+| v1.3.0 | Dec 2025 | PyO3 Rust bindings |
+| v2.0.0 | Dec 2025 | Pantheon: 12 gods architecture |
+| v2.1.0 | Dec 2025 | Geographic diversity (Adonis) |
+| v2.2.0 | Dec 2025 | Pantheon dashboard |
+| **v2.3.0** | Dec 2025 | **Testnet ready** |
+
+---
+
+## Roadmap
 
 | Phase | Status | Description |
 |-------|--------|-------------|
-| Genesis | COMPLETE | Core protocol, VDF engine, privacy layer |
-| v1.0 | COMPLETE | Production-ready node, GMP acceleration |
-| v1.1 | COMPLETE | Dashboard, emission tracking |
-| v1.2 | COMPLETE | Wallet integration, security audit |
-| v2.0 | PLANNED | Mobile wallet, light clients |
-| v3.0 | PLANNED | Smart contracts, time-locked execution |
+| Genesis | DONE | Core protocol, VDF, privacy |
+| Pantheon | DONE | 12-module architecture |
+| Adonis | DONE | Five Fingers reputation |
+| Testnet | CURRENT | v2.3.0 deployed |
+| Mainnet | Q1 2026 | Public launch |
+| Mobile | Q2 2026 | Light clients, mobile wallet |
 
 ---
 
@@ -53,4 +68,4 @@ Both are scarce. Both are real. Time is the ultimate proof of work — you canno
 
 ---
 
-Generated: 2025-12-28
+Updated: 2025-12-29
