@@ -1,6 +1,6 @@
-# Proof of Time
+# Proof of Time v2.2
 
-**Proof of Time: Chronos proves, Athena selects, Adonis trusts.**
+**Chronos proves, Athena selects, Adonis trusts.**
 
 *"Running Bitcoin"* — Hal Finney, January 11, 2009
 
@@ -62,20 +62,27 @@ If everything is a dream, time is the only measure within it. Not space — that
 
 ## Technical Specifications
 
-The protocol is built on the **Pantheon** architecture — a modular system where each component is named after a Greek deity representing its core function.
+The protocol is built on the **Pantheon** architecture — 12 modular components:
 
-| Component | Role | Logic |
-|-----------|------|-------|
-| **Chronos** | Time | Verifiable Delay Functions (VDF) |
-| **Athena** | Consensus | Leader selection & Governance |
-| **Adonis** | Reputation | Multi-dimensional trust model |
+| # | God | Domain | Status |
+|---|-----|--------|--------|
+| 1 | **Chronos** | VDF / Time proofs | Active |
+| 2 | **Adonis** | 6-dimension reputation | Active |
+| 3 | **Hermes** | P2P / Noise Protocol | Active |
+| 4 | **Hades** | SQLite / DAG storage | Active |
+| 5 | **Athena** | VRF consensus | Active |
+| 6 | **Prometheus** | Ed25519 / ECVRF | Active |
+| 7 | **Mnemosyne** | Mempool / cache | Active |
+| 8 | **Plutus** | Wallet / UTXO | Active |
+| 9 | **Nyx** | Ring signatures | Limited |
+| 10 | **Themis** | Validation | Active |
+| 11 | **Iris** | RPC / WebSocket | Active |
+| 12 | **Ananke** | Governance | Planned |
 
-- **Consensus:** VDF + Weighted Probability
-- **Transaction Ordering:** Proof of History (PoH) within 10-minute epochs
-- **Privacy:** Ring signatures (LSAG), stealth addresses, RingCT
-- **Minimum nodes:** 3 active nodes
-- **Sybil resistance:** Probability normalization + 180-day probation
-- **Network architecture:** Bitcoin model (DNS seeds, gossip protocol, headers-first sync)
+- **Consensus:** VDF (T=1M) + ECVRF leader selection
+- **Ordering:** PoH within 10-minute epochs
+- **Privacy:** LSAG, stealth addresses, Bulletproofs (T0-T3 tiers)
+- **Reputation:** 6 dimensions with PageRank trust propagation
 
 ## Security Model
 
@@ -133,11 +140,16 @@ When everyone agreed that 1Ɉ = 1 second of Earth time, value ceased to require 
 
 ## Running Time
 
-⚠️ **Безопасность прежде всего**: в текущем состоянии протокол содержит незавершённые части (финализация PoH→PoT, экономическая валидация DAG, проверенные криптопримитивы T2/T3, fallback VDF). По умолчанию узел **не запускается**, пока не будет явно задан `POT_ALLOW_UNSAFE=1`. Делайте это только в изолированной среде для разработки. Конфиденциальные уровни приватности T2/T3 отключены по умолчанию (включение через `POT_ENABLE_EXPERIMENTAL_PRIVACY=1` — небезопасно).
+```bash
+# Quick start (testnet)
+pip install pynacl
+python pot.py              # Pantheon carousel (live metrics)
+python node.py --run       # Run node
+```
 
-The network requires honest nodes. If you run a node for 180 days, you gain maximum influence. Your capital doesn't matter. Your computational power doesn't matter. Your presence matters.
+⚠️ **Development mode:** Set `POT_ALLOW_UNSAFE=1` for testnet. Privacy tiers T2/T3 disabled by default.
 
-Time cannot be forked. You can create an alternative history. You cannot create alternative time.
+The network requires honest nodes. Run for 180 days → maximum influence. Capital doesn't matter. Presence matters.
 
 ---
 
