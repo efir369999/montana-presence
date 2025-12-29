@@ -44,10 +44,26 @@ P(i) = 60% × Time + 20% × Storage + 20% × Reputation
 
 Time:       saturates at 180 days uptime
 Storage:    saturates at 80% chain history
-Reputation: saturates at 2,016 signed blocks
+Reputation: 7-dimensional Adonis score
 ```
 
 **Saturation** = newcomer catches up to veteran in 180 days. This is a feature.
+
+### Reputation: Adonis System
+
+7 dimensions that encourage decentralization:
+
+| Dimension | Weight | What it measures |
+|-----------|--------|------------------|
+| Integrity | 25% | No violations, valid proofs |
+| Reliability | 20% | Uptime, block production |
+| Longevity | 15% | Time in network |
+| **Country** | **12%** | Unique country bonus |
+| Contribution | 12% | Storage, relay, validation |
+| Community | 8% | Peer vouching |
+| City | 8% | Unique city bonus |
+
+**Geographic decentralization**: First node from a new country gets +0.25 bonus. First from a new city gets +0.15. Fewer nodes in your location = higher score. This incentivizes global distribution.
 
 ### DAG
 
@@ -62,7 +78,7 @@ Each block references 1-8 parents. PHANTOM-PoT algorithm for ordering. Horizonta
 | # | God | Function |
 |---|-----|----------|
 | 1 | **Chronos** | VDF, PoH, time proofs |
-| 2 | **Adonis** | 6-dimensional reputation |
+| 2 | **Adonis** | 7-dimensional reputation |
 | 3 | **Hermes** | P2P, Noise Protocol |
 | 4 | **Hades** | DAG, SQLite storage |
 | 5 | **Athena** | VRF consensus |

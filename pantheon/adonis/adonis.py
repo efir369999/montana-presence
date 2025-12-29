@@ -58,14 +58,16 @@ class ReputationDimension(IntEnum):
     - CONTRIBUTION: Storage, relay, validation work
     - LONGEVITY: Time in network with good standing
     - COMMUNITY: Peer vouching and trust delegation
-    - GEOGRAPHY: Geographic diversity bonus
+    - COUNTRY: Country uniqueness bonus (higher weight - promotes global decentralization)
+    - GEOGRAPHY: City uniqueness bonus (lower weight than country)
     """
     RELIABILITY = auto()   # Block production consistency
     INTEGRITY = auto()     # No violations, valid proofs
     CONTRIBUTION = auto()  # Network contribution (storage, relay)
     LONGEVITY = auto()     # Time-weighted presence
     COMMUNITY = auto()     # Peer trust and vouching
-    GEOGRAPHY = auto()     # Geographic diversity (city uniqueness)
+    COUNTRY = auto()       # Country diversity (higher weight than city)
+    GEOGRAPHY = auto()     # City diversity (lower weight than country)
 
 
 @dataclass
@@ -116,6 +118,7 @@ class ReputationEvent(IntEnum):
     TX_RELAYED = auto()          # Relayed valid transaction
     UPTIME_CHECKPOINT = auto()   # Maintained uptime
     PEER_VOUCH = auto()          # Received vouch from peer
+    NEW_COUNTRY = auto()         # First node from a new country (big bonus)
     NEW_CITY = auto()            # First node from a new city
 
     # Negative events
@@ -209,8 +212,9 @@ class AdonisProfile:
     last_updated: int = 0
     total_events: int = 0
 
-    # Geographic diversity (anonymous city hash)
-    city_hash: Optional[bytes] = None  # SHA256(country + city) - no raw IP stored
+    # Geographic diversity
+    country_code: Optional[str] = None  # ISO country code (e.g., "US", "DE", "JP")
+    city_hash: Optional[bytes] = None   # SHA256(country + city) - no raw IP stored
 
     def __post_init__(self):
         if self.created_at == 0:
@@ -438,7 +442,8 @@ class AdonisEngine:
         ReputationEvent.TX_RELAYED: 0.01,
         ReputationEvent.UPTIME_CHECKPOINT: 0.03,
         ReputationEvent.PEER_VOUCH: 0.10,
-        ReputationEvent.NEW_CITY: 0.15,          # Bonus for geographic diversity
+        ReputationEvent.NEW_COUNTRY: 0.25,       # Big bonus for country diversity
+        ReputationEvent.NEW_CITY: 0.15,          # Bonus for city diversity
         ReputationEvent.BLOCK_INVALID: -0.15,
         ReputationEvent.VRF_INVALID: -0.20,
         ReputationEvent.VDF_INVALID: -0.25,
@@ -455,6 +460,7 @@ class AdonisEngine:
         ReputationEvent.TX_RELAYED: ReputationDimension.CONTRIBUTION,
         ReputationEvent.UPTIME_CHECKPOINT: ReputationDimension.RELIABILITY,
         ReputationEvent.PEER_VOUCH: ReputationDimension.COMMUNITY,
+        ReputationEvent.NEW_COUNTRY: ReputationDimension.COUNTRY,
         ReputationEvent.NEW_CITY: ReputationDimension.GEOGRAPHY,
         ReputationEvent.BLOCK_INVALID: ReputationDimension.INTEGRITY,
         ReputationEvent.VRF_INVALID: ReputationDimension.INTEGRITY,
@@ -486,14 +492,20 @@ class AdonisEngine:
         self._current_height: int = 0
 
         # Configuration
+        # Country has higher weight than city to promote global decentralization
         self.dimension_weights = {
-            ReputationDimension.RELIABILITY: 0.22,
-            ReputationDimension.INTEGRITY: 0.28,
-            ReputationDimension.CONTRIBUTION: 0.13,
-            ReputationDimension.LONGEVITY: 0.17,
-            ReputationDimension.COMMUNITY: 0.10,
-            ReputationDimension.GEOGRAPHY: 0.10,  # Geographic diversity bonus
+            ReputationDimension.RELIABILITY: 0.20,
+            ReputationDimension.INTEGRITY: 0.25,
+            ReputationDimension.CONTRIBUTION: 0.12,
+            ReputationDimension.LONGEVITY: 0.15,
+            ReputationDimension.COMMUNITY: 0.08,
+            ReputationDimension.COUNTRY: 0.12,    # Country diversity (higher weight)
+            ReputationDimension.GEOGRAPHY: 0.08,  # City diversity (lower weight)
         }
+
+        # Country tracking for global decentralization
+        # Maps country_code -> set of node pubkeys in that country
+        self._country_nodes: Dict[str, Set[bytes]] = defaultdict(set)
 
         # City hash tracking for geographic diversity
         # Maps city_hash -> set of node pubkeys in that city
@@ -811,6 +823,7 @@ class AdonisEngine:
                 'penalized_profiles': len(penalized),
                 'total_vouches': total_vouches,
                 'average_score': avg_score,
+                'unique_countries': len(self._country_nodes),
                 'unique_cities': len(self._city_nodes),
                 'dimension_weights': {
                     dim.name: weight
@@ -846,30 +859,78 @@ class AdonisEngine:
         country: str,
         city: str,
         ip_address: Optional[str] = None
-    ) -> Tuple[bool, float]:
+    ) -> Tuple[bool, bool, float, float]:
         """
         Register node's geographic location anonymously.
 
         Privacy guarantees:
         - IP address is NEVER stored
-        - Only city_hash (SHA256) is stored
-        - Cannot reverse-engineer location from hash
+        - Only country_code and city_hash are stored
+        - Cannot reverse-engineer city from hash
 
         Args:
             pubkey: Node public key
-            country: Country code
+            country: Country code (e.g., "US", "DE", "JP")
             city: City name
             ip_address: Optional IP (used only for geolocation, not stored)
 
         Returns:
-            Tuple of (is_new_city, geographic_score)
+            Tuple of (is_new_country, is_new_city, country_score, city_score)
+            is_new_country: True if this is first node from this country
             is_new_city: True if this is first node from this city
-            geographic_score: Updated geography dimension score
+            country_score: Updated country dimension score
+            city_score: Updated geography dimension score
         """
         with self._lock:
             profile = self.get_or_create_profile(pubkey)
+            country_code = country.upper().strip()
             city_hash = self.compute_city_hash(country, city)
 
+            # === COUNTRY TRACKING ===
+            # Check if this is a new country for the network
+            is_new_country = len(self._country_nodes[country_code]) == 0
+
+            # Update profile's country
+            old_country = profile.country_code
+            if old_country and old_country != country_code:
+                # Node moved countries - remove from old country
+                self._country_nodes[old_country].discard(pubkey)
+                if not self._country_nodes[old_country]:
+                    del self._country_nodes[old_country]
+
+            profile.country_code = country_code
+            self._country_nodes[country_code].add(pubkey)
+
+            # Calculate country diversity score
+            # Fewer nodes in country = higher score (encourages global decentralization)
+            nodes_in_country = len(self._country_nodes[country_code])
+            total_countries = len(self._country_nodes)
+
+            # Score based on country rarity (stronger than city)
+            # 1 node = 1.0, 10 nodes = 0.5, 100 nodes = 0.25
+            country_rarity = 1.0 / (1.0 + math.log10(nodes_in_country))
+
+            # Big bonus for network having many countries
+            country_diversity = min(1.0, total_countries / 50)  # Max at 50 countries
+
+            country_score = 0.6 * country_rarity + 0.4 * country_diversity
+
+            # Update country dimension
+            profile.dimensions[ReputationDimension.COUNTRY].update(
+                country_score,
+                weight=1.5,  # Higher weight than city
+                timestamp=int(time.time())
+            )
+
+            # Award NEW_COUNTRY event if first node from this country
+            if is_new_country:
+                self.record_event(pubkey, ReputationEvent.NEW_COUNTRY)
+                logger.info(
+                    f"NEW COUNTRY! Node {pubkey.hex()[:16]}... "
+                    f"is first from {country_code} (total countries: {total_countries})"
+                )
+
+            # === CITY TRACKING ===
             # Check if this is a new city for the network
             is_new_city = len(self._city_nodes[city_hash]) == 0
 
@@ -884,23 +945,18 @@ class AdonisEngine:
             profile.city_hash = city_hash
             self._city_nodes[city_hash].add(pubkey)
 
-            # Calculate geographic diversity score
-            # Fewer nodes in city = higher score (encourages decentralization)
+            # Calculate city diversity score
             nodes_in_city = len(self._city_nodes[city_hash])
             total_cities = len(self._city_nodes)
 
-            # Score based on city rarity
-            # 1 node in city = 1.0, 10 nodes = 0.5, 100 nodes = 0.25
-            rarity_score = 1.0 / (1.0 + math.log10(nodes_in_city))
+            city_rarity = 1.0 / (1.0 + math.log10(nodes_in_city))
+            city_diversity = min(1.0, total_cities / 100)  # Max at 100 cities
 
-            # Bonus for network having many cities
-            diversity_bonus = min(1.0, total_cities / 100)  # Max at 100 cities
-
-            geo_score = 0.7 * rarity_score + 0.3 * diversity_bonus
+            city_score = 0.7 * city_rarity + 0.3 * city_diversity
 
             # Update geography dimension
             profile.dimensions[ReputationDimension.GEOGRAPHY].update(
-                geo_score,
+                city_score,
                 weight=1.0,
                 timestamp=int(time.time())
             )
@@ -909,17 +965,29 @@ class AdonisEngine:
             if is_new_city:
                 self.record_event(pubkey, ReputationEvent.NEW_CITY)
                 logger.info(
-                    f"New city registered! Node {pubkey.hex()[:16]}... "
+                    f"New city! Node {pubkey.hex()[:16]}... "
                     f"is first from city hash {city_hash.hex()[:16]}..."
                 )
 
             logger.debug(
-                f"Node {pubkey.hex()[:16]}... registered in city "
-                f"{city_hash.hex()[:16]}... (score: {geo_score:.3f}, "
-                f"nodes_in_city: {nodes_in_city}, total_cities: {total_cities})"
+                f"Node {pubkey.hex()[:16]}... registered: "
+                f"country={country_code} (score={country_score:.3f}, nodes={nodes_in_country}), "
+                f"city={city_hash.hex()[:8]}... (score={city_score:.3f}, nodes={nodes_in_city})"
             )
 
-            return is_new_city, geo_score
+            return is_new_country, is_new_city, country_score, city_score
+
+    def get_country_distribution(self) -> Dict[str, int]:
+        """
+        Get distribution of nodes per country.
+
+        Returns dict mapping country_code -> node_count.
+        """
+        with self._lock:
+            return {
+                country: len(nodes)
+                for country, nodes in self._country_nodes.items()
+            }
 
     def get_city_distribution(self) -> Dict[str, int]:
         """
@@ -969,7 +1037,7 @@ class AdonisEngine:
         self,
         pubkey: bytes,
         ip_address: str
-    ) -> Optional[Tuple[bool, float]]:
+    ) -> Optional[Tuple[bool, bool, float, float]]:
         """
         Update node location from IP address using free geolocation.
 
@@ -980,7 +1048,8 @@ class AdonisEngine:
             ip_address: Node's IP address
 
         Returns:
-            Tuple of (is_new_city, score) or None if geolocation failed
+            Tuple of (is_new_country, is_new_city, country_score, city_score)
+            or None if geolocation failed
         """
         try:
             # Try to use ip-api.com (free, no key required)
@@ -1278,27 +1347,39 @@ def _self_test():
     node5 = b'\x05' * 32
     node6 = b'\x06' * 32
 
-    # First node from Tokyo - should get NEW_CITY bonus
-    is_new, geo_score1 = engine.register_node_location(node4, "JP", "Tokyo")
-    assert is_new == True
-    assert geo_score1 > 0
-    logger.info(f"  Geographic: Tokyo first node (score: {geo_score1:.3f})")
+    # First node from Japan/Tokyo - should get NEW_COUNTRY and NEW_CITY bonus
+    is_new_country, is_new_city, country_score, city_score = engine.register_node_location(node4, "JP", "Tokyo")
+    assert is_new_country == True
+    assert is_new_city == True
+    assert country_score > 0
+    assert city_score > 0
+    logger.info(f"  Geographic: JP/Tokyo first node (country={country_score:.3f}, city={city_score:.3f})")
 
-    # Second node from Tokyo - no NEW_CITY bonus
-    is_new, geo_score2 = engine.register_node_location(node5, "JP", "Tokyo")
-    assert is_new == False
-    assert geo_score2 <= geo_score1  # Lower score due to more nodes in city
-    logger.info(f"  Geographic: Tokyo second node (score: {geo_score2:.3f})")
+    # Second node from Japan/Tokyo - no bonuses
+    is_new_country, is_new_city, country_score2, city_score2 = engine.register_node_location(node5, "JP", "Tokyo")
+    assert is_new_country == False
+    assert is_new_city == False
+    assert country_score2 <= country_score  # Lower score due to more nodes
+    assert city_score2 <= city_score
+    logger.info(f"  Geographic: JP/Tokyo second node (country={country_score2:.3f}, city={city_score2:.3f})")
 
-    # First node from Berlin - NEW_CITY bonus
-    is_new, geo_score3 = engine.register_node_location(node6, "DE", "Berlin")
-    assert is_new == True
-    logger.info(f"  Geographic: Berlin first node (score: {geo_score3:.3f})")
+    # First node from Germany/Berlin - NEW_COUNTRY and NEW_CITY bonus
+    is_new_country, is_new_city, country_score3, city_score3 = engine.register_node_location(node6, "DE", "Berlin")
+    assert is_new_country == True
+    assert is_new_city == True
+    logger.info(f"  Geographic: DE/Berlin first node (country={country_score3:.3f}, city={city_score3:.3f})")
+
+    # Check country distribution
+    country_dist = engine.get_country_distribution()
+    assert len(country_dist) == 2  # JP and DE
+    assert country_dist["JP"] == 2
+    assert country_dist["DE"] == 1
+    logger.info(f"  Geographic: {len(country_dist)} unique countries")
 
     # Check city distribution
-    distribution = engine.get_city_distribution()
-    assert len(distribution) == 2  # Tokyo and Berlin
-    logger.info(f"  Geographic: {len(distribution)} unique cities")
+    city_dist = engine.get_city_distribution()
+    assert len(city_dist) == 2  # Tokyo and Berlin
+    logger.info(f"  Geographic: {len(city_dist)} unique cities")
 
     # Check network diversity
     diversity = engine.get_geographic_diversity_score()
@@ -1311,11 +1392,13 @@ def _self_test():
     assert hash1 == hash2
     logger.info("  Geographic: City hash anonymity")
 
-    # Verify stats include unique_cities
+    # Verify stats include unique_countries and unique_cities
     stats = engine.get_stats()
+    assert 'unique_countries' in stats
     assert 'unique_cities' in stats
+    assert stats['unique_countries'] == 2
     assert stats['unique_cities'] == 2
-    logger.info(f"  Geographic: Stats include unique_cities={stats['unique_cities']}")
+    logger.info(f"  Geographic: Stats include unique_countries={stats['unique_countries']}, unique_cities={stats['unique_cities']}")
 
     logger.info("All Adonis self-tests passed!")
 
