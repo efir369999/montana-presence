@@ -158,6 +158,7 @@ Send this prompt + repository files to any AI API.
 
 | Model | Date | Overall Score | File |
 |-------|------|---------------|------|
+| Claude Opus 4.5 (v2.3) | 2025-12-29 | PASS | [SECURITY_AUDIT.md](anthropic/SECURITY_AUDIT.md) |
 | Claude Opus 4.5 (v2.0) | 2025-12-28 | 9.0/10 | [claude_opus_4.5_v2.0_audit.md](anthropic/claude_opus_4.5_v2.0_audit.md) |
 | Gemini 3 Flash | 2025-12-28 | 9.0/10 | [gemini_3_flash_audit.md](alphabet/gemini_3_flash_audit.md) |
 | Claude Opus 4.5 (v1.2) | 2025-12-28 | 8.2/10 | [claude_opus_4.5_audit.md](anthropic/claude_opus_4.5_audit.md) |
