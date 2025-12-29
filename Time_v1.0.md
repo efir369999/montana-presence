@@ -1,9 +1,7 @@
-# Proof of Time: A Peer-to-Peer Electronic Cash System Based on Time
+# Time: A Peer-to-Peer Electronic Cash System Based on Time
 
 **Alejandro Montana**
 alejandromontana@tutamail.com
-
-**Version 2.1** — December 2025
 
 ---
 
@@ -51,7 +49,7 @@ We use Wesolowski VDF:
 
 ```
 y = x^(2^T) mod N
-π = x^⌊2^T/l⌋ mod N
+proof π = x^(2^T / l) mod N
 
 where:
   T = number of iterations (time parameter)
@@ -72,7 +70,7 @@ VDF guarantees that T sequential squarings were performed. No amount of money ca
 Fast transaction layer. Sequential SHA-256 chain:
 
 ```
-H(n) = SHA256(H(n-1) ‖ data ‖ timestamp)
+H(n) = SHA256(H(n-1) || data || timestamp)
 ```
 
 - 1 hash per slot
@@ -128,22 +126,20 @@ Node weight is computed from five dimensions. Like fingers on a hand — each ha
 ### 5.1 Formula
 
 ```
-Adonis(i) = Σ(w_d × score_d) for d ∈ {TIME, INTEGRITY, STORAGE, GEOGRAPHY, HANDSHAKE}
+Adonis(i) = Σ(w_d × score_d) for d in {TIME, INTEGRITY, STORAGE, GEOGRAPHY, HANDSHAKE}
 ```
 
-### 5.2 The Five Fingers
+### 5.2 Dimensions
 
 | Finger | Dimension | Weight | Saturation |
 |--------|-----------|--------|------------|
-| 👍 **Thumb** | TIME | **50%** | 180 days uptime |
-| 👆 Index | INTEGRITY | 20% | No violations |
-| 🖕 Middle | STORAGE | 15% | 100% chain history |
-| 💍 Ring | GEOGRAPHY | 10% | Country + city diversity |
-| 🤙 Pinky | HANDSHAKE | 5% | 10 mutual trust bonds |
+| Thumb | TIME | 50% | 180 days uptime |
+| Index | INTEGRITY | 20% | No violations |
+| Middle | STORAGE | 15% | 100% chain history |
+| Ring | GEOGRAPHY | 10% | Country + city diversity |
+| Pinky | HANDSHAKE | 5% | 10 mutual trust bonds |
 
-**TIME is the thumb.** Makes the hand work. 50% weight — this is Proof of Time.
-
-### 5.3 THUMB: TIME — 50%
+### 5.3 TIME (Thumb) — 50%
 
 ```
 score_time = min(uptime_seconds / 15,552,000, 1.0)
@@ -153,20 +149,20 @@ score_time = min(uptime_seconds / 15,552,000, 1.0)
 
 TIME is the thumb. Without it, the hand cannot grasp.
 
-### 5.4 INDEX: INTEGRITY — 20%
+### 5.4 INTEGRITY (Index) — 20%
 
 Behavioral score. Positive actions increase, violations decrease:
 
-| Event | Change |
-|-------|--------|
-| BLOCK_PRODUCED | +0.05 |
-| BLOCK_VALIDATED | +0.02 |
-| BLOCK_INVALID | −0.15 |
-| EQUIVOCATION | −1.0 + 180-day quarantine |
+```
+BLOCK_PRODUCED:  +0.05
+BLOCK_VALIDATED: +0.02
+BLOCK_INVALID:   -0.15
+EQUIVOCATION:    -1.0 + 180-day quarantine
+```
 
 Double protection: score reduction AND time penalty.
 
-### 5.5 MIDDLE: STORAGE — 15%
+### 5.5 STORAGE (Middle) — 15%
 
 ```
 score_storage = min(stored_blocks / total_blocks, 1.0)
@@ -174,7 +170,7 @@ score_storage = min(stored_blocks / total_blocks, 1.0)
 
 Full nodes store complete history. Light nodes get proportional score.
 
-### 5.6 RING: GEOGRAPHY — 10%
+### 5.6 GEOGRAPHY (Ring) — 10%
 
 ```
 country_score = 0.6 × (1 / (1 + log10(nodes_in_country))) + 0.4 × (countries / 50)
@@ -187,7 +183,7 @@ First node from new city: +0.15 bonus.
 
 Fewer nodes in your location = higher score. Incentivizes global distribution.
 
-### 5.7 PINKY: HANDSHAKE — 5%
+### 5.7 HANDSHAKE (Pinky) — 5%
 
 Elite bonus. Two veterans shake hands = cryptographic proof of mutual trust.
 
@@ -210,7 +206,7 @@ The pinky completes the hand.
 
 ### 6.1 Block References
 
-Each block references 1–8 parent blocks:
+Each block references 1-8 parent blocks:
 
 ```
 Block {
@@ -237,31 +233,39 @@ Horizontal scaling: more parents = higher throughput.
 ### 7.1 Unit
 
 ```
-1 TIME = 1 second of time
+1 Ɉ = 1 second of time
 ```
 
-The native token is called **TIME**. One TIME equals one second.
+The native token is **Ɉ** (pronounced "time"). One Ɉ equals one second.
+
+```
+1 minute  = 60 Ɉ
+1 hour    = 3,600 Ɉ
+1 day     = 86,400 Ɉ
+1 year    = 31,536,000 Ɉ
+```
 
 ### 7.2 Emission
 
-| Parameter | Value |
-|-----------|-------|
-| Total supply | 1,260,000,000 TIME |
-| Block time | 10 minutes |
-| Initial reward | 50 TIME per block |
-| Halving | Every 210,000 blocks (~4 years) |
-| Full emission | ~132 years |
+```
+Total supply: 21,000,000 minutes = 1,260,000,000 Ɉ
+Block time: 10 minutes
+Initial reward: 50 minutes = 3,000 Ɉ per block
+Halving: every 210,000 blocks (~4 years)
+Full emission: ~132 years
+```
+
+Emission schedule:
+
+| Epoch | Blocks | Reward | Emitted |
+|-------|--------|--------|---------|
+| 0 | 0 - 209,999 | 50 min (3,000 Ɉ) | 630,000,000 Ɉ |
+| 1 | 210,000 - 419,999 | 25 min (1,500 Ɉ) | 315,000,000 Ɉ |
+| 2 | 420,000 - 629,999 | 12.5 min (750 Ɉ) | 157,500,000 Ɉ |
+| ... | ... | ... | ... |
+| 33 | 6,930,000+ | 0 | — |
 
 Same curve as Bitcoin. Predictable, deflationary.
-
-### 7.3 Denominations
-
-| Unit | TIME |
-|------|------|
-| 1 second | 1 TIME |
-| 1 minute | 60 TIME |
-| 1 hour | 3,600 TIME |
-| 1 day | 86,400 TIME |
 
 ---
 
@@ -286,9 +290,7 @@ Creating N fake nodes:
 - Each needs 180 days to reach TIME saturation
 - No shortcut. N nodes = N × 180 days
 
-```
-Attack cost = N × 180 days
-```
+Cost: `attack_time = N × 180 days`
 
 ### 9.2 51% Attack
 
@@ -296,14 +298,12 @@ To control 51% of Adonis weight:
 - Need 51% of TIME-weighted nodes
 - With 1000 existing nodes at 180 days: need 1020 nodes running 180 days
 
-```
-Cost = 1020 × 180 = 183,600 node-days
-```
+Cost: `1020 × 180 = 183,600 node-days`
 
 Compare:
 - Bitcoin 51% attack: ~$20B in hardware
 - Ethereum 51% attack: ~$10B in stake
-- **Proof of Time 51% attack: N × 180 days (cannot be bought)**
+- Proof of Time 51% attack: N × 180 days (cannot be bought)
 
 ### 9.3 Long-Range Attack
 
@@ -322,45 +322,23 @@ Not feasible.
 |----------|---------|----------|---------------|
 | Consensus | PoW | PoS | VDF + Time |
 | Influence | Money→ASIC | Money→Stake | Time only |
-| Entry cost | High | Medium | **Zero** |
+| Entry cost | High | Medium | Zero |
 | Energy | Massive | Low | Minimal |
 | 51% attack cost | $20B | $10B | N × 180 days |
 | Finality | Probabilistic | ~15 min | 10 min (deterministic) |
-| Token | BTC | ETH | **TIME** |
 
 ---
 
-## 11. Pantheon Architecture
-
-The protocol is organized into 12 modules, each named after a Greek deity:
-
-| # | God | Domain | Description |
-|---|-----|--------|-------------|
-| 1 | **Chronos** | Time | VDF, temporal proofs |
-| 2 | **Adonis** | Reputation | 5-finger trust system |
-| 3 | **Hermes** | Network | P2P, Noise Protocol |
-| 4 | **Hades** | Storage | SQLite, DAG |
-| 5 | **Athena** | Consensus | VRF leader selection |
-| 6 | **Prometheus** | Crypto | Ed25519, ECVRF |
-| 7 | **Mnemosyne** | Memory | Mempool, cache |
-| 8 | **Plutus** | Wallet | UTXO, keys |
-| 9 | **Nyx** | Privacy | Ring signatures |
-| 10 | **Themis** | Validation | Transaction rules |
-| 11 | **Iris** | API | RPC, WebSocket |
-| 12 | **Ananke** | Governance | Protocol upgrades |
-
----
-
-## 12. Conclusion
+## 11. Conclusion
 
 We have proposed a system for electronic transactions that does not rely on capital for consensus. Time is the only resource that cannot be bought, accelerated, or transferred.
 
 The network self-organizes through the Five Fingers of Adonis:
-- **TIME** (Thumb) ensures long-term commitment
-- **INTEGRITY** (Index) removes bad actors
-- **STORAGE** (Middle) maintains data availability
-- **GEOGRAPHY** (Ring) enforces global distribution
-- **HANDSHAKE** (Pinky) creates trust networks
+- TIME ensures long-term commitment
+- INTEGRITY removes bad actors
+- STORAGE maintains data availability
+- GEOGRAPHY enforces global distribution
+- HANDSHAKE creates trust networks
 
 The result is a system where:
 - Everyone starts equal
@@ -368,7 +346,7 @@ The result is a system where:
 - Attacks require time, not money
 - Decentralization is incentivized, not just promised
 
-**In time, we are all equal.**
+In time, we are all equal.
 
 ---
 
@@ -382,4 +360,4 @@ The result is a system where:
 
 ---
 
-**TIME**
+**Ɉ**
