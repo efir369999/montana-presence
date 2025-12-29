@@ -1624,7 +1624,12 @@ class ConsensusEngine:
             self.sybil_detector.record_connection(current_time)
             
             logger.info(f"Node registered: {pubkey.hex()[:16]}...")
-    
+
+    def is_node_registered(self, pubkey: bytes) -> bool:
+        """Check if a node is registered."""
+        with self._lock:
+            return pubkey in self.nodes
+
     def update_node(self, pubkey: bytes, **kwargs):
         """Update node state."""
         with self._lock:

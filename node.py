@@ -682,6 +682,11 @@ class FullNode:
         # Update network height
         self.network.start_height = self.chain_tip.height
 
+        # Register self in consensus (critical for multi-node operation)
+        if hasattr(self.network, 'public_key') and self.network.public_key:
+            self.consensus.register_node(self.network.public_key, self.chain_tip.height + 1)
+            logger.info(f"Registered self in consensus: {self.network.public_key.hex()[:16]}...")
+
         # PoH mode: immediately ready (no sync wait needed)
         self.sync_state = SyncState.SYNCED
         logger.info("Ready to produce blocks")
@@ -1045,6 +1050,12 @@ class FullNode:
     
     def _on_network_block(self, peer: Peer, block: Block):
         """Handle block from network."""
+        # Register peer in consensus if not already known (enables multi-node)
+        if block.header.producer_key and hasattr(self, 'consensus'):
+            if not self.consensus.is_node_registered(block.header.producer_key):
+                self.consensus.register_node(block.header.producer_key, 0)
+                logger.info(f"Auto-registered peer from block: {block.header.producer_key.hex()[:16]}...")
+
         self.block_queue.put(block)
     
     def _on_network_transaction(self, peer: Peer, tx: Transaction):

@@ -17,6 +17,7 @@ import time
 import random
 import threading
 import json
+import os
 from typing import List, Tuple, Optional, Set, Dict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -34,6 +35,46 @@ class Network(Enum):
     MAINNET = "mainnet"
     TESTNET = "testnet"
     REGTEST = "regtest"
+
+
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
+def _parse_bootstrap_peers(peers_str: str) -> List[Tuple[str, int]]:
+    """
+    Parse bootstrap peers from environment variable string.
+
+    Format: "ip1:port1,ip2:port2" e.g. "1.2.3.4:18333,5.6.7.8:18333"
+
+    Args:
+        peers_str: Comma-separated list of ip:port pairs
+
+    Returns:
+        List of (ip, port) tuples
+    """
+    if not peers_str or not peers_str.strip():
+        return []
+
+    peers = []
+    for peer in peers_str.split(","):
+        peer = peer.strip()
+        if not peer:
+            continue
+        try:
+            if ":" in peer:
+                ip, port = peer.rsplit(":", 1)
+                peers.append((ip.strip(), int(port)))
+            else:
+                # Default to testnet port
+                peers.append((peer.strip(), 18333))
+        except (ValueError, IndexError) as e:
+            logger.warning(f"Invalid peer format '{peer}': {e}")
+            continue
+
+    if peers:
+        logger.info(f"Loaded {len(peers)} bootstrap peers from environment")
+    return peers
 
 
 # ============================================================================
@@ -63,14 +104,17 @@ class SeedConfig:
 
     # Hardcoded bootstrap nodes (IP:port)
     # These are fallback nodes when DNS seeds are unavailable
+    # Can be overridden via POT_BOOTSTRAP_PEERS environment variable
+    # Format: "ip1:port1,ip2:port2" e.g. "1.2.3.4:18333,5.6.7.8:18333"
     bootstrap_nodes: Dict[Network, List[Tuple[str, int]]] = field(default_factory=lambda: {
         Network.MAINNET: [
             # Primary bootstrap nodes (geographically distributed)
             # Replace with actual mainnet bootstrap nodes before launch
             ("127.0.0.1", 8333),  # Local development
         ],
-        Network.TESTNET: [
-            ("127.0.0.1", 18333),
+        Network.TESTNET: _parse_bootstrap_peers(os.environ.get("POT_BOOTSTRAP_PEERS", "")) or [
+            # Testnet bootstrap nodes - set via POT_BOOTSTRAP_PEERS env var
+            ("127.0.0.1", 18333),  # Fallback to localhost
         ],
         Network.REGTEST: [
             ("127.0.0.1", 18444),
