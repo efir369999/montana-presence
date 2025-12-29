@@ -65,6 +65,7 @@ except ImportError:
 from pantheon.prometheus import sha256, sha256d, Ed25519, X25519
 from pantheon.themis import Block, BlockHeader, Transaction
 from config import PROTOCOL, NetworkConfig
+from pantheon.hermes.ip_validator import IPValidator, ValidationResult, IPType
 
 logger = logging.getLogger("proof_of_time.network")
 
@@ -445,23 +446,32 @@ class EclipseProtection:
     def get_eviction_candidates(self, count: int = 1) -> List[str]:
         """
         Get peers to evict for new connections.
-        
+
         Prefers to evict:
         - Inbound connections (over outbound)
         - Newer connections (over older)
         - Peers from over-represented subnets
+
+        SECURITY: Never evict outbound peers if we have fewer than
+        MIN_OUTBOUND_CONNECTIONS to prevent Eclipse attacks.
         """
         with self._lock:
-            candidates = []
-            
             # Prefer inbound for eviction
             pool = list(self.inbound_peers)
+
+            # SECURITY: Only consider outbound for eviction if we have enough
+            # Minimum outbound connections must be maintained for Eclipse protection
             if len(pool) < count:
-                pool.extend(self.outbound_peers)
-            
+                outbound_surplus = len(self.outbound_peers) - MIN_OUTBOUND_CONNECTIONS
+                if outbound_surplus > 0:
+                    # Can evict some outbound, but keep minimum
+                    available_outbound = list(self.outbound_peers)[:outbound_surplus]
+                    pool.extend(available_outbound)
+                # If no surplus, don't add outbound to eviction pool
+
             # Sort by connection age (newer first for eviction)
             pool.sort(key=lambda p: self.connection_times.get(p, 0), reverse=True)
-            
+
             return pool[:count]
     
     def add_tried_address(self, address: Tuple[str, int]):
@@ -855,8 +865,8 @@ class Peer:
             if self.socket:
                 try:
                     self.socket.close()
-                except:
-                    pass
+                except OSError:
+                    pass  # Socket already closed or error during close
                 self.socket = None
             self.state = PeerState.DISCONNECTED
             logger.debug(f"Disconnected from {self.id}: {reason}")
@@ -1022,26 +1032,43 @@ class Peer:
 class P2PNode:
     """
     Production P2P network node with encryption and Eclipse protection.
-    
+
     Features:
     - Noise Protocol encryption for all peer communication
     - Eclipse attack protection via subnet diversity
+    - Static IP validation (VPN/Proxy/Tor blocked)
     - Peer discovery and management
     - Block and transaction propagation
     - Rate limiting and ban management
     """
-    
-    def __init__(self, config: Optional[NetworkConfig] = None, noise_keys: Optional[NoiseKeys] = None):
+
+    def __init__(
+        self,
+        config: Optional[NetworkConfig] = None,
+        noise_keys: Optional[NoiseKeys] = None,
+        require_static_ip: bool = True,
+        allow_datacenter: bool = True,
+    ):
         # SECURITY: Require Noise Protocol for P2P networking
         if not NOISE_AVAILABLE:
             raise RuntimeError(
                 "FATAL: Cannot start P2P node without Noise Protocol encryption. "
                 "Install noiseprotocol: pip install noiseprotocol"
             )
-        
+
         self.config = config or NetworkConfig()
         self.port = self.config.default_port
-        
+
+        # IP Validation (Static IP requirement, VPN/Proxy blocking)
+        self.ip_validator = IPValidator(
+            allow_datacenter=allow_datacenter,
+            require_rdns=False,  # Don't require rDNS (many valid nodes don't have it)
+            require_static=require_static_ip,
+            min_reputation=0.3,
+            rate_limit_per_minute=10,
+        )
+        logger.info(f"IP validation: static_required={require_static_ip}, datacenter_allowed={allow_datacenter}")
+
         # Noise Protocol keys
         if noise_keys:
             self.noise_keys = noise_keys
@@ -1118,14 +1145,14 @@ class P2PNode:
         if self.server_socket:
             try:
                 self.server_socket.close()
-            except:
-                pass
+            except OSError:
+                pass  # Socket already closed
             self.server_socket = None
-        
+
         try:
             self.selector.close()
-        except:
-            pass
+        except OSError:
+            pass  # Selector already closed
         
         logger.info("P2P node stopped")
     
@@ -1223,16 +1250,28 @@ class P2PNode:
                 # Attempt new connections if needed
                 if now - last_discovery > 30:
                     outbound_count = len(self.eclipse_protection.outbound_peers)
-                    
+
+                    # SECURITY: Enforce minimum outbound connections for Eclipse protection
                     if outbound_count < MIN_OUTBOUND_CONNECTIONS:
+                        shortage = MIN_OUTBOUND_CONNECTIONS - outbound_count
+                        if shortage >= MIN_OUTBOUND_CONNECTIONS // 2:
+                            # Critical: less than half of minimum outbound connections
+                            logger.warning(
+                                f"CRITICAL: Low outbound connections ({outbound_count}/{MIN_OUTBOUND_CONNECTIONS}) - "
+                                "network may be vulnerable to Eclipse attacks"
+                            )
+                        else:
+                            logger.info(
+                                f"Outbound connections low ({outbound_count}/{MIN_OUTBOUND_CONNECTIONS}), "
+                                f"attempting to connect to {shortage} more peers"
+                            )
+
                         # Try to connect to more peers
-                        addresses = self.eclipse_protection.get_addresses_to_try(
-                            MIN_OUTBOUND_CONNECTIONS - outbound_count
-                        )
+                        addresses = self.eclipse_protection.get_addresses_to_try(shortage)
                         for addr in addresses:
                             if self.connect_to_peer(addr):
                                 time.sleep(1)  # Stagger connections
-                    
+
                     last_discovery = now
                 
                 time.sleep(5)
@@ -1266,19 +1305,26 @@ class P2PNode:
                                 peer.disconnect("Ping timeout")
     
     def _accept_connection(self):
-        """Accept incoming connection with Eclipse protection."""
+        """Accept incoming connection with Eclipse and IP validation protection."""
         try:
             conn, addr = self.server_socket.accept()
             conn.setblocking(False)
-            
+
             ip = addr[0]
-            
+
             # Check ban list
             if self.ban_manager.is_banned(ip):
                 logger.debug(f"Rejected banned IP: {ip}")
                 conn.close()
                 return
-            
+
+            # SECURITY: Validate IP (static IP required, VPN/Proxy blocked)
+            validation_result, validation_reason = self.ip_validator.validate(ip)
+            if validation_result != ValidationResult.ALLOWED:
+                logger.warning(f"IP validation failed for {ip}: {validation_reason}")
+                conn.close()
+                return
+
             # Check Eclipse protection
             allowed, reason = self.eclipse_protection.can_connect(ip, is_inbound=True)
             if not allowed:
@@ -1316,25 +1362,31 @@ class P2PNode:
             logger.warning(f"Accept error: {e}")
     
     def connect_to_peer(self, address: Tuple[str, int]) -> bool:
-        """Connect to peer with Eclipse protection."""
+        """Connect to peer with Eclipse and IP validation protection."""
         ip = address[0]
-        
+
         # Check ban list
         if self.ban_manager.is_banned(ip):
             return False
-        
+
+        # SECURITY: Validate IP (static IP required, VPN/Proxy blocked)
+        validation_result, validation_reason = self.ip_validator.validate(ip)
+        if validation_result != ValidationResult.ALLOWED:
+            logger.debug(f"IP validation failed for outbound {ip}: {validation_reason}")
+            return False
+
         peer_id = f"{address[0]}:{address[1]}"
-        
+
         with self._lock:
             if peer_id in self.peers:
                 return True
-            
+
             # Check Eclipse protection
             allowed, reason = self.eclipse_protection.can_connect(ip, is_inbound=False)
             if not allowed:
                 logger.debug(f"Cannot connect to {ip}: {reason}")
                 return False
-            
+
             if len(self.peers) >= self.config.max_peers:
                 return False
         
@@ -1367,6 +1419,40 @@ class P2PNode:
     def add_important_peer(self, address: Tuple[str, int]):
         """Mark a peer as important (will auto-reconnect on disconnect)."""
         self.important_peers.add(address)
+
+    def report_peer_misbehavior(self, ip: str, severity: float = 0.1, reason: str = ""):
+        """
+        Report peer misbehavior to IP validator for reputation tracking.
+
+        Args:
+            ip: Peer IP address
+            severity: How much to decrease reputation (0.0-1.0)
+            reason: Reason for misbehavior
+        """
+        self.ip_validator.record_misbehavior(ip, severity)
+        logger.debug(f"Recorded misbehavior for {ip}: {reason} (severity={severity})")
+
+    def report_peer_good_behavior(self, ip: str, bonus: float = 0.01):
+        """
+        Report good behavior from peer to increase IP reputation.
+
+        Args:
+            ip: Peer IP address
+            bonus: How much to increase reputation (0.0-1.0)
+        """
+        self.ip_validator.record_good_behavior(ip, bonus)
+
+    def whitelist_ip(self, ip_or_subnet: str):
+        """Add IP or subnet to whitelist (bypass static IP check)."""
+        self.ip_validator.add_to_whitelist(ip_or_subnet)
+
+    def blacklist_ip(self, ip_or_subnet: str, reason: str = "Manual blacklist"):
+        """Add IP or subnet to blacklist."""
+        self.ip_validator.add_to_blacklist(ip_or_subnet, reason)
+
+    def get_ip_info(self, ip: str):
+        """Get information about an IP address."""
+        return self.ip_validator.get_info(ip)
 
     def _schedule_reconnect(self, address: Tuple[str, int]):
         """Schedule a reconnection with exponential backoff."""

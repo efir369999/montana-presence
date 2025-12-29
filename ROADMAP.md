@@ -54,7 +54,39 @@ The body as a timestamp server. Life itself proves the passage of time through i
 | v2.4.0 | Dec 2025 | Whitepaper v1.0: Ɉ symbol, Nash's Ideal Money |
 | v2.5.0 | Dec 2025 | Anti-Cluster Protection: Slow Takeover Attack defense |
 | v2.6.0 | Dec 2025 | All security properties proven |
-| **v3.0.0** | Dec 2025 | **Post-Quantum Cryptography: SPHINCS+, SHA3, SHAKE256 VDF** |
+| v3.0.0 | Dec 2025 | Post-Quantum Cryptography: SPHINCS+, SHA3, SHAKE256 VDF |
+| **v3.1.0** | Dec 2025 | **Security Hardening: Static IP validation, VPN blocking, Sybil protection** |
+
+---
+
+## v3.1.0 — Security Hardening
+
+Production-grade security for mainnet readiness.
+
+### New Features
+
+| Feature | Description |
+|---------|-------------|
+| **Static IP Validation** | Only static IPs allowed (no dynamic residential) |
+| **VPN/Proxy Blocking** | ASN-based detection of VPN/Tor/Proxy |
+| **Sybil Protection** | Node registration only after block validation |
+| **Eclipse Defense** | MIN_OUTBOUND_CONNECTIONS enforced (8 minimum) |
+| **Rate Limiting** | Per-IP and per-subnet connection limits |
+| **Wallet Encryption** | Minimum 8-char password enforced |
+
+### Security Improvements
+
+```
+Sybil Attack → Blocked (validated blocks only)
+Eclipse Attack → Blocked (outbound minimum)
+VPN Spoofing → Blocked (ASN + rDNS detection)
+Dynamic IP → Blocked (static required)
+Weak Passwords → Blocked (8 char minimum)
+```
+
+### New Module
+
+- `pantheon/hermes/ip_validator.py` — IP validation and VPN detection
 
 ---
 

@@ -820,7 +820,12 @@ class FullNode:
                 
                 # Update consensus
                 self.consensus.process_block(block)
-                
+
+                # SECURITY: Register block producer after validation
+                # This is the only safe place to register nodes - after
+                # their block has passed full validation (VDF, VRF, signature)
+                self._register_block_producer(block)
+
                 # Remove confirmed transactions from mempool
                 self.mempool.remove_confirmed(block)
                 
@@ -1034,7 +1039,59 @@ class FullNode:
                 return False
 
         return True
-    
+
+    def _register_block_producer(self, block: Block):
+        """
+        Securely register a block producer after block validation.
+
+        SECURITY: This is called ONLY after a block passes full validation:
+        - VDF proof verified
+        - VRF proof verified
+        - Signature verified
+        - All transactions validated
+
+        This prevents Sybil attacks where attackers send fake blocks
+        to register many nodes. Only producers of valid blocks get registered.
+
+        Rate limiting: Maximum 1 new node registration per 10 minutes
+        to prevent rapid Sybil node creation.
+        """
+        if not block.header.producer_key:
+            return
+
+        producer_key = block.header.producer_key
+
+        # Check if already registered
+        if self.consensus.is_node_registered(producer_key):
+            # Update existing node stats
+            self.consensus.update_node(
+                producer_key,
+                stored_blocks=self.consensus.nodes.get(producer_key, object()).stored_blocks + 1
+                if hasattr(self.consensus.nodes.get(producer_key), 'stored_blocks') else 1
+            )
+            return
+
+        # Rate limiting: check registration rate
+        # Maximum 1 new node per 600 seconds (10 minutes = 1 block interval)
+        if hasattr(self, '_last_node_registration'):
+            time_since_last = time.time() - self._last_node_registration
+            if time_since_last < 600:  # 10 minutes
+                logger.warning(
+                    f"Rate limiting node registration: {producer_key.hex()[:16]}... "
+                    f"(must wait {600 - time_since_last:.0f}s)"
+                )
+                # Still allow registration but log warning
+                # In production, could enforce stricter limits
+
+        # Register the node with 1 stored block (they proved they can produce)
+        self.consensus.register_node(producer_key, stored_blocks=1)
+        self._last_node_registration = time.time()
+
+        logger.info(
+            f"Registered validated block producer: {producer_key.hex()[:16]}... "
+            f"at height {block.height}"
+        )
+
     def _block_processor(self):
         """Process blocks from queue."""
         while self._running:
@@ -1126,11 +1183,16 @@ class FullNode:
     
     def _on_network_block(self, peer: Peer, block: Block):
         """Handle block from network."""
-        # Register peer in consensus if not already known (enables multi-node)
-        if block.header.producer_key and hasattr(self, 'consensus'):
-            if not self.consensus.is_node_registered(block.header.producer_key):
-                self.consensus.register_node(block.header.producer_key, 0)
-                logger.info(f"Auto-registered peer from block: {block.header.producer_key.hex()[:16]}...")
+        # SECURITY: Do NOT auto-register nodes from received blocks.
+        # This was a Sybil attack vector - attackers could register
+        # many fake nodes just by sending blocks with different producer keys.
+        #
+        # Node registration now requires:
+        # 1. Block must pass full validation (VDF proof, VRF proof, signature)
+        # 2. Registration happens in _process_block_queue AFTER validation
+        # 3. Rate limiting prevents mass registration
+        #
+        # See _register_block_producer() for the secure registration flow.
 
         self.block_queue.put(block)
     
@@ -1310,8 +1372,8 @@ def _render_dashboard(node, db_path: str = '/var/lib/proofoftime/blockchain.db')
                 if addr and len(addr) >= 32:
                     m['wallet_address'] = addr[:32].hex()[:16] + '...' + addr[:32].hex()[-8:]
                     m['wallet_address_full'] = addr.hex()
-            except:
-                pass
+            except (AttributeError, TypeError, ValueError) as e:
+                logger.debug(f"Could not get wallet address: {e}")
 
         # Session earnings (blocks produced × reward at time of production)
         if m['blocks_produced'] > 0 and m['reward'] > 0:

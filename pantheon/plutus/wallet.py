@@ -95,18 +95,31 @@ class WalletCrypto:
     Fallback to Scrypt if Argon2 unavailable.
     """
     
+    # Minimum password length for wallet encryption
+    MIN_PASSWORD_LENGTH = 8
+
     @staticmethod
     def derive_key(password: str, salt: bytes) -> bytes:
         """
         Derive encryption key from password using Argon2id (preferred) or Scrypt.
-        
+
         Args:
-            password: User password
+            password: User password (minimum 8 characters)
             salt: Random 32-byte salt
-            
+
         Returns:
             32-byte encryption key
+
+        Raises:
+            ValueError: If password is too short
         """
+        # SECURITY: Enforce minimum password length
+        if len(password) < WalletCrypto.MIN_PASSWORD_LENGTH:
+            raise ValueError(
+                f"Password must be at least {WalletCrypto.MIN_PASSWORD_LENGTH} characters. "
+                "Weak passwords put your funds at risk of theft."
+            )
+
         password_bytes = password.encode('utf-8')
         
         if ARGON2_AVAILABLE:
@@ -175,10 +188,10 @@ class WalletCrypto:
                 # nacl uses 24-byte nonce, so derive from our 12-byte nonce
                 nacl_nonce = hashlib.sha256(nonce).digest()[:24]
                 ciphertext = box.encrypt(plaintext, nacl_nonce).ciphertext
-            except:
+            except (ImportError, AttributeError, TypeError) as e:
                 # Very last resort: XOR with key stream (NOT RECOMMENDED)
                 # This should never happen in production
-                logger.warning("No secure encryption available - using weak encryption!")
+                logger.warning(f"No secure encryption available - using weak encryption! Error: {e}")
                 key_stream = hashlib.sha256(key + nonce).digest() * (len(plaintext) // 32 + 1)
                 ciphertext = bytes(a ^ b for a, b in zip(plaintext, key_stream[:len(plaintext)]))
                 ciphertext += hashlib.sha256(ciphertext + key).digest()[:TAG_SIZE]
@@ -234,8 +247,9 @@ class WalletCrypto:
                 nacl_nonce = hashlib.sha256(nonce).digest()[:24]
                 plaintext = box.decrypt(ciphertext, nacl_nonce)
                 return plaintext
-            except:
-                # Fallback XOR decryption
+            except Exception as e:
+                # Fallback XOR decryption (NaCl unavailable or decryption failed)
+                logger.debug(f"NaCl decryption failed, trying fallback: {e}")
                 if len(ciphertext) < TAG_SIZE:
                     raise ValueError("Ciphertext too short")
                 stored_tag = ciphertext[-TAG_SIZE:]
@@ -260,7 +274,7 @@ class WalletCrypto:
         try:
             WalletCrypto.decrypt(encrypted, password)
             return True
-        except:
+        except (ValueError, TypeError, KeyError):
             return False
 
 
@@ -481,7 +495,11 @@ class Wallet:
         # State
         self.synced_height: int = 0
         self.locked = True
-        
+
+        # Security tracking
+        self._password: Optional[str] = None  # Stored temporarily for auto-save
+        self._saved: bool = False  # Track if wallet has been persisted
+
         # Threading
         self._lock = threading.RLock()
     
@@ -492,24 +510,48 @@ class Wallet:
     def create(self, password: str, seed: Optional[bytes] = None) -> bytes:
         """
         Create new wallet with optional seed.
-        
-        Returns the seed for backup.
+
+        IMPORTANT: After calling create(), you MUST call save() to persist
+        the encrypted wallet. Failure to do so will result in loss of funds!
+
+        Args:
+            password: Encryption password (minimum 8 characters)
+            seed: Optional BIP39-style seed (generated if not provided)
+
+        Returns:
+            The seed bytes for backup
+
+        Raises:
+            ValueError: If password is too short
         """
+        # SECURITY: Validate password before creating wallet
+        if len(password) < WalletCrypto.MIN_PASSWORD_LENGTH:
+            raise ValueError(
+                f"Password must be at least {WalletCrypto.MIN_PASSWORD_LENGTH} characters. "
+                "Weak passwords put your funds at risk of theft."
+            )
+
         with self._lock:
             if seed is None:
                 seed = KeyDerivation.generate_seed()
-            
+
             self.seed = seed
             self.view_secret, self.spend_secret = KeyDerivation.derive_master_keys(seed)
             self.view_public = Ed25519.derive_public_key(self.view_secret)
             self.spend_public = Ed25519.derive_public_key(self.spend_secret)
-            
+
             # Generate initial subaddress
             self._generate_subaddress(0, 0)
-            
+
             self.locked = False
-            
+            self._password = password  # Store for auto-save
+            self._saved = False  # Track if wallet has been saved
+
             logger.info("Wallet created")
+            logger.warning(
+                "IMPORTANT: Call wallet.save(path, password) to persist your wallet! "
+                "Unsaved wallets will be lost on restart."
+            )
             return seed
     
     def restore(self, seed: bytes, password: str):
@@ -654,8 +696,8 @@ class Wallet:
                 if output.encrypted_amount:
                     try:
                         amount = struct.unpack('<Q', output.encrypted_amount[:8])[0]
-                    except:
-                        pass
+                    except (struct.error, IndexError):
+                        pass  # Invalid encrypted amount format
                 
                 wallet_output = WalletOutput(
                     txid=tx.hash(),
@@ -982,8 +1024,9 @@ class Wallet:
                     pass
                 raise
 
+            self._saved = True
             logger.info(f"Wallet saved to {path} (encrypted, atomic)")
-    
+
     def load(self, path: str, password: str) -> bool:
         """
         Load wallet from encrypted file.
