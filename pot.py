@@ -407,8 +407,8 @@ def get_all_params():
 def carousel():
     """
     Carousel synced to genesis timestamp.
-    param# = (unix_time - genesis) % 12
-    All nodes display same param at same second.
+    god# = (unix_time - genesis) % 12
+    Each second shows 1 god with all 12 params.
     """
     print("PROOF OF TIME CAROUSEL (synced to genesis)")
     print(f"Genesis: {GENESIS_TIMESTAMP} | Ctrl+C to stop")
@@ -417,21 +417,16 @@ def carousel():
     try:
         while True:
             now = int(time.time())
-            param_num = (now - GENESIS_TIMESTAMP) % 12
+            god_num = (now - GENESIS_TIMESTAMP) % 12 + 1  # 1-12
             ts = datetime.now().strftime("%H:%M:%S")
 
-            # Get fresh metrics from all gods
-            pantheon = get_all_params()
+            # Get metrics for current god
+            god = GODS[god_num]
+            params = god["get"]()
 
-            # Collect param #N from all 12 gods
-            values = []
-            for god_num in range(1, 13):
-                god = pantheon[god_num]
-                param = god["params"][param_num]
-                values.append(f"{god['name'][:3]}:{param}")
-
-            line = ", ".join(values)
-            print(f"{ts} [{param_num+1:2}] {line}")
+            # Format: all 12 params comma-separated
+            line = ", ".join(params)
+            print(f"{ts} [{god_num:2}] {god['name']:10} {line}")
 
             # Wait until next second boundary
             time.sleep(1 - (time.time() % 1))
@@ -440,22 +435,16 @@ def carousel():
         print("\nStopped.")
 
 def print_all():
-    """Print all params once (static view)."""
+    """Print all gods once (static view). 1 god = 1 line with 12 params."""
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"PROOF OF TIME - {ts}")
     print()
 
-    pantheon = get_all_params()
-
-    for param_num in range(12):
-        values = []
-        for god_num in range(1, 13):
-            god = pantheon[god_num]
-            param = god["params"][param_num]
-            values.append(f"{god['name'][:3]}:{param}")
-
-        line = ", ".join(values)
-        print(f"[{param_num+1:2}] {line}")
+    for god_num in range(1, 13):
+        god = GODS[god_num]
+        params = god["get"]()
+        line = ", ".join(params)
+        print(f"[{god_num:2}] {god['name']:10} {line}")
 
     print()
     print("12 gods x 12 params = 144 total")
