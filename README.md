@@ -127,7 +127,7 @@ python node.py --run
 
 | Document | Content |
 |----------|---------|
-| [Montana_v3.0.md](Montana_v3.0.md) | Whitepaper v3.1. Post-quantum. Network hardening. Full specification. |
+| [Montana_v3.1.md](Montana_v3.1.md) | Whitepaper v3.1. Post-quantum. Network hardening. Full specification. |
 | [SECURITY_MODEL.md](SECURITY_MODEL.md) | Security model. Anti-cluster. All properties proven. |
 
 ---

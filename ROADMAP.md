@@ -119,7 +119,7 @@ X25519 → ML-KEM (quantum-safe)
 
 | Document | Description |
 |----------|-------------|
-| [Montana_v3.0.md](Montana_v3.0.md) | Whitepaper v3.0: Post-quantum, full specification |
+| [Montana_v3.1.md](Montana_v3.1.md) | Whitepaper v3.1: Post-quantum, network hardening |
 | [SECURITY_MODEL.md](SECURITY_MODEL.md) | Security model: Anti-cluster, proven properties |
 
 ---
