@@ -1140,7 +1140,7 @@ class Level56_SystemState:
         self._monitor_running = True
         self._monitor_thread = threading.Thread(
             target=self._monitor_loop,
-            name="AdamSync-VDF-Monitor",
+            name="Adam-VDF-Monitor",
             daemon=True
         )
         self._monitor_thread.start()
@@ -1261,7 +1261,7 @@ class Level56_SystemState:
 
     def check_state(self) -> AdamLevel:
         """
-        Manual state check (called from AdamSync.get_timestamp()).
+        Manual state check (called from Adam.get_timestamp()).
 
         The main checking is done by the background monitor,
         but this provides immediate check when needed.
@@ -1867,13 +1867,6 @@ def _self_test():
     logger.info("ALL ADAM TESTS PASSED!")
     logger.info("=" * 60)
 
-
-# ============================================================================
-# BACKWARD COMPATIBILITY
-# ============================================================================
-
-# AdamSync is deprecated, use Adam instead
-AdamSync = Adam
 
 
 if __name__ == "__main__":

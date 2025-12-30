@@ -857,7 +857,7 @@ class HalEngine:
     def __init__(self, storage=None, data_dir: str = None):
         self.profiles: Dict[bytes, HalProfile] = {}
         self.storage = storage
-        # Default data_dir is the adonis module directory
+        # Default data_dir is the hal module directory
         if data_dir is None:
             import os
             data_dir = os.path.dirname(os.path.abspath(__file__))
@@ -2173,7 +2173,7 @@ class HalEngine:
         with self._lock:
             for pubkey, profile in self.profiles.items():
                 data = profile.serialize()
-                self.storage.store_adonis_profile(pubkey, data)
+                self.storage.store_hal_profile(pubkey, data)
 
     def load_state(self):
         """Load engine state from storage."""
@@ -2181,11 +2181,11 @@ class HalEngine:
             return
 
         with self._lock:
-            profiles_data = self.storage.load_adonis_profiles()
+            profiles_data = self.storage.load_hal_profiles()
             for pubkey, data in profiles_data.items():
                 self.profiles[pubkey] = HalProfile.deserialize(data)
 
-            logger.info(f"Loaded {len(self.profiles)} Adonis profiles")
+            logger.info(f"Loaded {len(self.profiles)} Hal profiles")
 
     # =========================================================================
     # PERSISTENCE (ADN-M1 fix)
@@ -2194,7 +2194,7 @@ class HalEngine:
     def _get_state_file(self) -> str:
         """Get path to state file."""
         import os
-        return os.path.join(self.data_dir, "adonis_state.bin")
+        return os.path.join(self.data_dir, "hal_state.bin")
 
     def _save_to_file(self):
         """Save profiles to file for persistence."""
@@ -2319,42 +2319,42 @@ class HalEngine:
 # ============================================================================
 
 def compute_f_rep(
-    adonis_engine: HalEngine,
+    hal_engine: HalEngine,
     pubkey: bytes,
     signed_blocks: int
 ) -> float:
     """
-    Compute reputation component using Adonis model.
+    Compute reputation component using Hal model.
 
     This replaces the simple signed_blocks / K_REP calculation
-    with the multi-dimensional Adonis score.
+    with the multi-dimensional Hal score.
 
     Args:
-        adonis_engine: Adonis engine instance
+        hal_engine: Hal engine instance
         pubkey: Node public key
         signed_blocks: Number of signed blocks (for backward compatibility)
 
     Returns:
         Reputation factor in [0, 1]
     """
-    # Get Adonis score
-    adonis_score = adonis_engine.get_reputation_score(pubkey)
+    # Get Hal score
+    hal_score = hal_engine.get_reputation_score(pubkey)
 
     # Also consider signed blocks (for backward compatibility)
     blocks_score = min(signed_blocks / PROTOCOL.K_REP, 1.0)
 
-    # Combine with Adonis having higher weight
-    return 0.7 * adonis_score + 0.3 * blocks_score
+    # Combine with Hal having higher weight
+    return 0.7 * hal_score + 0.3 * blocks_score
 
 
-def create_reputation_modifier(adonis_engine: HalEngine):
+def create_reputation_modifier(hal_engine: HalEngine):
     """
     Create a probability modifier function for consensus.
 
-    Returns a function that modifies base probability based on Adonis scores.
+    Returns a function that modifies base probability based on Hal scores.
     """
     def modifier(pubkey: bytes, base_probability: float) -> float:
-        multiplier = adonis_engine.get_reputation_multiplier(pubkey)
+        multiplier = hal_engine.get_reputation_multiplier(pubkey)
         return base_probability * multiplier
 
     return modifier
@@ -2777,14 +2777,3 @@ def _self_test():
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     _self_test()
-
-
-# ============================================================================
-# BACKWARD COMPATIBILITY ALIASES
-# ============================================================================
-# These aliases allow old code using "Adonis" names to continue working.
-# New code should use the Hal* names.
-
-AdonisProfile = HalProfile
-AdonisEngine = HalEngine
-compute_f_rep_adonis = compute_f_rep

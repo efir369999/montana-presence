@@ -20,8 +20,8 @@ GENESIS_TIMESTAMP = 1766966400
 # METRICS COLLECTORS (one per god)
 # =============================================================================
 
-def get_chronos_metrics():
-    """CHRONOS: Time/VDF metrics."""
+def get_adam_metrics():
+    """ADAM: Time/VDF metrics."""
     now = int(time.time())
     elapsed = now - GENESIS_TIMESTAMP
     slot = elapsed  # 1 slot per second
@@ -45,9 +45,9 @@ def get_chronos_metrics():
         f"status=ACTIVE",
     ]
 
-def get_adonis_metrics():
-    """ADONIS: Reputation metrics."""
-    stats = _get_adonis_stats()
+def get_hal_metrics():
+    """HAL: Reputation metrics."""
+    stats = _get_hal_stats()
     return [
         f"profiles={stats['profiles']}",
         f"active={stats['active']}",
@@ -284,7 +284,7 @@ def _short_hash():
     h = hashlib.sha256(str(int(time.time()) // 600).encode()).hexdigest()
     return h[:8]
 
-def _get_adonis_stats():
+def _get_hal_stats():
     """Get HAL reputation stats."""
     try:
         from pantheon.hal import HalEngine
@@ -376,8 +376,8 @@ def _get_governance_stats():
 # =============================================================================
 
 GODS = {
-    1:  {"name": "CHRONOS",    "get": get_chronos_metrics},
-    2:  {"name": "ADONIS",     "get": get_adonis_metrics},
+    1:  {"name": "ADAM",       "get": get_adam_metrics},
+    2:  {"name": "HAL",        "get": get_hal_metrics},
     3:  {"name": "HERMES",     "get": get_hermes_metrics},
     4:  {"name": "HADES",      "get": get_hades_metrics},
     5:  {"name": "ATHENA",     "get": get_athena_metrics},

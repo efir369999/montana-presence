@@ -22,7 +22,6 @@ from typing import Dict, Any, Optional
 
 from pantheon.hal import (
     HalEngine, ReputationDimension, ReputationEvent,
-    AdonisEngine,  # Backward compatibility
 )
 
 logger = logging.getLogger("pantheon_dashboard")
@@ -44,12 +43,12 @@ PANTHEON_GODS = [
     },
     {
         "id": 2,
-        "name": "Adonis",
-        "domain": "Reputation",
-        "symbol": "star",
+        "name": "HAL",
+        "domain": "Humanity / Reputation",
+        "symbol": "hand",
         "color": "#FF69B4",
-        "description": "Multi-dimensional trust scoring with 6 dimensions",
-        "module": "adonis.AdonisEngine",
+        "description": "Human Analyse Language - reputation + Sybil resistance",
+        "module": "hal.HalEngine",
         "status": "active"
     },
     {
@@ -558,13 +557,13 @@ DASHBOARD_HTML = '''<!DOCTYPE html>
         <h1>PANTHEON</h1>
         <div class="subtitle">Proof of Time Protocol Dashboard</div>
         <div class="protocol-prompt">
-            "Chronos proves, Athena selects, Adonis trusts."
+            "Chronos proves, Athena selects, Hal trusts."
         </div>
     </div>
 
     <nav class="nav">
         <div class="nav-item active" data-section="gods">12 Gods</div>
-        <div class="nav-item" data-section="adonis">Adonis</div>
+        <div class="nav-item" data-section="hal">HAL</div>
         <div class="nav-item" data-section="geography">Geography</div>
         <div class="nav-item" data-section="nodes">Nodes</div>
         <div class="nav-item" data-section="events">Events</div>
@@ -576,27 +575,27 @@ DASHBOARD_HTML = '''<!DOCTYPE html>
             <div class="gods-grid" id="gods-grid"></div>
         </section>
 
-        <!-- Adonis Section -->
-        <section id="adonis" class="section">
+        <!-- HAL Section -->
+        <section id="hal" class="section">
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-value" style="color: var(--blue)" id="adonis-total">-</div>
+                    <div class="stat-value" style="color: var(--blue)" id="hal-total">-</div>
                     <div class="stat-label">Total Nodes</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" style="color: var(--green)" id="adonis-active">-</div>
+                    <div class="stat-value" style="color: var(--green)" id="hal-active">-</div>
                     <div class="stat-label">Active</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" style="color: var(--red)" id="adonis-penalized">-</div>
+                    <div class="stat-value" style="color: var(--red)" id="hal-penalized">-</div>
                     <div class="stat-label">Penalized</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" style="color: var(--purple)" id="adonis-avg">-</div>
+                    <div class="stat-value" style="color: var(--purple)" id="hal-avg">-</div>
                     <div class="stat-label">Avg Score</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" style="color: var(--gold)" id="adonis-vouches">-</div>
+                    <div class="stat-value" style="color: var(--gold)" id="hal-vouches">-</div>
                     <div class="stat-label">Total Vouches</div>
                 </div>
             </div>
@@ -679,7 +678,7 @@ DASHBOARD_HTML = '''<!DOCTYPE html>
 
         // God icons (emoji fallback)
         const godIcons = {
-            'Chronos': '⏳', 'Adonis': '⭐', 'Hermes': '🌐',
+            'Chronos': '⏳', 'HAL': '🖐️', 'Hermes': '🌐',
             'Hades': '💾', 'Athena': '⚖️', 'Prometheus': '🔥',
             'Mnemosyne': '🧠', 'Plutus': '💰', 'Nyx': '🌙',
             'Themis': '✓', 'Iris': '📡', 'Ananke': '🗳️'
@@ -740,11 +739,11 @@ DASHBOARD_HTML = '''<!DOCTYPE html>
 
                 // Overview
                 const overview = await fetch('/api/overview').then(r => r.json());
-                document.getElementById('adonis-total').textContent = overview.total_nodes;
-                document.getElementById('adonis-active').textContent = overview.active_nodes;
-                document.getElementById('adonis-penalized').textContent = overview.penalized_nodes;
-                document.getElementById('adonis-avg').textContent = overview.average_score.toFixed(3);
-                document.getElementById('adonis-vouches').textContent = overview.total_vouches;
+                document.getElementById('hal-total').textContent = overview.total_nodes;
+                document.getElementById('hal-active').textContent = overview.active_nodes;
+                document.getElementById('hal-penalized').textContent = overview.penalized_nodes;
+                document.getElementById('hal-avg').textContent = overview.average_score.toFixed(3);
+                document.getElementById('hal-vouches').textContent = overview.total_vouches;
 
                 // Dimensions
                 const dims = await fetch('/api/dimensions').then(r => r.json());
@@ -812,7 +811,7 @@ DASHBOARD_HTML = '''<!DOCTYPE html>
 # ============================================================================
 
 class DashboardHandler(BaseHTTPRequestHandler):
-    engine: AdonisEngine = None
+    engine: HalEngine = None
 
     def log_message(self, format, *args):
         pass
@@ -910,7 +909,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self.send_json({"error": str(e)}, 500)
 
 
-def generate_demo_data(engine: AdonisEngine):
+def generate_demo_data(engine: HalEngine):
     """Generate demo data."""
     import random
 
@@ -956,7 +955,7 @@ def main():
 
     logging.basicConfig(level=logging.INFO)
 
-    engine = AdonisEngine()
+    engine = HalEngine()
     if args.demo:
         generate_demo_data(engine)
 

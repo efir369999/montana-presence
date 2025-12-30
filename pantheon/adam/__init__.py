@@ -30,7 +30,6 @@
 
 from .adam import (
     Adam,
-    AdamSync,
     AdamLevel,
     AdamTimestamp,
     FinalityState,
@@ -67,7 +66,6 @@ from .adam import (
 
 __all__ = [
     'Adam',
-    'AdamSync',
     'AdamLevel',
     'AdamTimestamp',
     'FinalityState',

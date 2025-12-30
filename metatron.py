@@ -49,19 +49,19 @@ class God:
     metrics: Dict = field(default_factory=dict)
 
 
-# The 12 Gods of Pantheon
+# The 13 Gods of Pantheon
 PANTHEON = {
-    "chronos": God(
-        name="Chronos",
+    "adam": God(
+        name="Adam",
         symbol="⏱",
-        domain="Time (VDF/PoH)",
-        modules=["pantheon.chronos.poh", "pantheon.chronos.vdf_fast"]
+        domain="Time (Bitcoin Oracle)",
+        modules=["pantheon.adam.adam"]
     ),
-    "adonis": God(
-        name="Adonis",
+    "hal": God(
+        name="Hal",
         symbol="✋",
-        domain="Reputation",
-        modules=["pantheon.adonis.adonis"]
+        domain="Humanity/Reputation",
+        modules=["pantheon.hal.reputation"]
     ),
     "hermes": God(
         name="Hermes",
@@ -270,23 +270,23 @@ class Metatron:
             return
 
         try:
-            # CHRONOS - Time/VDF
+            # ADAM - Time/Bitcoin Oracle
             if self.node.chain_tip:
-                self.gods["chronos"].metrics = {
-                    "slot": self.node.chain_tip.height,
+                self.gods["adam"].metrics = {
+                    "height": self.node.chain_tip.height,
                     "checkpoint": self.node.chain_tip.height // 600,
                     "next_vdf": 600 - (self.node.chain_tip.height % 600),
                     "timestamp": self.node.chain_tip.timestamp
                 }
 
             if self.node.producer:
-                self.gods["chronos"].metrics["produced"] = self.node.producer.blocks_produced
+                self.gods["adam"].metrics["produced"] = self.node.producer.blocks_produced
                 self.session_blocks = self.node.producer.blocks_produced
 
-            # ADONIS - Reputation
+            # HAL - Humanity/Reputation
             if hasattr(self.node, 'consensus') and self.node.consensus:
                 nodes = self.node.consensus.nodes if hasattr(self.node.consensus, 'nodes') else {}
-                self.gods["adonis"].metrics = {
+                self.gods["hal"].metrics = {
                     "nodes": len(nodes),
                     "our_uptime": int(time.time() - self.start_time) if self.start_time else 0,
                 }
@@ -412,24 +412,24 @@ class Metatron:
         print(col("  ╚═══════════════════════════════════════════════════════════════╝", G))
         print()
 
-        # Chronos - Time Layer
-        ch = self.gods["chronos"].metrics
-        slot = ch.get("slot", 0)
-        checkpoint = ch.get("checkpoint", 0)
-        next_vdf = ch.get("next_vdf", 600)
-        produced = ch.get("produced", 0)
+        # Adam - Time Layer
+        ad = self.gods["adam"].metrics
+        height = ad.get("height", 0)
+        checkpoint = ad.get("checkpoint", 0)
+        next_vdf = ad.get("next_vdf", 600)
+        produced = ad.get("produced", 0)
 
-        print(col("  ⏱ CHRONOS ", M) + col("─────────────────────────────────────────────────", D))
-        print(f"    Slot: {col(slot, W)}  │  Checkpoint: {col(checkpoint, C)}  │  Next VDF: {col(fmt_time(next_vdf), Y)}")
+        print(col("  ⏱ ADAM ", M) + col("───────────────────────────────────────────────────", D))
+        print(f"    Height: {col(height, W)}  │  Checkpoint: {col(checkpoint, C)}  │  Next VDF: {col(fmt_time(next_vdf), Y)}")
         print(f"    Blocks Produced: {col(produced, G)}")
         print()
 
-        # Adonis - Reputation
-        ad = self.gods["adonis"].metrics
-        uptime = ad.get("our_uptime", 0)
-        nodes = ad.get("nodes", 1)
+        # Hal - Humanity/Reputation
+        hl = self.gods["hal"].metrics
+        uptime = hl.get("our_uptime", 0)
+        nodes = hl.get("nodes", 1)
 
-        print(col("  ✋ ADONIS ", M) + col("──────────────────────────────────────────────────", D))
+        print(col("  ✋ HAL ", M) + col("────────────────────────────────────────────────────", D))
         print(f"    Uptime: {col(fmt_time(uptime), W)}  │  Nodes: {col(nodes, C)}")
         print()
 

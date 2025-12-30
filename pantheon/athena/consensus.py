@@ -28,12 +28,12 @@ from pantheon.prometheus import sha256, Ed25519, ECVRF, VRFOutput, WesolowskiVDF
 from pantheon.themis import Block, BlockHeader, Transaction, create_genesis_block
 from config import PROTOCOL, NodeConfig, get_block_reward
 
-# Optional Adonis integration (for enhanced reputation)
+# HAL integration (for enhanced reputation)
 try:
-    from adonis import AdonisEngine, compute_f_rep_adonis
-    ADONIS_AVAILABLE = True
+    from pantheon.hal import HalEngine, compute_f_rep
+    HAL_AVAILABLE = True
 except ImportError:
-    ADONIS_AVAILABLE = False
+    HAL_AVAILABLE = False
 
 logger = logging.getLogger("proof_of_time.consensus")
 
@@ -238,20 +238,20 @@ class ConsensusCalculator:
     - New nodes can participate but with lower probability
     - Saturation prevents infinite advantage accumulation
 
-    With Adonis integration:
+    With HAL integration:
     - f_rep is enhanced with multi-dimensional reputation scoring
-    - Reputation includes reliability, integrity, contribution, longevity, community
+    - Reputation includes TIME, INTEGRITY, STORAGE, EPOCHS, HANDSHAKE
     - Trust graph adds social proof to reputation calculation
     """
 
     def __init__(
         self,
         weights: Optional[ProbabilityWeights] = None,
-        adonis: Optional['AdonisEngine'] = None
+        hal: Optional['HalEngine'] = None
     ):
         self.weights = weights or ProbabilityWeights()
         self.weights.normalize()  # Ensure weights sum to 1
-        self.adonis = adonis  # Optional Adonis engine for enhanced reputation
+        self.hal = hal  # Optional HAL engine for enhanced reputation
     
     def compute_f_time(self, uptime_seconds: int) -> float:
         """
@@ -302,13 +302,12 @@ class ConsensusCalculator:
         This measures how many blocks the node has successfully signed
         without equivocation. ~2016 blocks ≈ 2 weeks at 10 min/block.
 
-        With Adonis integration, reputation is enhanced with multi-dimensional
-        scoring including reliability, integrity, contribution, longevity,
-        and community trust.
+        With HAL integration, reputation is enhanced with multi-dimensional
+        scoring including TIME, INTEGRITY, STORAGE, EPOCHS, and HANDSHAKE.
 
         Args:
             signed_blocks: Number of blocks signed without equivocation
-            pubkey: Optional node public key for Adonis lookup
+            pubkey: Optional node public key for HAL lookup
 
         Returns:
             Value in [0, 1] representing reputation factor
@@ -319,11 +318,11 @@ class ConsensusCalculator:
         else:
             base_rep = min(signed_blocks / PROTOCOL.K_REP, 1.0)
 
-        # Enhance with Adonis if available
-        if self.adonis is not None and pubkey is not None and ADONIS_AVAILABLE:
-            adonis_score = self.adonis.get_reputation_score(pubkey)
-            # Combine: 30% basic blocks, 70% Adonis multi-dimensional
-            return 0.3 * base_rep + 0.7 * adonis_score
+        # Enhance with HAL if available
+        if self.hal is not None and pubkey is not None and HAL_AVAILABLE:
+            hal_score = self.hal.get_reputation_score(pubkey)
+            # Combine: 30% basic blocks, 70% HAL multi-dimensional
+            return 0.3 * base_rep + 0.7 * hal_score
 
         return base_rep
     
@@ -359,7 +358,7 @@ class ConsensusCalculator:
         # Space component
         f_space = self.compute_f_space(node.stored_blocks, total_blocks)
 
-        # Reputation component (with Adonis if available)
+        # Reputation component (with HAL if available)
         f_rep = self.compute_f_rep(node.signed_blocks, pubkey=node.pubkey)
         
         # Weighted sum
@@ -420,7 +419,7 @@ class ConsensusCalculator:
 
         Returns:
             Dict with 'f_time', 'f_space', 'f_rep', 'weighted_sum' values
-            and Adonis details if available
+            and HAL details if available
         """
         uptime = node.get_uptime(current_time)
         f_time = self.compute_f_time(uptime)
@@ -445,11 +444,11 @@ class ConsensusCalculator:
             }
         }
 
-        # Add Adonis details if available
-        if self.adonis is not None and ADONIS_AVAILABLE:
-            profile = self.adonis.get_profile(node.pubkey)
+        # Add HAL details if available
+        if self.hal is not None and HAL_AVAILABLE:
+            profile = self.hal.get_profile(node.pubkey)
             if profile:
-                result['adonis'] = {
+                result['hal'] = {
                     'aggregate_score': profile.aggregate_score,
                     'is_penalized': profile.is_penalized,
                     'trust_score': profile.get_trust_score(),

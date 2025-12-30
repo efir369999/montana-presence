@@ -108,17 +108,13 @@ from .reputation import (
     DimensionScore,
     ReputationRecord,
     Handshake,
-    # Main classes (new names)
+    # Main classes
     HalProfile,
     HalEngine,
     EntropyMonitor,
     # Functions
     compute_f_rep,
     create_reputation_modifier,
-    # Backward compatibility aliases
-    AdonisProfile,
-    AdonisEngine,
-    compute_f_rep_adonis,
     # Constants
     MAX_VOUCHES_PER_DAY,
     PROFILE_EXPIRATION_SECONDS,
@@ -193,10 +189,6 @@ __all__ = [
     'EntropyMonitor',
     'compute_f_rep',
     'create_reputation_modifier',
-    # Backward compatibility
-    'AdonisProfile',
-    'AdonisEngine',
-    'compute_f_rep_adonis',
     # Reputation constants
     'MAX_VOUCHES_PER_DAY',
     'PROFILE_EXPIRATION_SECONDS',

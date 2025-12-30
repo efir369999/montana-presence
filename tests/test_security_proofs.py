@@ -301,16 +301,15 @@ class ClusterCapBypassProof:
             from pantheon.hal import (
                 GlobalByzantineTracker, HalProfile, ReputationDimension, DimensionScore
             )
-            AdonisProfile = HalProfile  # Alias for compatibility
         except ImportError:
             # Fallback to simplified version if import fails
             return self._calculate_influence_fixed_simplified()
 
-        # Create real AdonisProfile objects from our simulated nodes
-        profiles: Dict[bytes, AdonisProfile] = {}
+        # Create real HalProfile objects from our simulated nodes
+        profiles: Dict[bytes, HalProfile] = {}
 
         for pk, node in self.nodes.items():
-            profile = AdonisProfile(pubkey=pk)
+            profile = HalProfile(pubkey=pk)
 
             # Set dimensions based on controller type
             time_score = node.get_time_score()

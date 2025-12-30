@@ -34,8 +34,6 @@ from pantheon.athena import (
 from pantheon.hal import (
     HalEngine, HalProfile, ReputationEvent, ReputationDimension,
     compute_f_rep, create_reputation_modifier,
-    # Backward compatibility aliases
-    AdonisEngine, AdonisProfile, compute_f_rep_adonis,
 )
 
 # DAG modules - import from submodules to avoid circular import
@@ -85,7 +83,7 @@ class ProofOfTimeNode:
     - PHANTOM-PoT ordering
     - Tiered privacy (T0-T3)
     - Proof of Time (PoT) consensus with VDF finality
-    - Time-weighted node influence (Adonis)
+    - Time-weighted node influence (HAL)
     """
     
     def __init__(
@@ -144,8 +142,8 @@ class ProofOfTimeNode:
         # Weight rebalancer with default weights
         self.weight_rebalancer = WeightRebalancer(ProbabilityWeights())
 
-        # Adonis reputation engine
-        self.adonis = AdonisEngine()
+        # HAL reputation engine
+        self.hal = HalEngine()
         
         # Node state
         self.node_state = NodeState(
@@ -334,8 +332,8 @@ class ProofOfTimeNode:
                     # Update node state
                     self.node_state.signed_blocks += 1
 
-                    # Update Adonis reputation
-                    self.adonis.record_event(
+                    # Update HAL reputation
+                    self.hal.record_event(
                         self.public_key,
                         ReputationEvent.BLOCK_PRODUCED,
                         height=block.header.height
@@ -551,34 +549,34 @@ class ProofOfTimeNode:
         """Get comprehensive statistics."""
         storage_stats = self.storage.get_stats()
         anon_stats = self.anonymity_manager.get_pool_stats()
-        adonis_stats = self.adonis.get_stats()
+        hal_stats = self.hal.get_stats()
 
         return {
             'node': self.get_status(),
             'storage': storage_stats,
             'anonymity': anon_stats,
-            'adonis': adonis_stats,
+            'hal': hal_stats,
             'tier_specs': {
                 tier.name: TIER_SPECS[tier]
                 for tier in PrivacyTier
             }
         }
 
-    def get_adonis_profile(self, pubkey: Optional[bytes] = None) -> Optional[AdonisProfile]:
-        """Get Adonis reputation profile for a node."""
+    def get_hal_profile(self, pubkey: Optional[bytes] = None) -> Optional[HalProfile]:
+        """Get HAL reputation profile for a node."""
         if pubkey is None:
             pubkey = self.public_key
-        return self.adonis.get_profile(pubkey)
+        return self.hal.get_profile(pubkey)
 
     def vouch_for_node(self, peer_pubkey: bytes) -> bool:
         """Vouch for a peer node's reputation."""
-        return self.adonis.add_vouch(self.public_key, peer_pubkey)
+        return self.hal.add_vouch(self.public_key, peer_pubkey)
 
     def get_reputation_score(self, pubkey: Optional[bytes] = None) -> float:
-        """Get Adonis reputation score for a node."""
+        """Get HAL reputation score for a node."""
         if pubkey is None:
             pubkey = self.public_key
-        return self.adonis.get_reputation_score(pubkey)
+        return self.hal.get_reputation_score(pubkey)
 
     def report_slashing_event(
         self,
@@ -588,7 +586,7 @@ class ProofOfTimeNode:
         evidence_hash: Optional[bytes] = None
     ):
         """
-        Report a slashing event to Adonis reputation system.
+        Report a slashing event to HAL reputation system.
 
         Maps SlashingCondition to ReputationEvent:
         - EQUIVOCATION -> ReputationEvent.EQUIVOCATION
@@ -605,7 +603,7 @@ class ProofOfTimeNode:
 
         event_type = event_map.get(SlashingCondition(condition))
         if event_type:
-            self.adonis.record_event(
+            self.hal.record_event(
                 offender_pubkey,
                 event_type,
                 height=height,
@@ -617,15 +615,15 @@ class ProofOfTimeNode:
             )
 
     def record_block_validation(self, validator_pubkey: bytes, height: int, valid: bool):
-        """Record block validation event for Adonis."""
+        """Record block validation event for HAL."""
         if valid:
-            self.adonis.record_event(
+            self.hal.record_event(
                 validator_pubkey,
                 ReputationEvent.BLOCK_VALIDATED,
                 height=height
             )
         else:
-            self.adonis.record_event(
+            self.hal.record_event(
                 validator_pubkey,
                 ReputationEvent.BLOCK_INVALID,
                 height=height
@@ -633,7 +631,7 @@ class ProofOfTimeNode:
 
     def record_uptime_checkpoint(self):
         """Record uptime checkpoint for this node."""
-        self.adonis.record_event(
+        self.hal.record_event(
             self.public_key,
             ReputationEvent.UPTIME_CHECKPOINT,
             height=self._current_height if hasattr(self, '_current_height') else 0
