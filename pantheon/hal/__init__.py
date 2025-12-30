@@ -1,44 +1,36 @@
 """
-Hal Humanity System - Proof of Human, Not Just Proof of Time
+HAL — Human Analyse Language
 
+Unified module for proving humanity and analyzing behavior.
 Named after Hal Finney (1956-2014), who understood Sybil resistance
-before anyone else. He received the first Bitcoin transaction and
-foresaw the need to prove humanity, not just cryptographic identity.
+before anyone else.
 
-Montana v4.0 proves TIME (via EPOCHS).
-Hal proves HUMANITY (via Graduated Trust + Time-Locked Identity).
+=== COMPONENTS ===
 
-Together, they create unforgeable proof that a unique human has
-participated in the network over real-world time.
+1. REPUTATION (5 Fingers of Adonis):
+   - TIME (50%): Bitcoin blocks since halving
+   - INTEGRITY (20%): No violations
+   - STORAGE (15%): Chain history stored
+   - EPOCHS (10%): Halvings survived
+   - HANDSHAKE (5%): Trust bonds (12 Apostles)
 
-=== GRADUATED TRUST MODEL ===
+2. GRADUATED TRUST (Humanity Proofs):
+   - Tier 1: Hardware (3 Apostles, weight 0.3)
+   - Tier 2: Social (6 Apostles, weight 0.6)
+   - Tier 3: Time-Locked (12 Apostles, weight 1.0)
 
-    TIER 3: TIME-LOCKED (12 Apostles max, weight 1.0)
-    ─────────────────────────────────────────────────
-    • Survived 1+ Bitcoin halvings with valid commitment
-    • UNFAKEABLE - requires actual time passage
-    • Ultimate form of humanity proof
-
-    TIER 2: SOCIAL (6 Apostles max, weight 0.6)
-    ─────────────────────────────────────────────
-    • Built social graph through handshakes
-    • Sybil cost: real human connections over time
-    • Bridge tier during bootstrap phase
-
-    TIER 1: HARDWARE (3 Apostles max, weight 0.3)
-    ─────────────────────────────────────────────
-    • TPM/Secure Enclave/FIDO2 attestation
-    • Sybil cost: physical device ($50-500)
-    • Bootstrap tier for new participants
+3. BEHAVIORAL ANALYSIS (Sybil Detection):
+   - ClusterDetector: Pairwise correlation
+   - GlobalByzantineTracker: Fingerprinting
 
 === SYBIL ECONOMICS ===
 
 Creating N fake identities requires:
 - Tier 1: N physical devices ($50-500 each)
-- Tier 2: N social networks (months/years to build)
+- Tier 2: N social networks (months/years)
 - Tier 3: N Bitcoin halvings (4 years EACH)
 
-At Tier 3: 100 fake identities = 400 years of waiting
+100 fake identities = 400 years waiting.
 This is the Hal Finney vision realized.
 
 "Running bitcoin" - Hal Finney, 2009
@@ -109,6 +101,35 @@ from .behavioral import (
     FINGERPRINT_SIMILARITY_THRESHOLD,
 )
 
+from .reputation import (
+    # Core types
+    ReputationDimension,
+    ReputationEvent,
+    DimensionScore,
+    ReputationRecord,
+    Handshake,
+    # Main classes (new names)
+    HalProfile,
+    HalEngine,
+    EntropyMonitor,
+    # Functions
+    compute_f_rep,
+    create_reputation_modifier,
+    # Backward compatibility aliases
+    AdonisProfile,
+    AdonisEngine,
+    compute_f_rep_adonis,
+    # Constants
+    MAX_VOUCHES_PER_DAY,
+    PROFILE_EXPIRATION_SECONDS,
+    MAX_TIMESTAMP_DRIFT,
+    MIN_NETWORK_ENTROPY,
+    ENTROPY_DECAY_RATE,
+    MIN_NODES_FOR_CLUSTER_ANALYSIS,
+    TIMING_VARIANCE_THRESHOLD,
+    MIN_HANDSHAKE_COUNTRIES,
+)
+
 __all__ = [
     # Core
     'HumanityTier',
@@ -161,4 +182,28 @@ __all__ = [
     'MAX_CLUSTER_INFLUENCE',
     'MAX_BYZANTINE_INFLUENCE',
     'FINGERPRINT_SIMILARITY_THRESHOLD',
+    # Reputation (5 Fingers)
+    'ReputationDimension',
+    'ReputationEvent',
+    'DimensionScore',
+    'ReputationRecord',
+    'Handshake',
+    'HalProfile',
+    'HalEngine',
+    'EntropyMonitor',
+    'compute_f_rep',
+    'create_reputation_modifier',
+    # Backward compatibility
+    'AdonisProfile',
+    'AdonisEngine',
+    'compute_f_rep_adonis',
+    # Reputation constants
+    'MAX_VOUCHES_PER_DAY',
+    'PROFILE_EXPIRATION_SECONDS',
+    'MAX_TIMESTAMP_DRIFT',
+    'MIN_NETWORK_ENTROPY',
+    'ENTROPY_DECAY_RATE',
+    'MIN_NODES_FOR_CLUSTER_ANALYSIS',
+    'TIMING_VARIANCE_THRESHOLD',
+    'MIN_HANDSHAKE_COUNTRIES',
 ]

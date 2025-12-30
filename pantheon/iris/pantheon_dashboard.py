@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Pantheon + Adonis Audit Dashboard
+Pantheon + HAL Audit Dashboard
 
 Web-based dashboard showing:
-- All 12 Pantheon gods (protocol modules)
-- Adonis reputation data
+- All 14 Pantheon gods (protocol modules)
+- HAL reputation data (Human Analyse Language)
 - Geographic diversity
 - Network statistics
 
@@ -20,8 +20,9 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from typing import Dict, Any, Optional
 
-from pantheon.adonis import (
-    AdonisEngine, ReputationDimension, ReputationEvent
+from pantheon.hal import (
+    HalEngine, ReputationDimension, ReputationEvent,
+    AdonisEngine,  # Backward compatibility
 )
 
 logger = logging.getLogger("pantheon_dashboard")

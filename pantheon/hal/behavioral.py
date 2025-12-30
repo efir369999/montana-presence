@@ -26,7 +26,7 @@ from enum import IntEnum, auto
 from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from pantheon.adonis.adonis import AdonisProfile, ReputationDimension
+    from .reputation import HalProfile, ReputationDimension
 
 logger = logging.getLogger(__name__)
 
@@ -522,7 +522,7 @@ class GlobalByzantineTracker:
         3. Similar dimension profiles (automated management)
         """
         # Import at runtime to avoid circular imports
-        from pantheon.adonis.adonis import ReputationDimension
+        from .reputation import ReputationDimension
 
         with self._lock:
             current_time = int(time.time())

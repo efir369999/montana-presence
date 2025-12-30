@@ -285,10 +285,10 @@ def _short_hash():
     return h[:8]
 
 def _get_adonis_stats():
-    """Get Adonis reputation stats."""
+    """Get HAL reputation stats."""
     try:
-        from pantheon.adonis import AdonisEngine
-        engine = AdonisEngine()
+        from pantheon.hal import HalEngine
+        engine = HalEngine()
         stats = engine.get_stats()
         return {
             'profiles': stats.get('total_profiles', 0),

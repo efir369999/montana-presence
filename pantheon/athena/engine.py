@@ -30,10 +30,12 @@ from pantheon.athena import (
     SybilDetector, SlashingManager, WeightRebalancer, ProbabilityWeights
 )
 
-# Adonis reputation module
-from pantheon.adonis import (
-    AdonisEngine, AdonisProfile, ReputationEvent, ReputationDimension,
-    compute_f_rep_adonis, create_reputation_modifier
+# HAL reputation module (Human Analyse Language)
+from pantheon.hal import (
+    HalEngine, HalProfile, ReputationEvent, ReputationDimension,
+    compute_f_rep, create_reputation_modifier,
+    # Backward compatibility aliases
+    AdonisEngine, AdonisProfile, compute_f_rep_adonis,
 )
 
 # DAG modules - import from submodules to avoid circular import

@@ -293,14 +293,15 @@ class ClusterCapBypassProof:
         """
         Calculate influence with FIXED method using GlobalByzantineTracker.
 
-        This uses the REAL production implementation from adonis.py.
+        This uses the REAL production implementation from hal/reputation.py.
         """
         # Import the real implementation
         try:
             sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            from pantheon.adonis.adonis import (
-                GlobalByzantineTracker, AdonisProfile, ReputationDimension, DimensionScore
+            from pantheon.hal import (
+                GlobalByzantineTracker, HalProfile, ReputationDimension, DimensionScore
             )
+            AdonisProfile = HalProfile  # Alias for compatibility
         except ImportError:
             # Fallback to simplified version if import fails
             return self._calculate_influence_fixed_simplified()
