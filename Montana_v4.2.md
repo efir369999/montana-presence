@@ -24,7 +24,10 @@ A purely peer-to-peer electronic cash system would allow online payments without
 - Time-Locked Identity Proofs — Bitcoin halving anchored, unfakeable
 - Sybil Resistance — Proving humanity, not just cryptographic identity
 
-**Version 4.2:** Documentation and integration completeness.
+**Version 4.2:** Bitcoin-anchored TIME dimension:
+- TIME saturation = 210,000 Bitcoin blocks (resets at each halving)
+- Ties node reputation directly to Bitcoin time oracle
+- Prevents permanent entrenchment of early nodes
 
 Time cannot be bought, manufactured, or transferred—only spent.
 Humanity cannot be faked across Bitcoin halvings—only proven.
@@ -62,7 +65,7 @@ What the cypherpunks sought was not merely decentralized currency, but decentral
 
 **Time is that resource.**
 
-A node operating for 180 days accumulates the same influence whether owned by a billionaire or a student. This time is irreversible. It cannot be bought on an exchange. It cannot be rented from a cloud provider. It can only be spent—by existing.
+A node operating through a full Bitcoin halving cycle (210,000 blocks, ~4 years) accumulates the same influence whether owned by a billionaire or a student. This time is measured in Bitcoin blocks, resets at each halving, and is irreversible. It cannot be bought on an exchange. It cannot be rented from a cloud provider. It can only be spent—by existing.
 
 ### 1.1 The Quantum Threat
 
@@ -164,12 +167,22 @@ The Adonis reputation system uses five-dimensional assessment.
 
 ### 5.1 THUMB: TIME (50%)
 
-The dominant factor. Saturates at 180 days of continuous uptime.
+The dominant factor. Saturates at 210,000 Bitcoin blocks (~4 years). **Resets at each halving.**
+
+Montana v4.2: TIME is now measured in Bitcoin blocks since the last halving, not wall-clock seconds.
+This ties node reputation directly to the Bitcoin time oracle and creates a natural reset cycle.
 
 ```python
-f_time(t) = min(t / K_TIME, 1.0)
-# where K_TIME = 180 days
+f_time(btc_height) = min(blocks_since_halving / K_TIME, 1.0)
+# where K_TIME = 210,000 Bitcoin blocks
+# blocks_since_halving = btc_height % 210_000
 ```
+
+**Why reset at halving?**
+- Prevents permanent entrenchment of early nodes
+- Creates natural "election cycles" for network trust
+- Ties reputation directly to unfakeable Bitcoin time
+- All nodes restart from 0 after each halving — proving continued operation
 
 ### 5.2 INDEX: INTEGRITY (20%)
 
@@ -532,9 +545,9 @@ Complete quantum-resistant cryptographic stack following NIST post-quantum stand
 
 | Version | Sybil Cost (100 fake nodes) |
 |---------|----------------------------|
-| v3.x | $0 (just wait 180 days) |
-| v4.0 | $0 (just wait 4 years) |
-| **v4.1** | **400 years** (100 × 4-year halvings) |
+| v3.x | $0 (just wait ~6 months) |
+| v4.0 | $0 (just wait 4 years for EPOCHS) |
+| **v4.1+** | **400 years** (100 × 4-year halvings) |
 
 ### 10.3 51% Attack Requirements (v4.2)
 
@@ -542,8 +555,8 @@ To control majority weighted influence:
 
 | Requirement | v3.x | v4.2 |
 |-------------|------|------|
-| Time | 180 days | 180 days |
-| EPOCHS | N/A | 4+ years |
+| TIME | ~6 months | 210,000 BTC blocks (~4 years, resets at halving) |
+| EPOCHS | N/A | 4+ years (survive 1+ halving) |
 | Humanity | N/A | Tier 3 proof (4+ years per identity) |
 | Apostles | 10 | 12 (requires Tier 3) |
 
@@ -701,18 +714,19 @@ python node.py --run
 
 ### 16.1 What Ɉ Montana v4.2 Guarantees
 
-1. **No instant takeover:** Minimum 180 days to reach maximum influence
+1. **No instant takeover:** TIME resets at each halving — no permanent advantage
 2. **Cluster cap:** No coordinated group exceeds 33% influence
 3. **Quantum resistance:** Signatures and VDF secure against quantum computers
 4. **Sybil resistance:** Humanity proofs via graduated trust
 5. **Time-locked identity:** 4-year Bitcoin halving anchors cannot be faked
 6. **Collective accountability:** 12 Apostles + slashing creates real consequences
+7. **Bitcoin-anchored time:** 210,000 blocks to saturate, then reset at halving
 
 ### 16.2 Sybil Resistance Evolution
 
 | Version | Sybil Cost | Mechanism |
 |---------|------------|-----------|
-| v1.0-v3.x | $0 (wait 180 days) | TIME only |
+| v1.0-v3.x | $0 (wait ~6 months) | TIME only |
 | v4.0 | $0 (wait 4 years) | TIME + EPOCHS |
 | **v4.1+** | **N × 4 years** | TIME + EPOCHS + HAL |
 

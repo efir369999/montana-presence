@@ -108,7 +108,7 @@ class ReputationDimension(IntEnum):
     HANDSHAKE unlocks only when first 4 fingers are saturated.
     Two veterans shake hands = cryptographic proof of trust.
     """
-    TIME = auto()          # THUMB: Continuous uptime - saturates at 210,000 blocks (50%)
+    TIME = auto()          # THUMB: Bitcoin blocks since halving - saturates at 210,000, RESETS at halving (50%)
     INTEGRITY = auto()     # INDEX: No violations, valid proofs (20%)
     STORAGE = auto()       # MIDDLE: Chain storage - saturates at 100% (15%)
     EPOCHS = auto()        # RING: Bitcoin halvings survived - unfakeable (10%)
@@ -166,6 +166,8 @@ class ReputationEvent(IntEnum):
     EPOCH_SURVIVED = auto()      # Survived a Bitcoin halving (210,000 blocks)
     HANDSHAKE_FORMED = auto()    # Mutual handshake with another veteran
     INDEPENDENT_ACTION = auto()  # Action that proves independence from cluster
+    NEW_COUNTRY = auto()         # First node from a new country (geographic diversity)
+    NEW_CITY = auto()            # First node from a new city (geographic diversity)
 
     # Negative events
     BLOCK_INVALID = auto()       # Produced invalid block
@@ -1690,7 +1692,8 @@ class AdonisEngine:
         }
 
         # Saturation thresholds (Montana v4.0: tied to Bitcoin blocks)
-        self.K_TIME = 210_000       # 210,000 Bitcoin blocks (~4 years) for TIME saturation
+        self.HALVING_INTERVAL = 210_000  # Bitcoin halving interval
+        self.K_TIME = 210_000       # 210,000 Bitcoin blocks for TIME saturation (resets at halving)
         self.K_STORAGE = 1.00       # 100% of chain
         self.K_HANDSHAKE = 12       # 12 Apostles for full HANDSHAKE score
         self.K_EPOCHS = 4           # 4 halvings survived for full EPOCHS score
@@ -1933,13 +1936,18 @@ class AdonisEngine:
     # TIME AND STORAGE UPDATES
     # =========================================================================
 
-    def update_time(self, pubkey: bytes, uptime_seconds: int) -> float:
+    def update_time(self, pubkey: bytes, btc_height: int) -> float:
         """
-        Update TIME dimension based on continuous uptime.
+        Update TIME dimension based on Bitcoin blocks since last halving.
+
+        Montana v4.2: TIME is measured in Bitcoin blocks, not seconds.
+        - Saturation = 210,000 blocks (one halving period)
+        - Resets to 0 at each halving
+        - Weight grows linearly during the epoch
 
         Args:
             pubkey: Node public key
-            uptime_seconds: Continuous uptime in seconds
+            btc_height: Current Bitcoin block height
 
         Returns:
             TIME score in [0, 1]
@@ -1947,8 +1955,25 @@ class AdonisEngine:
         with self._lock:
             profile = self.get_or_create_profile(pubkey)
 
-            # Saturating function: max at K_TIME (180 days)
-            time_score = min(uptime_seconds / self.K_TIME, 1.0)
+            # Calculate blocks since last halving (resets at each halving)
+            blocks_since_halving = btc_height % self.HALVING_INTERVAL
+            current_epoch = btc_height // self.HALVING_INTERVAL
+
+            # TIME score = blocks in current epoch / 210,000
+            time_score = min(blocks_since_halving / self.K_TIME, 1.0)
+
+            # Track epoch for reset detection
+            prev_epoch = getattr(profile, '_time_epoch', current_epoch)
+            if current_epoch > prev_epoch:
+                # Halving occurred! Reset and record epoch survival
+                logger.info(
+                    f"Node {pubkey.hex()[:16]}... TIME RESET: "
+                    f"Halving at epoch {current_epoch}, starting fresh"
+                )
+                # Reset TIME score (blocks_since_halving will be small)
+                profile._time_epoch = current_epoch
+
+            profile._time_epoch = current_epoch
 
             profile.dimensions[ReputationDimension.TIME].update(
                 time_score,
@@ -1961,7 +1986,8 @@ class AdonisEngine:
 
             logger.debug(
                 f"Node {pubkey.hex()[:16]}... TIME updated: "
-                f"{uptime_seconds/86400:.1f} days = {time_score:.3f}"
+                f"BTC block {btc_height}, epoch {current_epoch}, "
+                f"{blocks_since_halving}/{self.HALVING_INTERVAL} blocks = {time_score:.3f}"
             )
 
             return time_score
@@ -2011,7 +2037,7 @@ class AdonisEngine:
     def compute_node_probability(
         self,
         pubkey: bytes,
-        uptime_seconds: int,
+        btc_height: int,
         stored_blocks: int,
         total_blocks: int
     ) -> float:
@@ -2025,9 +2051,12 @@ class AdonisEngine:
         2. Cluster penalty - nodes in detected clusters get reduced score
         3. Correlation penalty - highly correlated nodes get penalized
 
+        Montana v4.2: TIME is measured in Bitcoin blocks since last halving.
+        Resets at each halving (210,000 blocks).
+
         Args:
             pubkey: Node public key
-            uptime_seconds: Continuous uptime
+            btc_height: Current Bitcoin block height
             stored_blocks: Blocks stored
             total_blocks: Total chain blocks
 
@@ -2051,17 +2080,29 @@ class AdonisEngine:
             entropy_decay = self.entropy_monitor.get_time_decay_factor()
 
             # =========================================================
-            # STEP 2: UPDATE TIME (with entropy decay applied)
+            # STEP 2: UPDATE TIME (Bitcoin blocks since last halving)
             # =========================================================
-            raw_time_score = min(uptime_seconds / self.K_TIME, 1.0)
+            # Montana v4.2: TIME resets at each halving
+            blocks_since_halving = btc_height % self.HALVING_INTERVAL
+            current_epoch = btc_height // self.HALVING_INTERVAL
+
+            # Track epoch for reset detection
+            prev_epoch = getattr(profile, '_time_epoch', current_epoch)
+            if current_epoch > prev_epoch:
+                logger.info(f"Node {pubkey.hex()[:16]}... TIME RESET at halving {current_epoch}")
+                profile._time_epoch = current_epoch
+            profile._time_epoch = current_epoch
+
+            raw_time_score = min(blocks_since_halving / self.K_TIME, 1.0)
 
             # Apply entropy decay to TIME
             # If network is unhealthy, time accumulation slows down
             time_score = raw_time_score * entropy_decay
 
             profile.dimensions[ReputationDimension.TIME].value = time_score
+            # Confidence grows with blocks in epoch (full at ~21,000 blocks = 10% of epoch)
             profile.dimensions[ReputationDimension.TIME].confidence = min(
-                1.0, uptime_seconds / (7 * 86400)  # Full confidence after 7 days
+                1.0, blocks_since_halving / 21_000
             )
 
             # Record entropy decay event if active
@@ -2533,16 +2574,11 @@ class AdonisEngine:
 
             city_score = 0.7 * city_rarity + 0.3 * city_diversity
 
-            # Combined GEOGRAPHY score (RING finger):
-            # 60% country contribution, 40% city contribution
+            # Combined GEOGRAPHY score (for analytics, not reputation)
+            # Montana v4.0: GEOGRAPHY replaced by EPOCHS in Adonis dimensions
+            # This score is still calculated for network analytics only
             geography_score = 0.6 * country_score + 0.4 * city_score
-
-            # Update GEOGRAPHY dimension (RING)
-            profile.dimensions[ReputationDimension.GEOGRAPHY].update(
-                geography_score,
-                weight=1.5,
-                timestamp=int(time.time())
-            )
+            # Note: GEOGRAPHY no longer a dimension - EPOCHS (Bitcoin halvings) replaced it
 
             # Award NEW_CITY event if first node from this city
             if is_new_city:
@@ -3143,7 +3179,7 @@ def _self_test():
     """Run Adonis self-tests."""
     logger.info("Running Adonis self-tests...")
     logger.info("  🖐️ The Five Fingers of Adonis (Montana v4.0):")
-    logger.info("     👍 THUMB (TIME): 50% - saturates at 210,000 Bitcoin blocks")
+    logger.info("     👍 THUMB (TIME): 50% - saturates at 210,000 Bitcoin blocks (RESETS at halving)")
     logger.info("     ☝️ INDEX (INTEGRITY): 20% - no violations")
     logger.info("     🖕 MIDDLE (STORAGE): 15% - saturates at 100%")
     logger.info("     💍 RING (EPOCHS): 10% - Bitcoin halvings survived (unfakeable)")
@@ -3162,14 +3198,25 @@ def _self_test():
     assert profile1.pubkey == node1
     logger.info("  Profile creation OK")
 
-    # Test TIME dimension (THUMB - 50%)
-    time_score = engine.update_time(node1, 90 * 86400)  # 90 days
-    assert time_score == 0.5  # 90/180 = 0.5
-    logger.info(f"  THUMB (TIME): 90 days = {time_score:.3f}")
+    # Test TIME dimension (THUMB - 50%) - Montana v4.2: Bitcoin blocks since halving
+    # Epoch 2, 105,000 blocks into epoch = 50% saturation
+    btc_height_half = 420_000 + 105_000  # Epoch 2, 105k blocks = 50%
+    time_score = engine.update_time(node1, btc_height_half)
+    assert time_score == 0.5  # 105,000/210,000 = 0.5
+    logger.info(f"  THUMB (TIME): BTC {btc_height_half} (105k blocks) = {time_score:.3f}")
 
-    time_score_full = engine.update_time(node3, 200 * 86400)  # 200 days (saturated)
-    assert time_score_full == 1.0
-    logger.info(f"  THUMB (TIME): 200 days (saturated) = {time_score_full:.3f}")
+    # Full saturation: 210,000 blocks into epoch
+    btc_height_full = 420_000 + 209_999  # Almost at halving (saturated)
+    time_score_full = engine.update_time(node3, btc_height_full)
+    assert abs(time_score_full - 1.0) < 0.001  # ~209,999/210,000 ≈ 1.0
+    logger.info(f"  THUMB (TIME): BTC {btc_height_full} (saturated) = {time_score_full:.3f}")
+
+    # Test halving reset: blocks after halving reset TIME to near 0
+    btc_height_after_halving = 630_000 + 1000  # Epoch 3, only 1000 blocks
+    time_score_reset = engine.update_time(node1, btc_height_after_halving)
+    expected_reset = 1000 / 210_000  # ~0.0048
+    assert abs(time_score_reset - expected_reset) < 0.001
+    logger.info(f"  THUMB (TIME): After halving, BTC {btc_height_after_halving} = {time_score_reset:.4f} (RESET!)")
 
     # Test STORAGE dimension (MIDDLE - 15%)
     storage_score = engine.update_storage(node1, 1000, 1000)  # 100% storage
@@ -3200,9 +3247,10 @@ def _self_test():
     logger.info("  Penalty: EQUIVOCATION applied")
 
     # Test unified probability calculation
+    # Montana v4.2: Use Bitcoin block height instead of uptime_seconds
     prob = engine.compute_node_probability(
         node1,
-        uptime_seconds=90 * 86400,  # 90 days
+        btc_height=420_000 + 105_000,  # Epoch 2, 105k blocks = 50% TIME
         stored_blocks=800,
         total_blocks=1000
     )
@@ -3256,11 +3304,12 @@ def _self_test():
     logger.info(f"  💍 RING (EPOCHS): Node4 survived epochs {epochs}")
 
     # Test full epoch saturation (4 epochs)
+    # The score returned by record_epoch_survived is the raw score
     for epoch in [3, 4]:
-        engine.record_epoch_survived(node5, epoch_number=epoch, btc_height=epoch * 210000)
+        epochs_score_full = engine.record_epoch_survived(node5, epoch_number=epoch, btc_height=epoch * 210000)
     for epoch in [1, 2]:
-        engine.record_epoch_survived(node5, epoch_number=epoch, btc_height=epoch * 210000)
-    epochs_score_full = engine.profiles[node5].dimensions[ReputationDimension.EPOCHS].value
+        epochs_score_full = engine.record_epoch_survived(node5, epoch_number=epoch, btc_height=epoch * 210000)
+    # After 4 epochs: 4/4 = 1.0
     assert epochs_score_full == 1.0  # 4 epochs / 4 = 1.0 (saturated)
     logger.info(f"  💍 RING (EPOCHS): 4 halvings = full saturation ({epochs_score_full:.2f})")
 

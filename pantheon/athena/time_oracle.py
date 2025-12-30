@@ -9,6 +9,12 @@ The TimeOracle provides a unified interface for:
 
 Montana survives Bitcoin's death - VDF provides sovereign backup.
 
+NOTE: This module is maintained for backward compatibility.
+For new code, use AdamSync from pantheon.chronos which provides:
+- Clear layer separation (Server Time → Bitcoin → VDF)
+- Explicit finality states (PENDING → TENTATIVE → CONFIRMED → IRREVERSIBLE)
+- Better clock drift handling with weighted UTC averages
+
 Time cannot be bought. Trust cannot be purchased.
 """
 

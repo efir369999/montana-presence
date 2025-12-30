@@ -44,13 +44,13 @@ Five dimensions. All saturate.
 
 | Dimension | Weight | Saturation |
 |-----------|--------|------------|
-| TIME | 50% | 180 days uptime |
+| TIME | 50% | 210,000 BTC blocks (resets at halving) |
 | INTEGRITY | 20% | No violations |
 | STORAGE | 15% | Full chain history |
 | EPOCHS | 10% | Bitcoin halvings survived |
 | HANDSHAKE | 5% | 12 Apostle trust bonds |
 
-180 days = maximum influence. Capital irrelevant.
+TIME measured in Bitcoin blocks. Resets at each halving. Capital irrelevant.
 
 ### The Twelve Apostles (v4.0)
 
