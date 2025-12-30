@@ -29,9 +29,10 @@ from pantheon.hades.dag import (
 from pantheon.hades.dag_storage import DAGStorage, LRUCache, CHECKPOINT_INTERVAL
 from pantheon.nyx.tiered_privacy import (
     PrivacyTier, TieredOutput, TieredInput, TieredTransaction,
-    TieredTransactionBuilder, TierValidator, AnonymitySetManager,
-    TIER_SPECS, DEFAULT_RING_SIZE
+    TieredTransactionBuilder, TierValidator,
+    TIER_SPECS
 )
+from pantheon.nyx import AnonymitySetManager, DEFAULT_RING_SIZE
 from pantheon.nyx.ristretto import (
     RistrettoPoint, RistrettoScalar, RistrettoGenerators,
     RistrettoPedersenCommitment, BulletproofPP,

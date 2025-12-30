@@ -23,12 +23,12 @@ from enum import IntEnum
 from config import NodeConfig
 from pantheon.prometheus import Ed25519
 from pantheon.athena import (
-    NodeState, NodeStatus, ConsensusCalculator, LeaderSelector,
-    SybilDetector, SlashingManager, WeightRebalancer, ProbabilityWeights
+    NodeState, NodeStatus, ConsensusCalculator,
+    WeightRebalancer, ProbabilityWeights
 )
 
 # HAL reputation module (Human Analyse Language)
-from pantheon.hal import HalEngine, HalProfile, ReputationEvent
+from pantheon.hal import HalEngine, HalProfile, ReputationEvent, SlashingManager
 
 # DAG modules
 from pantheon.hades.dag import DAGBlock, DAGConsensusEngine, DAGBlockProducer
@@ -119,14 +119,14 @@ class ProofOfTimeNode:
             self.public_key
         )
         
-        # Consensus calculators
+        # Consensus calculators (DAG - no leader selection)
         self.consensus_calc = ConsensusCalculator()
-        self.leader_selector = LeaderSelector(self.consensus_calc)
-        self.sybil_detector = SybilDetector()
-        self.slashing_manager = SlashingManager()
-        
+
         # Weight rebalancer with default weights
         self.weight_rebalancer = WeightRebalancer(ProbabilityWeights())
+
+        # Slashing manager (from HAL)
+        self.slashing_manager = SlashingManager()
 
         # HAL reputation engine
         self.hal = HalEngine()
@@ -579,7 +579,7 @@ class ProofOfTimeNode:
         - INVALID_VDF -> ReputationEvent.VDF_INVALID
         - INVALID_VRF -> ReputationEvent.VRF_INVALID
         """
-        from pantheon.athena.consensus import SlashingCondition
+        from pantheon.hal import SlashingCondition
 
         event_map = {
             SlashingCondition.EQUIVOCATION: ReputationEvent.EQUIVOCATION,

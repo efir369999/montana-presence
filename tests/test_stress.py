@@ -99,7 +99,7 @@ class TestConsensusStress(unittest.TestCase):
     
     def test_slashing_under_concurrent_reports(self):
         """Process many slashing reports concurrently."""
-        from pantheon.athena.consensus import SlashingManager, SlashingEvidence, SlashingCondition
+        from pantheon.hal import SlashingManager, SlashingEvidence, SlashingCondition
         
         manager = SlashingManager()
         errors = []

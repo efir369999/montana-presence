@@ -192,11 +192,10 @@ class TestConsensusEdgeCases(unittest.TestCase):
     
     def test_empty_node_list(self):
         """Should handle empty node list gracefully."""
-        from pantheon.athena.consensus import ConsensusCalculator, LeaderSelector
-        
+        from pantheon.athena.consensus import ConsensusCalculator
+
         calc = ConsensusCalculator()
-        selector = LeaderSelector(calc)
-        
+
         probs = calc.compute_probabilities([], int(time.time()), 1000)
         self.assertEqual(len(probs), 0)
     
@@ -243,7 +242,7 @@ class TestConsensusEdgeCases(unittest.TestCase):
     
     def test_slashing_detection(self):
         """Equivocation should be detected correctly."""
-        from pantheon.athena.consensus import SlashingManager, SlashingCondition
+        from pantheon.hal import SlashingManager, SlashingCondition
         from pantheon.themis.structures import Block
         from pantheon.prometheus.crypto import Ed25519
         
@@ -272,7 +271,7 @@ class TestConsensusEdgeCases(unittest.TestCase):
     
     def test_no_false_equivocation(self):
         """Same block should not trigger equivocation."""
-        from pantheon.athena.consensus import SlashingManager
+        from pantheon.hal import SlashingManager
         from pantheon.themis.structures import Block
         from pantheon.prometheus.crypto import Ed25519
         
@@ -408,30 +407,12 @@ class TestThreadSafety(unittest.TestCase):
         # Should have 50 nodes registered
         self.assertEqual(len(engine.get_active_nodes()), 50)
     
+    @unittest.skip("SybilDetector removed - HAL behavioral module handles Sybil detection")
     def test_sybil_detector_concurrent_recording(self):
         """SybilDetector should handle concurrent recordings."""
-        from pantheon.athena.consensus import SybilDetector
-        
-        detector = SybilDetector()
-        errors = []
-        
-        def record_connections(offset):
-            try:
-                for i in range(100):
-                    detector.record_connection(
-                        int(time.time()) + offset + i,
-                        secrets.token_bytes(32)
-                    )
-            except Exception as e:
-                errors.append(e)
-        
-        threads = [threading.Thread(target=record_connections, args=(i * 100,)) for i in range(5)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
-        
-        self.assertEqual(len(errors), 0)
+        # SybilDetector is no longer in ATHENA - Sybil detection is now handled by
+        # HAL's behavioral analysis module (ClusterDetector, GlobalByzantineTracker)
+        pass
 
 
 class TestEmissionRules(unittest.TestCase):
@@ -580,7 +561,7 @@ class TestSerializationRoundtrips(unittest.TestCase):
     
     def test_slashing_evidence_serialization(self):
         """SlashingEvidence should serialize correctly."""
-        from pantheon.athena.consensus import SlashingEvidence, SlashingCondition
+        from pantheon.hal import SlashingEvidence, SlashingCondition
         
         evidence = SlashingEvidence(
             condition=SlashingCondition.EQUIVOCATION,

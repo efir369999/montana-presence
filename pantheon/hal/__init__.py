@@ -126,6 +126,12 @@ from .reputation import (
     MIN_HANDSHAKE_COUNTRIES,
 )
 
+from .slashing import (
+    SlashingCondition,
+    SlashingEvidence,
+    SlashingManager,
+)
+
 __all__ = [
     # Core
     'HumanityTier',
@@ -198,4 +204,8 @@ __all__ = [
     'MIN_NODES_FOR_CLUSTER_ANALYSIS',
     'TIMING_VARIANCE_THRESHOLD',
     'MIN_HANDSHAKE_COUNTRIES',
+    # Slashing (Byzantine punishment)
+    'SlashingCondition',
+    'SlashingEvidence',
+    'SlashingManager',
 ]

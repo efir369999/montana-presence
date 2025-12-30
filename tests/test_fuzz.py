@@ -247,7 +247,7 @@ class TestConsensusFuzz(unittest.TestCase):
     
     def test_fuzz_slashing_evidence_deserialize(self):
         """Fuzz SlashingEvidence.deserialize()."""
-        from pantheon.athena.consensus import SlashingEvidence
+        from pantheon.hal import SlashingEvidence
         
         survived = FuzzDeserialize.fuzz_method(
             lambda data: SlashingEvidence.deserialize(data),
@@ -468,7 +468,8 @@ class TestBoundaryConditions(unittest.TestCase):
         """All deserialize methods should handle empty input."""
         from pantheon.themis.structures import Block, BlockHeader, Transaction, TxInput, TxOutput
         from pantheon.prometheus.crypto import VDFProof
-        from pantheon.athena.consensus import NodeState, SlashingEvidence
+        from pantheon.athena.consensus import NodeState
+        from pantheon.hal import SlashingEvidence
         from pantheon.nyx.privacy import LSAGSignature, RingSignatureError
         from pantheon.paul.network import VersionPayload
         from pantheon.plutus.wallet import WalletOutput
