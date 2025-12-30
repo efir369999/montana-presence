@@ -26,15 +26,11 @@ import hmac
 import struct
 import secrets
 import logging
-from typing import List, Tuple, Optional, Union
+from typing import List, Tuple, Optional
 from dataclasses import dataclass, field
 
 try:
     import nacl.bindings
-    import nacl.signing
-    import nacl.public
-    import nacl.utils
-    import nacl.hash
     NACL_AVAILABLE = True
 except ImportError:
     raise ImportError("PyNaCl required: pip install PyNaCl")
