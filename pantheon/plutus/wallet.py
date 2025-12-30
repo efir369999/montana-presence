@@ -42,12 +42,10 @@ try:
 except ImportError:
     ARGON2_AVAILABLE = False
 
-from pantheon.prometheus import sha256, sha256d, Ed25519, hmac_sha256
+from pantheon.prometheus import sha256, Ed25519, hmac_sha256
 from pantheon.nyx import (
-    StealthKeys, StealthAddress, StealthOutput,
-    LSAG, LSAGSignature, Pedersen, PedersenCommitment,
-    Bulletproof, RangeProof, RingCT,
-    generate_key_image, Ed25519Point
+    StealthAddress, StealthOutput, LSAG, Pedersen,
+    Bulletproof, generate_key_image, Ed25519Point
 )
 from pantheon.themis import Transaction, TxInput, TxOutput, TxType
 from pantheon.hades import BlockchainDB
