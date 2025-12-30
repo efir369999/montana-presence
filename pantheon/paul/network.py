@@ -23,6 +23,7 @@ import threading
 import queue
 import time
 import random
+import secrets
 import logging
 import selectors
 import ipaddress
@@ -1000,7 +1001,7 @@ class Peer:
     
     def send_ping(self):
         """Send ping message."""
-        self._last_ping_nonce = random.randint(0, 2**64 - 1)
+        self._last_ping_nonce = secrets.randbits(64)
         self._ping_sent_time = time.time()
         payload = struct.pack('<Q', self._last_ping_nonce)
         msg = NetworkMessage.create(MessageType.PING, payload)
@@ -1090,7 +1091,7 @@ class P2PNode:
         
         # State
         self.running = False
-        self.local_nonce = random.randint(0, 2**64 - 1)
+        self.local_nonce = secrets.randbits(64)
         self.start_height = 0
         self.user_agent = "/ProofOfTime:1.0.0/"
         

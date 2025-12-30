@@ -460,9 +460,12 @@ class SHAKE256VDF:
             return False
 
         # Verify random segments (probabilistic verification)
-        import random
+        # Use SystemRandom for unpredictable segment selection
         num_segments = min(len(checkpoints) - 1, 10)  # Check up to 10 segments
-        segments_to_check = random.sample(range(len(checkpoints) - 1), num_segments)
+        rng = secrets.SystemRandom()
+        all_segments = list(range(len(checkpoints) - 1))
+        rng.shuffle(all_segments)
+        segments_to_check = all_segments[:num_segments]
 
         for seg_idx in segments_to_check:
             start = checkpoints[seg_idx]
