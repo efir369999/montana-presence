@@ -1,5 +1,6 @@
 """
-Proof of Time - Block and Transaction Structures
+Montana v4.0 - Block and Transaction Structures
+
 Production-grade implementation of blockchain data structures.
 
 Includes:
@@ -8,8 +9,13 @@ Includes:
 - Coinbase (reward) transactions
 - Merkle root computation
 - Block validation
+- Montana v4.0 transaction types:
+  - APOSTLE_HANDSHAKE: 12 Apostles mutual trust
+  - EPOCH_PROOF: Bitcoin halving survival proof
+  - BTC_ANCHOR: Bitcoin block timestamp anchor
+  - RHEUMA_CHECKPOINT: Blockless stream checkpoint
 
-Time is the ultimate proof.
+Time is the ultimate proof. Trust is sacred.
 """
 
 import struct
@@ -297,10 +303,18 @@ class TxOutput(Serializable):
 # ============================================================================
 
 class TxType(IntEnum):
-    """Transaction type enumeration."""
-    COINBASE = 0  # Block reward
-    STANDARD = 1  # Regular transfer
-    SLASH = 2  # Slashing penalty
+    """
+    Transaction type enumeration.
+
+    Montana v4.0: Added types for 12 Apostles and Bitcoin anchoring.
+    """
+    COINBASE = 0          # Block reward
+    STANDARD = 1          # Regular transfer
+    SLASH = 2             # Slashing penalty (collective responsibility)
+    APOSTLE_HANDSHAKE = 3 # 12 Apostles mutual trust handshake
+    EPOCH_PROOF = 4       # Proof of surviving Bitcoin halving
+    BTC_ANCHOR = 5        # Bitcoin block anchor timestamp
+    RHEUMA_CHECKPOINT = 6 # RHEUMA stream checkpoint
 
 
 @dataclass

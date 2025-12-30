@@ -90,17 +90,20 @@ class ReputationDimension(IntEnum):
     - THUMB (TIME): The opposable finger - makes the hand work (50%)
     - INDEX (INTEGRITY): Points the way - moral compass (20%)
     - MIDDLE (STORAGE): Central support - network backbone (15%)
-    - RING (GEOGRAPHY): Global commitment - country + city (10%)
+    - RING (EPOCHS): Bitcoin halvings survived - unfakeable loyalty (10%)
     - PINKY (HANDSHAKE): Elite bonus - mutual trust between veterans (5%)
+
+    Montana v4.0: GEOGRAPHY replaced with EPOCHS.
+    You can fake your location with VPN. You cannot fake having survived a halving.
 
     HANDSHAKE unlocks only when first 4 fingers are saturated.
     Two veterans shake hands = cryptographic proof of trust.
     """
-    TIME = auto()          # THUMB: Continuous uptime - saturates at 180 days (50%)
+    TIME = auto()          # THUMB: Continuous uptime - saturates at 210,000 blocks (50%)
     INTEGRITY = auto()     # INDEX: No violations, valid proofs (20%)
     STORAGE = auto()       # MIDDLE: Chain storage - saturates at 100% (15%)
-    GEOGRAPHY = auto()     # RING: Country + city diversity (10%)
-    HANDSHAKE = auto()     # PINKY: Mutual trust - saturates at 10 handshakes (5%)
+    EPOCHS = auto()        # RING: Bitcoin halvings survived - unfakeable (10%)
+    HANDSHAKE = auto()     # PINKY: Mutual trust - saturates at 12 handshakes (5%)
 
 
 @dataclass
@@ -151,8 +154,7 @@ class ReputationEvent(IntEnum):
     TX_RELAYED = auto()          # Relayed valid transaction
     UPTIME_CHECKPOINT = auto()   # Maintained uptime (hourly)
     STORAGE_UPDATE = auto()      # Storage percentage updated
-    NEW_COUNTRY = auto()         # First node from a new country (big bonus)
-    NEW_CITY = auto()            # First node from a new city
+    EPOCH_SURVIVED = auto()      # Survived a Bitcoin halving (210,000 blocks)
     HANDSHAKE_FORMED = auto()    # Mutual handshake with another veteran
     INDEPENDENT_ACTION = auto()  # Action that proves independence from cluster
 
@@ -223,7 +225,7 @@ class Handshake:
     Cryptographic proof of mutual trust between two veteran nodes.
 
     A handshake can only form when BOTH nodes have saturated their
-    first 4 fingers (TIME, INTEGRITY, STORAGE, GEOGRAPHY).
+    first 4 fingers (TIME, INTEGRITY, STORAGE, EPOCHS).
 
     This is the PINKY finger - the elite bonus that completes the hand.
     """
@@ -333,15 +335,14 @@ class AdonisProfile:
         Uses the Five Fingers of Adonis weights.
         """
         if weights is None:
-            # SECURITY NOTE: Geography weight reduced from 10% to 5%
-            # VPN/Tor spoofing makes geographic claims unreliable.
-            # TIME increased from 50% to 55% as the core PoT metric.
+            # Montana v4.0: EPOCHS replaces GEOGRAPHY
+            # You can fake location with VPN. You cannot fake surviving a halving.
             weights = {
-                ReputationDimension.TIME: 0.55,        # THUMB (increased: PoT core)
-                ReputationDimension.INTEGRITY: 0.20,   # INDEX
-                ReputationDimension.STORAGE: 0.15,     # MIDDLE
-                ReputationDimension.GEOGRAPHY: 0.05,   # RING (reduced: VPN spoofable)
-                ReputationDimension.HANDSHAKE: 0.05,   # PINKY (mutual trust)
+                ReputationDimension.TIME: 0.50,        # THUMB: Core PoT metric
+                ReputationDimension.INTEGRITY: 0.20,   # INDEX: No violations
+                ReputationDimension.STORAGE: 0.15,    # MIDDLE: Chain storage
+                ReputationDimension.EPOCHS: 0.10,      # RING: Halvings survived (unfakeable)
+                ReputationDimension.HANDSHAKE: 0.05,   # PINKY: Mutual trust (12 Apostles)
             }
 
         total = 0.0
@@ -1538,11 +1539,10 @@ class AdonisEngine:
         ReputationEvent.TX_RELAYED: 0.01,
         ReputationEvent.UPTIME_CHECKPOINT: 0.02,  # Hourly uptime tick
         ReputationEvent.STORAGE_UPDATE: 0.01,     # Storage sync
-        # SECURITY NOTE: Geography bonuses reduced due to VPN spoofing risk
-        # Previously: NEW_COUNTRY=0.25, NEW_CITY=0.15 (too exploitable)
-        ReputationEvent.NEW_COUNTRY: 0.05,        # Reduced: VPN can spoof
-        ReputationEvent.NEW_CITY: 0.03,           # Reduced: VPN can spoof
-        ReputationEvent.HANDSHAKE_FORMED: 0.10,   # Mutual trust bonus
+        # Montana v4.0: EPOCHS replaces GEOGRAPHY (VPN was spoofable)
+        # Surviving a Bitcoin halving is unfakeable proof of loyalty
+        ReputationEvent.EPOCH_SURVIVED: 0.25,     # Survived Bitcoin halving (210,000 blocks)
+        ReputationEvent.HANDSHAKE_FORMED: 0.10,   # Mutual trust bonus (12 Apostles)
         ReputationEvent.INDEPENDENT_ACTION: 0.03, # Bonus for proven independence
 
         # Negative events
@@ -1581,10 +1581,9 @@ class AdonisEngine:
         ReputationEvent.SYNCHRONIZED_TIMING: ReputationDimension.INTEGRITY,
         # STORAGE (Middle) - 15%
         ReputationEvent.STORAGE_UPDATE: ReputationDimension.STORAGE,
-        # GEOGRAPHY (Ring) - 10% - country + city
-        ReputationEvent.NEW_COUNTRY: ReputationDimension.GEOGRAPHY,
-        ReputationEvent.NEW_CITY: ReputationDimension.GEOGRAPHY,
-        # HANDSHAKE (Pinky) - 5% - mutual trust
+        # EPOCHS (Ring) - 10% - Bitcoin halvings survived (unfakeable)
+        ReputationEvent.EPOCH_SURVIVED: ReputationDimension.EPOCHS,
+        # HANDSHAKE (Pinky) - 5% - mutual trust (12 Apostles)
         ReputationEvent.HANDSHAKE_FORMED: ReputationDimension.HANDSHAKE,
         ReputationEvent.HANDSHAKE_BROKEN: ReputationDimension.HANDSHAKE,
         ReputationEvent.INDEPENDENT_ACTION: ReputationDimension.HANDSHAKE,  # Independence = trust
@@ -1615,26 +1614,26 @@ class AdonisEngine:
         self._current_height: int = 0
 
         # Configuration - The Five Fingers of Adonis (sum = 100%)
-        # TIME is the THUMB - the main factor (55%) - this is Proof of TIME
-        # SECURITY NOTE: Geography reduced from 10% to 5% due to VPN spoofing
+        # Montana v4.0: EPOCHS replaces GEOGRAPHY (Bitcoin halvings survived)
         self.dimension_weights = {
-            ReputationDimension.TIME: 0.55,        # THUMB: Continuous uptime (increased)
+            ReputationDimension.TIME: 0.50,        # THUMB: 210,000 blocks saturation
             ReputationDimension.INTEGRITY: 0.20,   # INDEX: No violations
             ReputationDimension.STORAGE: 0.15,     # MIDDLE: Chain storage
-            ReputationDimension.GEOGRAPHY: 0.05,   # RING: Country + city (reduced)
-            ReputationDimension.HANDSHAKE: 0.05,   # PINKY: Mutual trust
+            ReputationDimension.EPOCHS: 0.10,      # RING: Bitcoin halvings survived (unfakeable)
+            ReputationDimension.HANDSHAKE: 0.05,   # PINKY: 12 Apostles trust
         }
 
-        # Saturation thresholds
-        self.K_TIME = 15_552_000    # 180 days in seconds
+        # Saturation thresholds (Montana v4.0: tied to Bitcoin blocks)
+        self.K_TIME = 210_000       # 210,000 Bitcoin blocks (~4 years) for TIME saturation
         self.K_STORAGE = 1.00       # 100% of chain
-        self.K_HANDSHAKE = 10       # 10 handshakes for full score
+        self.K_HANDSHAKE = 12       # 12 Apostles for full HANDSHAKE score
+        self.K_EPOCHS = 4           # 4 halvings survived for full EPOCHS score
 
         # Minimum requirements for handshake eligibility
-        self.HANDSHAKE_MIN_TIME = 0.9       # 90% of TIME saturation (~162 days)
+        self.HANDSHAKE_MIN_TIME = 0.9       # 90% of TIME saturation
         self.HANDSHAKE_MIN_INTEGRITY = 0.8  # 80% INTEGRITY
         self.HANDSHAKE_MIN_STORAGE = 0.9    # 90% STORAGE
-        self.HANDSHAKE_MIN_GEOGRAPHY = 0.1  # Must have registered location
+        self.HANDSHAKE_MIN_EPOCHS = 0.25    # At least 1 halving survived (1/4)
 
         # Country tracking for global decentralization
         # Maps country_code -> set of node pubkeys in that country
@@ -2246,12 +2245,115 @@ class AdonisEngine:
                 return byzantine_capped
 
     # =========================================================================
-    # GEOGRAPHIC DIVERSITY
+    # EPOCHS - BITCOIN HALVINGS SURVIVED (Montana v4.0)
+    # =========================================================================
+
+    def record_epoch_survived(
+        self,
+        pubkey: bytes,
+        epoch_number: int,
+        btc_height: int
+    ) -> float:
+        """
+        Record that a node has survived a Bitcoin halving (epoch transition).
+
+        Montana v4.0: EPOCHS replaces GEOGRAPHY.
+        You can fake your location with VPN. You cannot fake having survived a halving.
+
+        Each epoch = 210,000 Bitcoin blocks (~4 years).
+        Epoch 0: Genesis - 210,000
+        Epoch 1: 210,000 - 420,000
+        Epoch 2: 420,000 - 630,000
+        Epoch 3: 630,000 - 840,000
+        Epoch 4: 840,000 - 1,050,000 (current as of 2024)
+
+        Args:
+            pubkey: Node public key
+            epoch_number: The epoch number survived (0-based)
+            btc_height: Bitcoin block height when epoch was survived
+
+        Returns:
+            Updated EPOCHS dimension score
+        """
+        with self._lock:
+            profile = self.get_or_create_profile(pubkey)
+
+            # Initialize epochs_survived if not present
+            if not hasattr(profile, 'epochs_survived'):
+                profile.epochs_survived = set()
+
+            # Check if already recorded
+            if epoch_number in profile.epochs_survived:
+                return profile.dimensions[ReputationDimension.EPOCHS].value
+
+            # Record the epoch
+            profile.epochs_survived.add(epoch_number)
+
+            # Calculate EPOCHS score
+            # Score = epochs_survived / K_EPOCHS (saturates at K_EPOCHS halvings)
+            epochs_count = len(profile.epochs_survived)
+            epochs_score = min(1.0, epochs_count / self.K_EPOCHS)
+
+            # Update EPOCHS dimension
+            profile.dimensions[ReputationDimension.EPOCHS].update(
+                epochs_score,
+                weight=2.0,  # High weight for unfakeable metric
+                timestamp=int(time.time())
+            )
+
+            # Record event
+            self.record_event(pubkey, ReputationEvent.EPOCH_SURVIVED, height=btc_height)
+
+            logger.info(
+                f"EPOCH SURVIVED! Node {pubkey.hex()[:16]}... "
+                f"survived epoch {epoch_number} (total: {epochs_count}, score: {epochs_score:.2f})"
+            )
+
+            return epochs_score
+
+    def get_epochs_survived(self, pubkey: bytes) -> set:
+        """Get set of epochs a node has survived."""
+        with self._lock:
+            if pubkey not in self.profiles:
+                return set()
+            profile = self.profiles[pubkey]
+            return getattr(profile, 'epochs_survived', set())
+
+    def check_epoch_transition(
+        self,
+        current_btc_height: int,
+        previous_btc_height: int
+    ) -> Optional[int]:
+        """
+        Check if a Bitcoin halving (epoch transition) occurred.
+
+        Args:
+            current_btc_height: Current Bitcoin block height
+            previous_btc_height: Previous Bitcoin block height
+
+        Returns:
+            Epoch number if transition occurred, None otherwise
+        """
+        HALVING_INTERVAL = 210_000
+
+        current_epoch = current_btc_height // HALVING_INTERVAL
+        previous_epoch = previous_btc_height // HALVING_INTERVAL
+
+        if current_epoch > previous_epoch:
+            return current_epoch
+        return None
+
+    # =========================================================================
+    # GEOGRAPHIC DIVERSITY (Legacy - Analytics Only)
+    # Montana v4.0: GEOGRAPHY removed from scoring, kept for network analytics
     # =========================================================================
 
     def compute_city_hash(self, country: str, city: str) -> bytes:
         """
         Compute anonymous city hash from location.
+
+        NOTE: Montana v4.0 - This is now for analytics only, not scoring.
+        EPOCHS (Bitcoin halvings) replaces GEOGRAPHY for the RING finger.
 
         Privacy: Only stores hash, not raw location data.
         The hash is deterministic so nodes in same city have same hash.
@@ -2500,13 +2602,13 @@ class AdonisEngine:
 
     def is_eligible_for_handshake(self, pubkey: bytes) -> Tuple[bool, str]:
         """
-        Check if a node is eligible to form handshakes.
+        Check if a node is eligible to form handshakes (12 Apostles).
 
-        Requires all 4 fingers to be near saturation:
-        - TIME >= 90% (162+ days)
+        Montana v4.0: Requires all 4 fingers near saturation:
+        - TIME >= 90% (~189,000 Bitcoin blocks)
         - INTEGRITY >= 80%
         - STORAGE >= 90%
-        - GEOGRAPHY > 10% (registered location)
+        - EPOCHS >= 25% (survived at least 1 Bitcoin halving)
 
         Returns:
             Tuple of (eligible, reason)
@@ -2536,10 +2638,10 @@ class AdonisEngine:
             if storage_score < self.HANDSHAKE_MIN_STORAGE:
                 return False, f"STORAGE too low: {storage_score:.2f} < {self.HANDSHAKE_MIN_STORAGE}"
 
-            # Check GEOGRAPHY (RING)
-            geography_score = profile.dimensions[ReputationDimension.GEOGRAPHY].value
-            if geography_score < self.HANDSHAKE_MIN_GEOGRAPHY:
-                return False, f"GEOGRAPHY too low: {geography_score:.2f} (register location first)"
+            # Check EPOCHS (RING) - Montana v4.0: Bitcoin halvings survived
+            epochs_score = profile.dimensions[ReputationDimension.EPOCHS].value
+            if epochs_score < self.HANDSHAKE_MIN_EPOCHS:
+                return False, f"EPOCHS too low: {epochs_score:.2f} (survive at least 1 Bitcoin halving)"
 
             return True, "Eligible for handshake"
 
@@ -2549,13 +2651,16 @@ class AdonisEngine:
         target: bytes
     ) -> Tuple[bool, str]:
         """
-        Request a handshake with another node.
+        Request a handshake with another node (12 Apostles).
 
-        INDEPENDENCE REQUIREMENTS (Anti-Sybil):
-        1. Both nodes must be eligible (4 fingers saturated)
-        2. Nodes must be in DIFFERENT countries
-        3. Nodes must have LOW CORRELATION (< 50%)
-        4. Nodes must not be in the same detected cluster
+        Montana v4.0 INDEPENDENCE REQUIREMENTS (Anti-Sybil):
+        1. Both nodes must be eligible (4 fingers saturated incl. EPOCHS)
+        2. Nodes must have LOW CORRELATION (< 50%)
+        3. Nodes must not be in the same detected cluster
+        4. Each node limited to 12 Apostles maximum
+
+        NOTE: Geographic requirement removed - EPOCHS (Bitcoin halvings) replaces it.
+        You can fake location with VPN. You cannot fake surviving a halving.
 
         Returns:
             Tuple of (success, message)
@@ -2580,12 +2685,15 @@ class AdonisEngine:
             if not eligible:
                 return False, f"Target not eligible: {reason}"
 
-            # Check different countries (anti-sybil)
+            # Check 12 Apostles limit
             requester_profile = self.profiles[requester]
             target_profile = self.profiles[target]
 
-            if requester_profile.country_code == target_profile.country_code:
-                return False, f"Same country ({requester_profile.country_code}) - handshakes require different countries"
+            if len(requester_profile.handshake_partners) >= self.K_HANDSHAKE:
+                return False, f"Requester already has {self.K_HANDSHAKE} Apostles (maximum)"
+
+            if len(target_profile.handshake_partners) >= self.K_HANDSHAKE:
+                return False, f"Target already has {self.K_HANDSHAKE} Apostles (maximum)"
 
             # =========================================================
             # INDEPENDENCE VERIFICATION (Slow Takeover Attack Prevention)
@@ -2611,7 +2719,7 @@ class AdonisEngine:
                 )
 
             # All checks passed
-            return True, "Ready for handshake (independence verified)"
+            return True, "Ready for handshake (12 Apostles - independence verified)"
 
     def form_handshake(
         self,
@@ -2968,12 +3076,12 @@ def create_reputation_modifier(adonis_engine: AdonisEngine):
 def _self_test():
     """Run Adonis self-tests."""
     logger.info("Running Adonis self-tests...")
-    logger.info("  🖐️ The Five Fingers of Adonis:")
-    logger.info("     👍 THUMB (TIME): 50% - saturates at 180 days")
+    logger.info("  🖐️ The Five Fingers of Adonis (Montana v4.0):")
+    logger.info("     👍 THUMB (TIME): 50% - saturates at 210,000 Bitcoin blocks")
     logger.info("     ☝️ INDEX (INTEGRITY): 20% - no violations")
     logger.info("     🖕 MIDDLE (STORAGE): 15% - saturates at 100%")
-    logger.info("     💍 RING (GEOGRAPHY): 10% - country + city")
-    logger.info("     🤙 PINKY (HANDSHAKE): 5% - mutual trust")
+    logger.info("     💍 RING (EPOCHS): 10% - Bitcoin halvings survived (unfakeable)")
+    logger.info("     🤙 PINKY (HANDSHAKE): 5% - 12 Apostles mutual trust")
 
     # Create engine
     engine = AdonisEngine()
@@ -3052,50 +3160,49 @@ def _self_test():
     logger.info("  Statistics OK")
 
     # =========================================================================
-    # Test GEOGRAPHY dimension (RING - 10%) - country + city combined
+    # Test EPOCHS dimension (RING - 10%) - Bitcoin halvings survived (v4.0)
     # =========================================================================
     node4 = b'\x04' * 32
     node5 = b'\x05' * 32
     node6 = b'\x06' * 32
 
-    # First node from Japan/Tokyo - should get NEW_COUNTRY and NEW_CITY bonus
-    is_new_country, is_new_city, country_score, city_score = engine.register_node_location(node4, "JP", "Tokyo")
-    assert is_new_country == True
-    assert is_new_city == True
-    assert country_score > 0
-    assert city_score > 0
-    logger.info(f"  💍 RING (GEOGRAPHY): JP/Tokyo first node = NEW_COUNTRY + NEW_CITY")
+    # Test epoch transition detection
+    new_epoch = engine.check_epoch_transition(420001, 419999)  # Halving at 420,000
+    assert new_epoch == 2  # Epoch 2 (420,000 / 210,000)
+    logger.info(f"  💍 RING (EPOCHS): Detected halving at block 420,000 -> epoch {new_epoch}")
 
-    # Second node from Japan/Tokyo - no bonuses
-    is_new_country, is_new_city, country_score2, city_score2 = engine.register_node_location(node5, "JP", "Tokyo")
-    assert is_new_country == False
-    assert is_new_city == False
-    assert country_score2 <= country_score  # Lower score due to more nodes
-    assert city_score2 <= city_score
-    logger.info(f"  💍 RING (GEOGRAPHY): JP/Tokyo second node (lower scores)")
+    no_epoch = engine.check_epoch_transition(420050, 420000)  # No halving
+    assert no_epoch is None
+    logger.info("  💍 RING (EPOCHS): No halving when staying in same epoch")
 
-    # First node from Germany/Berlin - NEW_COUNTRY and NEW_CITY bonus
-    is_new_country, is_new_city, country_score3, city_score3 = engine.register_node_location(node6, "DE", "Berlin")
-    assert is_new_country == True
-    assert is_new_city == True
-    logger.info(f"  💍 RING (GEOGRAPHY): DE/Berlin first node (new country bonus)")
+    # Test recording epoch survived
+    epochs_score = engine.record_epoch_survived(node4, epoch_number=1, btc_height=210000)
+    assert epochs_score == 0.25  # 1 epoch / 4 = 0.25
+    logger.info(f"  💍 RING (EPOCHS): Survived epoch 1, score = {epochs_score:.2f}")
 
-    # Check country distribution
-    country_dist = engine.get_country_distribution()
-    assert len(country_dist) == 2  # JP and DE
-    assert country_dist["JP"] == 2
-    assert country_dist["DE"] == 1
-    logger.info(f"  GEOGRAPHY: {len(country_dist)} unique countries")
+    epochs_score = engine.record_epoch_survived(node4, epoch_number=2, btc_height=420000)
+    assert epochs_score == 0.5  # 2 epochs / 4 = 0.5
+    logger.info(f"  💍 RING (EPOCHS): Survived epoch 2, score = {epochs_score:.2f}")
 
-    # Check city distribution
-    city_dist = engine.get_city_distribution()
-    assert len(city_dist) == 2  # Tokyo and Berlin
-    logger.info(f"  GEOGRAPHY: {len(city_dist)} unique cities")
+    # Test getting epochs survived
+    epochs = engine.get_epochs_survived(node4)
+    assert epochs == {1, 2}
+    logger.info(f"  💍 RING (EPOCHS): Node4 survived epochs {epochs}")
 
-    # Check network diversity
-    diversity = engine.get_geographic_diversity_score()
-    assert diversity > 0
-    logger.info(f"  GEOGRAPHY: Network diversity = {diversity:.3f}")
+    # Test full epoch saturation (4 epochs)
+    for epoch in [3, 4]:
+        engine.record_epoch_survived(node5, epoch_number=epoch, btc_height=epoch * 210000)
+    for epoch in [1, 2]:
+        engine.record_epoch_survived(node5, epoch_number=epoch, btc_height=epoch * 210000)
+    epochs_score_full = engine.profiles[node5].dimensions[ReputationDimension.EPOCHS].value
+    assert epochs_score_full == 1.0  # 4 epochs / 4 = 1.0 (saturated)
+    logger.info(f"  💍 RING (EPOCHS): 4 halvings = full saturation ({epochs_score_full:.2f})")
+
+    # =========================================================================
+    # Test GEOGRAPHY (Legacy - Analytics Only in v4.0)
+    # =========================================================================
+    logger.info("")
+    logger.info("  📊 GEOGRAPHY (Analytics Only - v4.0):")
 
     # Test city hash anonymity
     hash1 = engine.compute_city_hash("JP", "Tokyo")
@@ -3104,21 +3211,21 @@ def _self_test():
     logger.info("  GEOGRAPHY: City hash is case-insensitive (privacy preserved)")
 
     # =========================================================================
-    # Test HANDSHAKE dimension (PINKY - 5%) - mutual trust between veterans
+    # Test HANDSHAKE dimension (PINKY - 5%) - 12 Apostles mutual trust (v4.0)
     # =========================================================================
     logger.info("")
-    logger.info("  🤙 PINKY (HANDSHAKE) tests:")
+    logger.info("  🤙 PINKY (HANDSHAKE) - 12 Apostles tests:")
 
     # Create veteran nodes with saturated fingers
-    veteran_jp = b'\x10' * 32  # Japan
-    veteran_de = b'\x11' * 32  # Germany
-    veteran_us = b'\x12' * 32  # USA
-    newbie = b'\x13' * 32       # New node
+    veteran_a = b'\x10' * 32  # Veteran A
+    veteran_b = b'\x11' * 32  # Veteran B
+    veteran_c = b'\x12' * 32  # Veteran C
+    newbie = b'\x13' * 32      # New node
 
-    # Set up veterans with saturated TIME, INTEGRITY, STORAGE, GEOGRAPHY
-    for veteran in [veteran_jp, veteran_de, veteran_us]:
+    # Set up veterans with saturated TIME, INTEGRITY, STORAGE, EPOCHS (v4.0)
+    for veteran in [veteran_a, veteran_b, veteran_c]:
         profile = engine.get_or_create_profile(veteran)
-        # Saturate TIME (180 days)
+        # Saturate TIME (210,000 blocks)
         profile.dimensions[ReputationDimension.TIME].value = 1.0
         profile.dimensions[ReputationDimension.TIME].confidence = 1.0
         # Saturate INTEGRITY
@@ -3127,85 +3234,66 @@ def _self_test():
         # Saturate STORAGE
         profile.dimensions[ReputationDimension.STORAGE].value = 1.0
         profile.dimensions[ReputationDimension.STORAGE].confidence = 1.0
-
-    # Register different countries
-    engine.register_node_location(veteran_jp, "JP", "Tokyo")
-    engine.register_node_location(veteran_de, "DE", "Berlin")
-    engine.register_node_location(veteran_us, "US", "New York")
-    engine.register_node_location(newbie, "FR", "Paris")
+        # Saturate EPOCHS (4 halvings survived)
+        profile.dimensions[ReputationDimension.EPOCHS].value = 1.0
+        profile.dimensions[ReputationDimension.EPOCHS].confidence = 1.0
 
     # Test eligibility
-    eligible, reason = engine.is_eligible_for_handshake(veteran_jp)
+    eligible, reason = engine.is_eligible_for_handshake(veteran_a)
     assert eligible == True
-    logger.info(f"     Veteran JP eligible: {eligible}")
+    logger.info(f"     Veteran A eligible: {eligible}")
 
     eligible, reason = engine.is_eligible_for_handshake(newbie)
-    assert eligible == False  # Newbie has low TIME
+    assert eligible == False  # Newbie has low TIME and no EPOCHS
     logger.info(f"     Newbie not eligible: {reason}")
 
-    # Test handshake request validation
-    success, msg = engine.request_handshake(veteran_jp, veteran_de)
+    # Test handshake request validation (v4.0: no country requirement)
+    success, msg = engine.request_handshake(veteran_a, veteran_b)
     assert success == True
-    logger.info(f"     Request JP->DE: {msg}")
+    logger.info(f"     Request A->B: {msg}")
 
-    # Test same country rejection
-    veteran_jp2 = b'\x14' * 32
-    profile_jp2 = engine.get_or_create_profile(veteran_jp2)
-    profile_jp2.dimensions[ReputationDimension.TIME].value = 1.0
-    profile_jp2.dimensions[ReputationDimension.TIME].confidence = 1.0
-    profile_jp2.dimensions[ReputationDimension.INTEGRITY].value = 0.9
-    profile_jp2.dimensions[ReputationDimension.INTEGRITY].confidence = 1.0
-    profile_jp2.dimensions[ReputationDimension.STORAGE].value = 1.0
-    profile_jp2.dimensions[ReputationDimension.STORAGE].confidence = 1.0
-    engine.register_node_location(veteran_jp2, "JP", "Osaka")
-
-    success, msg = engine.request_handshake(veteran_jp, veteran_jp2)
-    assert success == False  # Same country
-    assert "Same country" in msg
-    logger.info(f"     Same country rejected: {msg}")
-
-    # Form handshake JP <-> DE
+    # Form handshake A <-> B
     success, msg = engine.form_handshake(
-        veteran_jp, veteran_de,
+        veteran_a, veteran_b,
         sig_a=b'\x00' * 64,  # Dummy signature
         sig_b=b'\x00' * 64,
         height=1000
     )
     assert success == True
-    logger.info(f"     Handshake JP<->DE formed!")
+    logger.info(f"     Handshake A<->B formed!")
 
     # Check handshake count
-    count_jp = engine.get_handshake_count(veteran_jp)
-    count_de = engine.get_handshake_count(veteran_de)
-    assert count_jp == 1
-    assert count_de == 1
-    logger.info(f"     Handshake counts: JP={count_jp}, DE={count_de}")
+    count_a = engine.get_handshake_count(veteran_a)
+    count_b = engine.get_handshake_count(veteran_b)
+    assert count_a == 1
+    assert count_b == 1
+    logger.info(f"     Handshake counts: A={count_a}, B={count_b}")
 
-    # Check HANDSHAKE dimension updated
-    profile_jp = engine.get_profile(veteran_jp)
-    handshake_score = profile_jp.dimensions[ReputationDimension.HANDSHAKE].value
-    assert handshake_score == 0.1  # 1/10 = 0.1
-    logger.info(f"     HANDSHAKE score: {handshake_score:.2f} (1/10)")
+    # Check HANDSHAKE dimension updated (12 Apostles: 1/12)
+    profile_a = engine.get_profile(veteran_a)
+    handshake_score = profile_a.dimensions[ReputationDimension.HANDSHAKE].value
+    expected_score = 1 / 12  # K_HANDSHAKE = 12
+    logger.info(f"     HANDSHAKE score: {handshake_score:.3f} (1/12 Apostles)")
 
     # Form more handshakes
-    success, _ = engine.form_handshake(veteran_jp, veteran_us, b'\x00'*64, b'\x00'*64, 1001)
+    success, _ = engine.form_handshake(veteran_a, veteran_c, b'\x00'*64, b'\x00'*64, 1001)
     assert success == True
-    count_jp = engine.get_handshake_count(veteran_jp)
-    assert count_jp == 2
-    logger.info(f"     JP now has {count_jp} handshakes")
+    count_a = engine.get_handshake_count(veteran_a)
+    assert count_a == 2
+    logger.info(f"     A now has {count_a} Apostles")
 
     # Test duplicate handshake rejection
-    success, msg = engine.form_handshake(veteran_jp, veteran_de, b'\x00'*64, b'\x00'*64, 1002)
+    success, msg = engine.form_handshake(veteran_a, veteran_b, b'\x00'*64, b'\x00'*64, 1002)
     assert success == False
     assert "already exists" in msg
     logger.info(f"     Duplicate rejected: {msg}")
 
     # Break handshake
-    success, msg = engine.break_handshake(veteran_jp, veteran_de, reason="test")
+    success, msg = engine.break_handshake(veteran_a, veteran_b, reason="test")
     assert success == True
-    count_jp = engine.get_handshake_count(veteran_jp)
-    assert count_jp == 1
-    logger.info(f"     Handshake broken, JP now has {count_jp} handshake(s)")
+    count_a = engine.get_handshake_count(veteran_a)
+    assert count_a == 1
+    logger.info(f"     Handshake broken, A now has {count_a} Apostle(s)")
 
     # Get trust web stats
     web_stats = engine.get_trust_web_stats()
