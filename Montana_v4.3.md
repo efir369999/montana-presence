@@ -11,29 +11,17 @@ alejandromontana@tutamail.com
 
 ## Abstract
 
-A purely peer-to-peer electronic cash system would allow online payments without relying on financial institutions. Existing cryptocurrency solutions—Proof of Work and Proof of Stake—scale influence through purchasable resources, inevitably concentrating power in the hands of capital owners. We propose Ɉ Montana ($MONT), a currency built on Proof of Time consensus where influence accumulates through time presence rather than resource expenditure. The network timestamps blocks through sequential computation that cannot be parallelized or accelerated. Nodes compete for 21 million minutes of temporal asset distributed over 131 years.
+A purely peer-to-peer electronic cash system without reliance on financial institutions. Existing cryptocurrency solutions—Proof of Work and Proof of Stake—scale influence through purchasable resources, concentrating power in capital owners.
 
-**Version 4.0 additions:** The Twelve Apostles trust system and EPOCHS dimension:
-- 12 Apostles — Each node chooses exactly 12 trust partners
-- EPOCHS replaces GEOGRAPHY — Bitcoin halvings survived (unfakeable)
-- Collective slashing — Attack the network, lose your friends
-- Bitcoin Oracle — Real-time BTC block verification via multiple APIs
+Ɉ Montana ($MONT) builds consensus on Proof of Time. Influence accumulates through time presence, not resource expenditure. The network timestamps blocks through sequential computation that cannot be parallelized or accelerated.
 
-**Version 4.1 additions:** The Hal Humanity System:
-- Graduated Trust Model — Hardware (3 Apostles) → Social (6) → Time-Locked (12)
-- Time-Locked Identity Proofs — Bitcoin halving anchored, unfakeable
-- Sybil Resistance — Proving humanity, not just cryptographic identity
-
-**Version 4.2:** Bitcoin-anchored TIME dimension:
-- TIME saturation = 210,000 Bitcoin blocks (resets at each halving)
-- Ties node reputation directly to Bitcoin time oracle
-- Prevents permanent entrenchment of early nodes
-
-**Version 4.3:** Module Consolidation & Production Release:
-- ADAM — Unified God of Time (merged AdamSync + Chronos)
-- HAL expansion — Behavioral analysis + Slashing moved from Athena
-- PAUL — Network module renamed (Peer Authenticated Unified Link)
-- 11 Pantheon Gods — Clean architecture, all production-ready
+**Core innovations:**
+- **Proof of Time** — VDF-based consensus where time cannot be bought or accelerated
+- **11 Pantheon Gods** — Modular architecture with clear separation of concerns
+- **12 Apostles** — Trust network with collective accountability
+- **Hal Humanity System** — Sybil resistance through graduated trust and time-locked proofs
+- **Bitcoin Anchoring** — TIME dimension tied to 210,000 BTC blocks per epoch
+- **Post-Quantum Cryptography** — SPHINCS+, SHA3-256, SHAKE256 VDF
 
 Time cannot be bought, manufactured, or transferred—only spent.
 Humanity cannot be faked across Bitcoin halvings—only proven.
@@ -51,23 +39,22 @@ Humanity cannot be faked across Bitcoin halvings—only proven.
 7. [The Hal Humanity System](#7-the-hal-humanity-system)
 8. [Anti-Cluster Protection](#8-anti-cluster-protection)
 9. [Post-Quantum Cryptography](#9-post-quantum-cryptography)
-10. [Attack Resistance Analysis](#10-attack-resistance-analysis)
-11. [Known Limitations](#11-known-limitations)
-12. [Network Protocol](#12-network-protocol)
-13. [Privacy](#13-privacy)
-14. [Emission Schedule](#14-emission-schedule)
-15. [Implementation](#15-implementation)
-16. [Conclusion](#16-conclusion)
+10. [Attack Resistance](#10-attack-resistance)
+11. [Network Protocol](#11-network-protocol)
+12. [Privacy](#12-privacy)
+13. [Emission Schedule](#13-emission-schedule)
+14. [Implementation](#14-implementation)
+15. [Conclusion](#15-conclusion)
 
 ---
 
 ## 1. Introduction
 
-The cypherpunk movement envisioned cryptographic systems that would shift power from institutions to individuals. Bitcoin delivered on part of that promise—a monetary system without central authority. But Bitcoin's consensus mechanism, while elegant, contains a flaw that becomes more apparent with time: influence scales with capital.
+The cypherpunk movement envisioned cryptographic systems that shift power from institutions to individuals. Bitcoin delivered a monetary system without central authority. But Bitcoin's consensus mechanism contains a flaw that becomes more apparent with time: influence scales with capital.
 
 Proof of Work requires specialized hardware. A participant with capital purchases ASICs and controls hashrate proportional to investment. Proof of Stake makes this explicit—stake coins, receive influence. Both systems work. Both systems concentrate power.
 
-What the cypherpunks sought was not merely decentralized currency, but decentralized power. True decentralization requires a resource that cannot be accumulated, purchased, or transferred.
+True decentralization requires a resource that cannot be accumulated, purchased, or transferred.
 
 **Time is that resource.**
 
@@ -77,13 +64,13 @@ A node operating through a full Bitcoin halving cycle (210,000 blocks, ~4 years)
 
 Current cryptographic systems face an existential threat: quantum computers. Shor's algorithm breaks ECDSA, RSA, and X25519. Conservative estimates place cryptographically-relevant quantum computers 10-15 years away.
 
-**Ɉ Montana implements quantum-resistant cryptography to ensure long-term security.**
+Ɉ Montana implements quantum-resistant cryptography to ensure long-term security.
 
 ### 1.2 The Humanity Problem
 
-Version 4.0 introduced EPOCHS—proof that a node survived Bitcoin halvings. But TIME proves existence, not uniqueness. An attacker can create 100 keypairs, wait 4 years, and control a coordinated network.
+TIME proves existence, not uniqueness. An attacker can create 100 keypairs, wait 4 years, and control a coordinated network.
 
-**The Hal Humanity System (v4.1) solves this: proving humanity, not just cryptographic identity.**
+The Hal Humanity System solves this: proving humanity, not just cryptographic identity.
 
 Named after Hal Finney (1956-2014), who received the first Bitcoin transaction and understood Sybil resistance before anyone else.
 
@@ -95,7 +82,7 @@ All existing consensus mechanisms suffer from the same fundamental weakness: res
 
 In Proof of Work, hash rate is purchasable. In Proof of Stake, the problem is structural. Delegated systems (DPoS) merely add intermediaries.
 
-**The solution is not to redistribute resources more fairly within these systems. The solution is to build consensus on resources that cannot be unequally distributed.**
+**The solution is to build consensus on resources that cannot be unequally distributed.**
 
 - **Time** passes for everyone at the same rate. This is physics.
 - **Humanity** cannot be multiplied. One person = one human.
@@ -104,14 +91,14 @@ In Proof of Work, hash rate is purchasable. In Proof of Stake, the problem is st
 
 ## 3. Verifiable Delay Functions
 
-A Verifiable Delay Function (VDF) is a function that requires sequential operations to compute, but whose output can be efficiently verified.
+A Verifiable Delay Function (VDF) requires sequential operations to compute, but whose output can be efficiently verified.
 
-### 3.1 Post-Quantum Construction: SHAKE256 VDF
+### 3.1 SHAKE256 VDF Construction
 
 ```
 Parameters:
   H = SHAKE256 (extendable-output function)
-  T = iteration count
+  T = iteration count (1,000,000 iterations = 10 minutes)
 
 Compute(x, T):
   state₀ = x
@@ -127,14 +114,30 @@ Verify(x, y, proof, T):
 
 ### 3.2 VDF Synchronization
 
-Each VDF proof depends on the hash of the previous block:
+Each VDF proof depends on the previous block hash:
 
-```
-VDF_input = SHA3-256(prev_block_hash || height)
+```python
+VDF_input = SHA3_256(prev_block_hash || height)
 VDF_output = Compute(VDF_input, T)
 ```
 
 Pre-computation is impossible because `prev_block_hash` is unknown until the previous block is finalized.
+
+### 3.3 Seven Temporal Levels
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  ADAM: GOD OF TIME - 7 TEMPORAL LEVELS                      │
+├─────────────────────────────────────────────────────────────┤
+│  Level 0: PROOF_OF_HISTORY     6 seconds    SHA3 chain      │
+│  Level 1: VDF_CHECKPOINT       10 minutes   VDF proof       │
+│  Level 2: VRF_LEADER           1 hour       Leader lottery  │
+│  Level 3: DAG_FINALITY         6 hours      PHANTOM order   │
+│  Level 4: BITCOIN_ANCHOR       24 hours     BTC hash        │
+│  Level 5: EPOCH_BOUNDARY       ~4 years     BTC halving     │
+│  Level 6: GENESIS_ROOT         Forever      Network birth   │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -142,7 +145,7 @@ Pre-computation is impossible because `prev_block_hash` is unknown until the pre
 
 ### 4.1 DAG-PHANTOM Ordering
 
-**Version 4.3:** Montana uses DAG-based consensus with PHANTOM ordering.
+Montana uses DAG-based consensus with PHANTOM ordering for horizontal scaling.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -169,65 +172,99 @@ PENDING (0) → TENTATIVE (3+ confirmations)
             → IRREVERSIBLE (score ≥ 0.99)
 ```
 
-**Note:** VRF leader selection is NOT used in DAG architecture. Any node with weight ≥10% can produce blocks.
+### 4.3 Block Production
+
+Any node with weight ≥10% of network can produce blocks. Selection uses ECVRF for randomness.
+
+```python
+def is_eligible_producer(node, epoch_seed):
+    vrf_output = ECVRF_prove(node.private_key, epoch_seed)
+    threshold = node.weight * MAX_VRF_VALUE
+    return int.from_bytes(vrf_output[:8], 'big') < threshold
+```
 
 ---
 
 ## 5. The Five Fingers of Adonis
 
-The reputation system uses five-dimensional assessment.
+Reputation system using five-dimensional assessment.
 
 ### 5.1 THUMB: TIME (50%)
 
-The dominant factor. Saturates at 210,000 Bitcoin blocks (~4 years). **Resets at each halving.**
-
-Montana v4.2: TIME is now measured in Bitcoin blocks since the last halving, not wall-clock seconds.
-This ties node reputation directly to the Bitcoin time oracle and creates a natural reset cycle.
+The dominant factor. Saturates at 210,000 Bitcoin blocks (~4 years). Resets at each halving.
 
 ```python
-f_time(btc_height) = min(blocks_since_halving / K_TIME, 1.0)
-# where K_TIME = 210,000 Bitcoin blocks
-# blocks_since_halving = btc_height % 210_000
+def compute_time_score(btc_height):
+    blocks_since_halving = btc_height % 210_000
+    return min(blocks_since_halving / 210_000, 1.0)
 ```
 
 **Why reset at halving?**
 - Prevents permanent entrenchment of early nodes
 - Creates natural "election cycles" for network trust
 - Ties reputation directly to unfakeable Bitcoin time
-- All nodes restart from 0 after each halving — proving continued operation
+- All nodes restart from 0 — proving continued operation
 
 ### 5.2 INDEX: INTEGRITY (20%)
 
 No protocol violations. Decreases with misbehavior.
 
+```python
+def compute_integrity_score(node):
+    violations = count_violations(node)
+    return max(0, 1.0 - violations * 0.1)
+```
+
 ### 5.3 MIDDLE: STORAGE (15%)
 
 Percentage of chain history stored.
 
-### 5.4 RING: EPOCHS (10%) — v4.0
-
-**NEW:** Bitcoin halvings survived. Unfakeable through time manipulation.
-
 ```python
-def compute_epochs_score(node):
-    epochs_survived = get_epochs_survived(node.first_btc_height)
-    return min(epochs_survived / 4.0, 1.0)  # Saturates at 4 halvings (16 years)
+def compute_storage_score(node):
+    return node.stored_blocks / total_blocks
 ```
 
-**Why EPOCHS replaces GEOGRAPHY:**
-- You can fake location with VPN. You cannot fake surviving a Bitcoin halving.
-- 210,000 BTC blocks (~4 years) = 1 epoch
-- Maximum score after 4 halvings (16 years of existence)
+### 5.4 RING: EPOCHS (10%)
+
+Bitcoin halvings survived. Unfakeable through time manipulation.
+
+```python
+def compute_epochs_score(first_btc_height, current_btc_height):
+    epochs_survived = (current_btc_height // 210_000) - (first_btc_height // 210_000)
+    return min(epochs_survived / 4.0, 1.0)  # Saturates at 4 halvings (16 years)
+```
 
 ### 5.5 PINKY: HANDSHAKE (5%)
 
 Mutual trust bonds via the 12 Apostles system.
 
+```python
+def compute_handshake_score(node):
+    weighted_handshakes = sum(
+        compute_handshake_value(node.number, partner.number)
+        for partner in node.apostles
+    )
+    return min(weighted_handshakes / 12.0, 1.0)
+```
+
+### 5.6 Total Reputation Score
+
+```python
+def compute_reputation(node):
+    return (
+        0.50 * compute_time_score(node) +
+        0.20 * compute_integrity_score(node) +
+        0.15 * compute_storage_score(node) +
+        0.10 * compute_epochs_score(node) +
+        0.05 * compute_handshake_score(node)
+    )
+```
+
 ---
 
 ## 6. The Twelve Apostles
 
-**New in v4.0:** Each node chooses exactly 12 trust partners.
+Each node chooses exactly 12 trust partners.
 
 ### 6.1 Design Philosophy
 
@@ -281,19 +318,17 @@ ATTACKER_QUARANTINE_BLOCKS = 180_000  # ~3 years
 # - Associates: -10% integrity (those vouched by attacker)
 ```
 
-All handshakes dissolved. Trust network damaged.
-
-This isn't punishment—it's accountability.
+All handshakes dissolved. Trust network damaged. This isn't punishment—it's accountability.
 
 ---
 
 ## 7. The Hal Humanity System
 
-**New in v4.1:** Proof of Human, Not Just Proof of Time.
+Proof of Human, not just Proof of Time.
 
 ### 7.1 The Sybil Problem
 
-Montana v4.0 proves TIME (via EPOCHS). But TIME proves existence, not uniqueness.
+TIME proves existence, not uniqueness.
 
 **Attack Scenario:**
 ```
@@ -303,15 +338,7 @@ Year 4: All 12 survive halving, EPOCHS=0.25
 Result: One person controls full 12-Apostle network
 ```
 
-**Sybil Cost in v4.0:** $0 (just wait)
-
-### 7.2 The Hal Solution
-
-Time-Locked Identity + Graduated Trust = Unfakeable Humanity Proof
-
-Named after **Hal Finney** (1956-2014), who understood Sybil resistance before anyone else.
-
-### 7.3 Graduated Trust Model
+### 7.2 Graduated Trust Model
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -335,17 +362,13 @@ Named after **Hal Finney** (1956-2014), who understood Sybil resistance before a
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 7.4 Time-Locked Identity Proofs
+### 7.3 Time-Locked Identity Proofs
 
 Core mechanism anchored to Bitcoin halvings:
 
 ```python
 # COMMITMENT PHASE (at epoch N)
 def create_identity_commitment(pubkey, secret, btc_block_hash):
-    """
-    Create commitment anchored to Bitcoin halving.
-    secret must be stored securely by user.
-    """
     commitment_hash = SHA3_256(pubkey + secret + btc_block_hash)
     return IdentityCommitment(
         pubkey=pubkey,
@@ -356,14 +379,6 @@ def create_identity_commitment(pubkey, secret, btc_block_hash):
 
 # PROOF PHASE (at epoch N+1, after halving)
 def create_time_locked_proof(commitment, secret, current_btc_hash):
-    """
-    Create ZK proof of commitment after halving.
-    """
-    # STARK proof that:
-    # 1. I know secret such that commitment = SHA3(pubkey || secret || old_hash)
-    # 2. old_hash is from epoch N
-    # 3. current_hash is from epoch N+1
-
     proof = STARK_prove(
         public_inputs=[commitment.commitment, current_btc_hash],
         private_inputs=[secret, commitment.btc_block_hash],
@@ -372,9 +387,7 @@ def create_time_locked_proof(commitment, secret, current_btc_hash):
     return TimeLockProof(commitment=commitment, stark_proof=proof)
 ```
 
-### 7.5 Sybil Economics
-
-Creating N fake identities requires:
+### 7.4 Sybil Economics
 
 | Tier | Sybil Cost per Identity |
 |------|------------------------|
@@ -384,20 +397,9 @@ Creating N fake identities requires:
 
 **At Tier 3: 100 fake identities = 400 years of waiting.**
 
-This is the Hal Finney vision realized.
+### 7.5 Hardware Attestation (Tier 1)
 
-### 7.6 Network Evolution
-
-```
-Year 0-4:  Hardware + Social bootstrap (enough to launch)
-Year 4+:   Time-Locked activates (first real proofs)
-Year 8+:   Time-Locked dominates (2 halvings = high trust)
-Year 16+:  Pure Time-Locked (Hardware/Social deprecated)
-```
-
-### 7.7 Hardware Attestation (Tier 1)
-
-Three attestation methods supported:
+Three attestation methods:
 
 **TPM 2.0:**
 ```python
@@ -423,12 +425,9 @@ Three attestation methods supported:
 # 3. Montana pubkey is bound via credential
 ```
 
-### 7.8 Social Graph Verification (Tier 2)
-
-Custom social graph built from handshakes:
+### 7.6 Social Graph Verification (Tier 2)
 
 ```python
-# Sybil detection via graph analysis
 class SocialVerifier:
     def verify_social_proof(self, proof):
         # Check minimum connections
@@ -448,18 +447,16 @@ class SocialVerifier:
         return True, "Social proof valid"
 ```
 
-### 7.9 Handshake Integration
+### 7.7 Handshake Integration
 
 Humanity tier limits Apostle count:
 
 ```python
 def can_form_handshake(my_profile, target):
-    # Tier-based limits
     max_allowed = my_profile.max_apostles  # 3, 6, or 12
     if len(my_apostles) >= max_allowed:
-        return False, f"Tier {my_profile.humanity_tier} limited to {max_allowed}"
+        return False, f"Tier limited to {max_allowed}"
 
-    # Humanity score check
     if target.humanity_score < 0.3:
         return False, "Target humanity score too low"
 
@@ -470,7 +467,7 @@ def can_form_handshake(my_profile, target):
 
 ## 8. Anti-Cluster Protection
 
-Defense against the "Slow Takeover Attack."
+Defense against coordinated attacks.
 
 ### 8.1 Behavioral Correlation Detection
 
@@ -489,7 +486,25 @@ class ClusterDetector:
         return 0.5*timing + 0.3*dist + 0.2*height
 ```
 
-### 8.2 Global Cluster Cap
+### 8.2 Global Byzantine Tracker
+
+```python
+class GlobalByzantineTracker:
+    def compute_fingerprint(self, node):
+        return {
+            'join_time': node.join_timestamp,
+            'rep_growth_rate': compute_growth_rate(node),
+            'timing_entropy': compute_timing_entropy(node),
+            'dimension_balance': compute_balance(node)
+        }
+
+    def detect_clusters(self, nodes):
+        fingerprints = [self.compute_fingerprint(n) for n in nodes]
+        clusters = hierarchical_clustering(fingerprints, threshold=0.8)
+        return clusters
+```
+
+### 8.3 Global Cluster Cap
 
 **No cluster can exceed 33% of network influence.**
 
@@ -510,7 +525,7 @@ def apply_cluster_cap(probabilities, clusters):
 
 ## 9. Post-Quantum Cryptography
 
-Complete quantum-resistant cryptographic stack following NIST post-quantum standards.
+Complete quantum-resistant cryptographic stack following NIST standards.
 
 ### 9.1 Crypto-Agility Architecture
 
@@ -529,109 +544,104 @@ Complete quantum-resistant cryptographic stack following NIST post-quantum stand
     └───────────┘           └───────────┘           └───────────┘
 ```
 
-### 9.2 Algorithms
+### 9.2 Algorithm Selection
 
-| Function | Algorithm | Security |
-|----------|-----------|----------|
-| Signatures | SPHINCS+-SHAKE-128f | 128-bit PQ |
-| Hashing | SHA3-256 | 128-bit PQ |
-| VDF | SHAKE256 + STARK | 128-bit PQ |
-| Key Exchange | ML-KEM-768 | 128-bit PQ |
+| Function | Algorithm | Standard | Security |
+|----------|-----------|----------|----------|
+| Signatures | SPHINCS+-SHAKE-128f | NIST FIPS 205 | 128-bit PQ |
+| Hashing | SHA3-256 | NIST FIPS 202 | 128-bit PQ |
+| VDF | SHAKE256 + STARK | — | 128-bit PQ |
+| Key Exchange | ML-KEM-768 | NIST FIPS 203 | 128-bit PQ |
+
+### 9.3 Signature Implementation
+
+```python
+from pantheon.prometheus import pq_crypto
+
+# Generate keypair
+public_key, private_key = pq_crypto.sphincs_keygen()
+
+# Sign message
+signature = pq_crypto.sphincs_sign(message, private_key)
+
+# Verify signature
+valid = pq_crypto.sphincs_verify(message, signature, public_key)
+```
 
 ---
 
-## 10. Attack Resistance Analysis
+## 10. Attack Resistance
 
-### 10.1 Attack Vector Matrix (v4.3)
+### 10.1 Attack Vector Matrix
 
-| Attack | Difficulty | Mitigation | Notes |
-|--------|------------|------------|-------|
-| Flash Takeover | IMPOSSIBLE | 180-day saturation | |
-| Slow Takeover | VERY HARD | Correlation + 33% cap | |
-| Sybil via Keypairs | VERY HARD | Hal Humanity System | |
-| Fake Apostle Network | HARD | Humanity tier limits | |
-| Hardware Spoofing | HARD | Multiple attestation sources | |
-| Quantum Attack | IMPOSSIBLE | SPHINCS+, SHA3, SHAKE256 | |
+| Attack | Difficulty | Mitigation |
+|--------|------------|------------|
+| Flash Takeover | IMPOSSIBLE | 210,000 BTC blocks (~4 years) saturation |
+| Slow Takeover | VERY HARD | Behavioral correlation + 33% cluster cap |
+| Sybil via Keypairs | VERY HARD | Hal Humanity System (N × 4 years) |
+| Fake Apostle Network | HARD | Humanity tier limits |
+| Hardware Spoofing | HARD | Multiple attestation sources |
+| Quantum Attack | IMPOSSIBLE | SPHINCS+, SHA3, SHAKE256 |
+| Eclipse Attack | BLOCKED | Minimum 8 outbound connections |
+| VPN Spoofing | BLOCKED | ASN + rDNS detection |
 
-### 10.2 Sybil Attack Cost Comparison
-
-| Version | Sybil Cost (100 fake nodes) |
-|---------|----------------------------|
-| v3.x | $0 (just wait ~6 months) |
-| v4.0 | $0 (just wait 4 years for EPOCHS) |
-| **v4.1+** | **400 years** (100 × 4-year halvings) |
-
-### 10.3 51% Attack Requirements (v4.3)
+### 10.2 51% Attack Requirements
 
 To control majority weighted influence:
 
-| Requirement | v3.x | v4.3 |
-|-------------|------|------|
-| TIME | ~6 months | 210,000 BTC blocks (~4 years, resets at halving) |
-| EPOCHS | N/A | 4+ years (survive 1+ halving) |
-| Humanity | N/A | Tier 3 proof (4+ years per identity) |
-| Apostles | 10 | 12 (requires Tier 3) |
+| Requirement | Threshold |
+|-------------|-----------|
+| TIME | 210,000 BTC blocks (~4 years, resets at halving) |
+| EPOCHS | 4+ years (survive 1+ halving) |
+| Humanity | Tier 3 proof (4+ years per identity) |
+| Apostles | 12 (requires Tier 3) |
+
+### 10.3 Sybil Attack Cost
+
+| Fake Identities | Cost at Tier 3 |
+|-----------------|----------------|
+| 1 | 4 years |
+| 10 | 40 years |
+| 100 | 400 years |
+| 1000 | 4000 years |
 
 ---
 
-## 11. Known Limitations
+## 11. Network Protocol
 
-### 11.1 Correlation Detection Evasion
-
-Sophisticated attackers can add random delays (150ms+ jitter) to avoid timing correlation detection.
-
-**Multi-layer defense:**
-
-1. **GlobalByzantineTracker** — Behavioral fingerprinting:
-   - Join time proximity
-   - Reputation growth rate similarity
-   - Timing entropy (low variance = scripted = suspicious)
-   - Dimension balance patterns
-   - Groups with >80% fingerprint similarity are capped at 33% total influence
-
-2. **Hal Humanity System** — Even undetected Sybils limited to:
-   - Tier 1: 3 Apostles each (Hardware)
-   - Tier 2: 6 Apostles each (Social)
-   - Tier 3: 12 Apostles each (Time-Locked — requires 4 years)
-
-Jitter defeats timing correlation but cannot hide behavioral patterns.
-
-### 11.2 Cold Start Problem
-
-Time-Locked Identity requires 4 years for first proof.
-
-**Mitigation:** Graduated Trust allows Hardware (Tier 1) and Social (Tier 2) bootstrap.
-
-### 11.3 Hardware Attestation Spoofing
-
-Determined attackers may spoof hardware attestation.
-
-**Mitigation:**
-- Multiple attestation sources (TPM + Enclave + FIDO2)
-- Hardware tier limited to 3 Apostles
-- Transition to Time-Locked over 4 years
-
----
-
-## 12. Network Protocol
-
-### 12.1 Message Types
+### 11.1 Message Types
 
 ```
-Type 0-15:  Standard (VERSION, BLOCK, TX, etc.)
+Type 0-15:   Standard (VERSION, BLOCK, TX, PING, PONG)
 Type 100-102: Noise Protocol handshake
-Type 200: HUMANITY_PROOF
-Type 201: APOSTLE_HANDSHAKE
-Type 202: SLASHING_EVIDENCE
+Type 200:    HUMANITY_PROOF
+Type 201:    APOSTLE_HANDSHAKE
+Type 202:    SLASHING_EVIDENCE
 ```
 
-### 12.2 Encryption: Noise Protocol
+### 11.2 Noise Protocol Encryption
 
-All peer connections use Noise Protocol Framework, XX pattern.
+All peer connections use Noise Protocol Framework, XX pattern:
 
-### 12.3 Bitcoin Oracle
+```python
+from noiseprotocol import NoiseConnection
 
-Real-time BTC block verification:
+def establish_connection(peer_pubkey, my_keypair):
+    conn = NoiseConnection.from_name(b'Noise_XX_25519_ChaChaPoly_SHA256')
+    conn.set_keypair_from_private_bytes(Keypair.STATIC, my_keypair)
+    conn.start_handshake()
+
+    # Three-way handshake
+    message_1 = conn.write_message()  # → peer
+    conn.read_message(response_1)      # ← peer
+    message_2 = conn.write_message()  # → peer
+
+    return conn  # Encrypted channel established
+```
+
+### 11.3 Bitcoin Oracle
+
+Real-time BTC block verification via multiple APIs:
 
 ```python
 BTC_APIS = [
@@ -641,7 +651,6 @@ BTC_APIS = [
 ]
 
 def get_btc_block_hash(height):
-    """Get BTC block hash from multiple sources."""
     results = []
     for api in BTC_APIS:
         try:
@@ -656,36 +665,73 @@ def get_btc_block_hash(height):
     return None
 ```
 
+### 11.4 Network Security
+
+| Feature | Implementation |
+|---------|----------------|
+| Static IP | Only static IPs allowed (no dynamic residential) |
+| VPN Blocking | ASN-based detection of VPN/Tor/Proxy |
+| Eclipse Defense | MIN_OUTBOUND_CONNECTIONS = 8 |
+| Rate Limiting | Per-IP and per-subnet throttling |
+| Sybil Protection | Node registration after block validation only |
+
 ---
 
-## 13. Privacy
+## 12. Privacy
 
-Tiered privacy model with production-ready T0/T1.
+Tiered privacy model.
 
-### 13.1 Privacy Tiers (v4.3)
+### 12.1 Privacy Tiers
 
 | Tier | Hidden | Fee Multiplier | Status |
 |------|--------|----------------|--------|
-| T0 | Nothing | 1× | **Production** |
-| T1 | Receiver | 2× | **Production** |
+| T0 | Nothing | 1× | Production |
+| T1 | Receiver | 2× | Production |
 | T2 | + Amount | 5× | Planned |
 | T3 | + Sender | 10× | Planned |
 
-**v4.3 Note:** T2/T3 (Confidential/Ring) removed from codebase pending Bulletproofs audit.
+### 12.2 Stealth Addresses (T1)
 
-### 13.2 Ring Signatures (LSAG)
+Each transaction generates a unique one-time address:
 
-Linkable Spontaneous Anonymous Group signatures hide sender among decoys.
+```python
+def generate_stealth_address(recipient_pubkey):
+    # Generate ephemeral keypair
+    r = secrets.token_bytes(32)
+    R = scalar_mult(r, G)
 
-### 13.3 Stealth Addresses
+    # Compute shared secret
+    shared = SHA3_256(scalar_mult(r, recipient_pubkey))
 
-Each transaction generates a unique one-time address.
+    # One-time address
+    P = recipient_pubkey + scalar_mult(shared, G)
+
+    return P, R  # P = stealth address, R = ephemeral pubkey
+```
+
+### 12.3 Ring Signatures (LSAG)
+
+Linkable Spontaneous Anonymous Group signatures:
+
+```python
+def lsag_sign(message, private_key, ring_pubkeys):
+    n = len(ring_pubkeys)
+    key_image = compute_key_image(private_key)
+
+    # Generate ring signature
+    c = [0] * n
+    s = [0] * n
+
+    # ... ring signature construction
+
+    return RingSignature(c=c[0], s=s, key_image=key_image)
+```
 
 ---
 
-## 14. Emission Schedule
+## 13. Emission Schedule
 
-### 14.1 Supply Parameters
+### 13.1 Supply Parameters
 
 ```
 Name: Ɉ Montana
@@ -697,18 +743,39 @@ Halving interval: 210,000 blocks (~4 years)
 Full emission: ~132 years
 ```
 
+### 13.2 Block Rewards
+
+| Era | Block Reward | Cumulative Supply |
+|-----|--------------|-------------------|
+| 1 | 50 minutes | 630,000,000 Ɉ |
+| 2 | 25 minutes | 945,000,000 Ɉ |
+| 3 | 12.5 minutes | 1,102,500,000 Ɉ |
+| 4 | 6.25 minutes | 1,181,250,000 Ɉ |
+| ... | ... | → 1,260,000,000 Ɉ |
+
+### 13.3 Temporal Compression
+
+Reward ratio converges from 5:1 to 1:1. Inflation asymptotically approaches zero.
+
+```
+I(t) = reward(t) / supply(t)
+lim(t→∞) I(t) = 0
+```
+
+Nash's Ideal Money realized.
+
 ---
 
-## 15. Implementation
+## 14. Implementation
 
-### 15.1 Repository Structure (v4.3)
+### 14.1 Repository Structure
 
 ```
 montana/
 ├── pantheon/                       # 11 GODS
-│   ├── adam/                       # God of Time (7 levels, Bitcoin anchor)
-│   │   └── adam.py                 # VDF, PoH, temporal proofs
-│   ├── paul/                       # Network (was HERMES)
+│   ├── adam/                       # God of Time
+│   │   └── adam.py                 # VDF, PoH, 7 temporal levels
+│   ├── paul/                       # Network
 │   │   ├── network.py              # P2P, Noise Protocol
 │   │   ├── bootstrap.py            # Node discovery
 │   │   └── rheuma.py               # Anti-DDoS
@@ -723,7 +790,7 @@ montana/
 │   │   └── pq_crypto.py            # VDF, VRF, SPHINCS+
 │   ├── plutus/                     # Wallet
 │   │   └── wallet.py               # Argon2id, AES-256-GCM
-│   ├── nyx/                        # Privacy (T0/T1)
+│   ├── nyx/                        # Privacy
 │   │   ├── privacy.py              # LSAG, Stealth, Pedersen
 │   │   └── tiered_privacy.py       # Transaction builder
 │   ├── themis/                     # Validation
@@ -732,14 +799,13 @@ montana/
 │   │   └── rpc.py                  # JSON-RPC 2.0
 │   ├── apostles/                   # 12 Apostles Trust
 │   │   └── trust.py                # Handshakes, seniority
-│   └── hal/                        # Humanity (v4.3 expanded)
-│       ├── humanity.py             # Core verification
+│   └── hal/                        # Humanity
+│       ├── reputation.py           # Five Fingers
+│       ├── behavioral.py           # Sybil detection
+│       ├── slashing.py             # Penalty manager
 │       ├── hardware.py             # TPM/Enclave/FIDO2
 │       ├── social.py               # Social graph
-│       ├── timelock.py             # Time-locked proofs
-│       ├── behavioral.py           # Sybil detection (v4.3)
-│       ├── reputation.py           # Five Fingers (v4.3)
-│       └── slashing.py             # Penalties (v4.3)
+│       └── timelock.py             # Time-locked proofs
 ├── tests/
 │   ├── test_integration.py         # 48 integration tests
 │   ├── test_dag.py                 # 48 DAG tests
@@ -748,7 +814,7 @@ montana/
 └── Montana_v4.3.md                 # This document
 ```
 
-### 15.2 Module Summary (11 Gods)
+### 14.2 Module Summary (11 Gods)
 
 | Module | Name | Responsibility |
 |--------|------|----------------|
@@ -764,39 +830,46 @@ montana/
 | APOSTLES | Trust | 12 Apostles, seniority bonus |
 | HAL | Humanity | Reputation, Sybil detection, slashing |
 
-### 15.3 Running a Node
+### 14.3 Running a Node
 
 ```bash
 pip install pynacl gmpy2 noiseprotocol
 python node.py --run
 ```
 
+### 14.4 RPC Interface
+
+```bash
+# Get node status
+curl -X POST http://localhost:8332 \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"getinfo","params":[],"id":1}'
+
+# Get balance
+curl -X POST http://localhost:8332 \
+  -d '{"jsonrpc":"2.0","method":"getbalance","params":[],"id":1}'
+
+# Send transaction
+curl -X POST http://localhost:8332 \
+  -d '{"jsonrpc":"2.0","method":"sendtoaddress","params":["<address>",100],"id":1}'
+```
+
 ---
 
-## 16. Conclusion
+## 15. Conclusion
 
-### 16.1 What Ɉ Montana v4.3 Guarantees
+### 15.1 Security Guarantees
 
 1. **No instant takeover:** TIME resets at each halving — no permanent advantage
 2. **Cluster cap:** No coordinated group exceeds 33% influence
 3. **Quantum resistance:** Signatures and VDF secure against quantum computers
-4. **Sybil resistance:** Humanity proofs via graduated trust
-5. **Time-locked identity:** 4-year Bitcoin halving anchors cannot be faked
+4. **Sybil resistance:** N fake identities = N × 4 years
+5. **Time-locked identity:** Bitcoin halving anchors cannot be faked
 6. **Collective accountability:** 12 Apostles + slashing creates real consequences
-7. **Bitcoin-anchored time:** 210,000 blocks to saturate, then reset at halving
-8. **Clean architecture:** 11 production-ready modules with clear separation
+7. **Bitcoin-anchored time:** 210,000 blocks to saturate, then reset
+8. **Clean architecture:** 11 production-ready modules
 
-### 16.2 Sybil Resistance Evolution
-
-| Version | Sybil Cost | Mechanism |
-|---------|------------|-----------|
-| v1.0-v3.x | $0 (wait ~6 months) | TIME only |
-| v4.0 | $0 (wait 4 years) | TIME + EPOCHS |
-| **v4.1+** | **N × 4 years** | TIME + EPOCHS + HAL |
-
-**Creating 100 fake identities = 400 years.** This is the Hal Finney vision realized.
-
-### 16.3 Final Statement
+### 15.2 Final Statement
 
 Ɉ Montana removes capital as the basis of influence. The system uses:
 - **Time** — cannot be purchased, accelerated, or concentrated
@@ -830,7 +903,7 @@ With quantum-resistant cryptography and the Hal Humanity System, these guarantee
 
 ---
 
-## Appendix A: Constants Reference (v4.3)
+## Appendix A: Constants Reference
 
 ```python
 # ============================================================
@@ -858,17 +931,14 @@ HANDSHAKE_COOLDOWN = 86400  # 24 hours
 # ============================================================
 # HAL HUMANITY SYSTEM
 # ============================================================
-# Tier limits
 MAX_APOSTLES_HARDWARE = 3      # Tier 1
 MAX_APOSTLES_SOCIAL = 6        # Tier 2
 MAX_APOSTLES_TIMELOCKED = 12   # Tier 3
 
-# Weights
 HUMANITY_WEIGHT_HARDWARE = 0.3
 HUMANITY_WEIGHT_SOCIAL = 0.6
 HUMANITY_WEIGHT_TIMELOCKED = 1.0
 
-# Minimum for handshake eligibility
 HANDSHAKE_MIN_HUMANITY = 0.3
 
 # ============================================================
@@ -894,63 +964,22 @@ FINALITY_THRESHOLD_TENTATIVE = 3
 FINALITY_THRESHOLD_CONFIRMED = 6
 FINALITY_SCORE_FINALIZED = 0.95
 FINALITY_SCORE_IRREVERSIBLE = 0.99
+
+# ============================================================
+# VDF PARAMETERS
+# ============================================================
+VDF_ITERATIONS = 1_000_000  # ~10 minutes on reference hardware
+VDF_CHECKPOINT_INTERVAL = 10_000
+VDF_FALLBACK_TO_VRF = True
+
+# ============================================================
+# NETWORK
+# ============================================================
+MIN_OUTBOUND_CONNECTIONS = 8
+MAX_INBOUND_CONNECTIONS = 125
+DEFAULT_P2P_PORT = 9333
+DEFAULT_RPC_PORT = 8332
 ```
-
----
-
-## Appendix B: Version History
-
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | Dec 2025 | Initial specification |
-| 2.0 | Dec 2025 | Five Fingers of Adonis, anti-cluster |
-| 3.0 | Dec 2025 | Post-quantum cryptography |
-| 3.1 | Dec 2025 | Network security hardening |
-| 4.0 | Dec 2025 | 12 Apostles, EPOCHS dimension, collective slashing, Bitcoin Oracle |
-| 4.1 | Dec 2025 | Hal Humanity System: graduated trust, time-locked identity, Sybil resistance |
-| 4.2 | Dec 2025 | Bitcoin-anchored TIME dimension |
-| **4.3** | Dec 2025 | **Module consolidation: ADAM (Time), HAL expansion (behavioral, slashing), PAUL (Network), 11 Gods architecture, T0/T1 production privacy** |
-
----
-
-## Appendix C: v4.3 Changelog
-
-### New Modules
-- **ADAM** (`pantheon/adam/`) — God of Time
-  - Merged from AdamSync + Chronos
-  - 7 temporal levels with Bitcoin anchoring
-  - VDF fallback to VRF
-
-### Expanded Modules
-- **HAL** (`pantheon/hal/`)
-  - `behavioral.py` — GlobalByzantineTracker, ClusterDetector
-  - `slashing.py` — SlashingManager (moved from ATHENA)
-  - `reputation.py` — Five Fingers (merged from Adonis)
-
-### Renamed Modules
-- **HERMES → PAUL** — Peer Authenticated Unified Link
-
-### Removed Modules
-- `pantheon/chronos/` — Merged into ADAM
-- `pantheon/adonis/` — Merged into HAL
-- `pantheon/ananke/` — Empty stub
-- `pantheon/mnemosyne/` — Empty stub
-
-### Removed Files (duplicates)
-- `pantheon/athena/bitcoin_oracle.py` — Now in ADAM
-- `pantheon/athena/vdf_fallback.py` — Now in ADAM
-- `pantheon/nyx/ristretto.py` — Experimental, removed
-
-### Security Fixes
-- Replace `random.randint` with `secrets.randbits` (P2P nonces)
-- Replace `random.sample` with `secrets.SystemRandom` (VDF checkpoints)
-- Fix VDF STARK verify (was returning True when unavailable)
-
-### Code Quality
-- All 11 modules: explicit `__all__` exports
-- All dead imports removed
-- ASCII documentation headers
-- Production audit: 200+ tests passing
 
 ---
 

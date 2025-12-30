@@ -39,10 +39,123 @@ MAJOR.MINOR.PATCH
 | HAL | Production | Humanity (reputation, Sybil, slashing) |
 
 ### 3. Documentation
-- [ ] Update version in `Montana_vX.X.md`
+- [ ] Update version in `README.md` (badge, installation, features)
+- [ ] Update version in `ROADMAP.md` (current status, next milestones)
+- [ ] Create new `Montana_vX.X.md` whitepaper (see Whitepaper Rules below)
 - [ ] Regenerate `Montana_vX.X.pdf`
-- [ ] Update `README.md` if needed
 - [ ] Update `PANTHEON.md` if module structure changed
+
+---
+
+## Whitepaper Rules (Montana Style)
+
+### Core Principle
+**Каждый релиз = новый whitepaper с нуля.**
+
+Montana - это не changelog. Это полная архитектурная спецификация текущей версии.
+Любой AI агент должен по одному документу понять всю систему.
+
+### Requirements
+
+1. **Версия = Релиз**
+   - `Montana_v4.3.md` → релиз v4.3.0
+   - Никаких "updated from v4.2" - документ самодостаточен
+
+2. **Написан как в первый раз**
+   - Без истории изменений внутри документа
+   - Без "previously we had X, now Y"
+   - Без deprecated warnings
+   - Читатель не знает предыдущих версий
+
+3. **Полная спецификация**
+   - Все 11 богов Пантеона с описанием
+   - Все криптографические примитивы
+   - Все структуры данных (блоки, транзакции)
+   - Все консенсусные параметры
+   - Network protocol details
+   - Privacy model (текущий, без removed features)
+
+4. **AI-Agent Readable**
+   - Структура: Overview → Architecture → Modules → Crypto → Consensus → Network
+   - Чёткие code examples для каждого модуля
+   - ASCII diagrams для data flow
+   - Explicit imports и function signatures
+
+5. **Стиль Montana**
+   - Короткие предложения
+   - Технические факты без воды
+   - Прямые утверждения ("uses", "implements", не "may use")
+   - Формат: `Module: What it does. How it works. Code example.`
+
+### Template Structure
+
+```markdown
+# Proof of Time Protocol - Montana vX.X
+
+## Overview
+[2-3 paragraphs: What is PoT, core innovation, security model]
+
+## Architecture
+[ASCII diagram of system components]
+[11 Pantheon gods table with responsibilities]
+
+## Temporal Consensus (ADAM)
+[7 levels, VDF specs, Bitcoin anchoring]
+
+## Network Layer (PAUL)
+[P2P protocol, Noise XX, message types]
+
+## Storage (HADES)
+[SQLite schema, DAG structure, indexes]
+
+## Consensus Engine (ATHENA)
+[DAG ordering, finality, fork resolution]
+
+## Cryptography (PROMETHEUS)
+[VDF, VRF, ECVRF, hash functions]
+
+## Wallet (PLUTUS)
+[Key derivation, encryption, transaction signing]
+
+## Privacy (NYX)
+[Current privacy tiers, stealth addresses]
+
+## Validation (THEMIS)
+[Block validation, transaction validation]
+
+## RPC Interface (IRIS)
+[JSON-RPC methods, WebSocket]
+
+## Trust Network (APOSTLES)
+[12 bootstrap nodes, trust scoring]
+
+## Humanity Verification (HAL)
+[Reputation, Sybil detection, slashing]
+
+## Appendix
+[Constants, parameters, test vectors]
+```
+
+### Anti-Patterns (ЗАПРЕЩЕНО)
+
+- ❌ "In v4.2 we had X, now in v4.3..."
+- ❌ "Deprecated: use Y instead"
+- ❌ "Legacy support for..."
+- ❌ "Migration from previous version"
+- ❌ Ссылки на старые версии документа
+- ❌ Changelog внутри whitepaper
+
+### Correct Examples
+
+```markdown
+# CORRECT
+NYX implements T0 (Public) and T1 (Stealth Address) privacy tiers.
+Stealth addresses use ECDH with Curve25519.
+
+# WRONG
+NYX previously supported T2/T3 tiers but they were removed in v4.2.
+Now only T0 and T1 are available.
+```
 
 ---
 

@@ -2,7 +2,7 @@
 
 *A peer-to-peer electronic cash system based on time and humanity.*
 
-**Ticker:** $MONT | **Version:** 4.2
+**Ticker:** $MONT | **Version:** 4.3
 
 ---
 
@@ -124,24 +124,21 @@ See [SECURITY_MODEL.md](SECURITY_MODEL.md) for full details.
 
 ## Architecture
 
-14 modules (Pantheon):
+11 modules (Pantheon):
 
 | Module | Domain | Description |
 |--------|--------|-------------|
-| Chronos | VDF | Time proofs, SHAKE256 VDF |
-| Adonis | Reputation | 5 dimensions, score calculation |
-| Hermes | P2P | Noise Protocol, peer management |
-| Hades | Storage | SQLite, DAG persistence |
-| Athena | Consensus | Leader selection, finality |
-| Prometheus | Crypto | SPHINCS+, ECVRF, SHA3 |
-| Mnemosyne | Mempool | Transaction pool |
-| Plutus | Wallet | Key management, TX building |
-| Nyx | Privacy | T0-T3 tiers, Bulletproofs |
-| Themis | Validation | Block/TX verification |
-| Iris | RPC | JSON-RPC interface |
-| Ananke | Governance | Protocol upgrades |
-| Apostles | Trust | 12 Apostle handshakes, slashing |
-| Hal | Humanity | Sybil resistance (v4.1) |
+| ADAM | Time | 7 temporal levels, Bitcoin anchor, VDF |
+| PAUL | P2P | Noise Protocol, peer management |
+| HADES | Storage | SQLite, DAG persistence |
+| ATHENA | Consensus | DAG ordering, finality |
+| PROMETHEUS | Crypto | VDF, VRF, SPHINCS+, SHA3 |
+| PLUTUS | Wallet | Key management, TX building |
+| NYX | Privacy | T0/T1 tiers, stealth addresses |
+| THEMIS | Validation | Block/TX verification |
+| IRIS | RPC | JSON-RPC 2.0 interface |
+| APOSTLES | Trust | 12 Apostle handshakes, slashing |
+| HAL | Humanity | Reputation, Sybil detection, behavioral analysis |
 
 ---
 
@@ -158,9 +155,9 @@ python node.py --run
 
 | Document | Content |
 |----------|---------|
-| [Montana_v4.2.md](Montana_v4.2.md) | Whitepaper v4.2. 12 Apostles. Hal Humanity. Full specification. |
-| [Montana_v4.2.pdf](Montana_v4.2.pdf) | PDF version. |
-| [SECURITY_MODEL.md](SECURITY_MODEL.md) | Security model. Anti-cluster. All properties proven. |
+| [Montana_v4.3.md](Montana_v4.3.md) | Whitepaper v4.3. Full specification. |
+| [Montana_v4.3.pdf](Montana_v4.3.pdf) | PDF version. |
+| [SECURITY_MODEL.md](docs/SECURITY_MODEL.md) | Security model. Anti-cluster. All properties proven. |
 
 ---
 
@@ -201,7 +198,8 @@ See [audits/](audits/) for full reports.
 | v3.1 | ✓ Done | Network hardening, VPN blocking, rate limits |
 | v4.0 | ✓ Done | 12 Apostles, EPOCHS, Bitcoin Oracle |
 | v4.1 | ✓ Done | Hal Humanity System (Sybil resistance) |
-| v4.2 | ✓ Done | Documentation, integration completeness |
+| v4.2 | ✓ Done | Bitcoin-anchored TIME dimension |
+| v4.3 | ✓ Done | Module consolidation: ADAM, HAL, PAUL, 11 Gods |
 | v5.0 | Planned | Mainnet launch, mobile wallet |
 
 ---
