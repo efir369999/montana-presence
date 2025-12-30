@@ -167,8 +167,46 @@ Now only T0 and T1 are available.
 # Create new whitepaper version
 cp Montana_v4.2.md Montana_v4.3.md
 # Update version inside the file
-# Generate PDF
 ```
+
+### Step 1.5: PDF Generation
+
+**CRITICAL: Символ Ɉ (U+0248)**
+
+Символ валюты Ɉ (Latin Capital Letter J with Stroke) требует шрифт с поддержкой Latin Extended-B.
+
+**Поддерживаемые шрифты (macOS):**
+- Helvetica / Helvetica Neue ✅
+- Geneva ✅
+- Times New Roman ✅
+- Baskerville ✅
+- Arial ✅
+
+**НЕ поддерживают Ɉ:**
+- DejaVu Sans ❌
+- Noto Sans (большинство вариантов) ❌
+- Многие системные шрифты Linux ❌
+
+**Генерация PDF:**
+```bash
+# Используй templates/pdf_style.css который указывает правильные шрифты
+pandoc Montana_vX.X.md -o temp.html --metadata title="Montana vX.X" --standalone
+weasyprint temp.html Montana_vX.X.pdf --stylesheet=templates/pdf_style.css
+rm temp.html
+```
+
+**Проверка поддержки шрифта:**
+```bash
+# Найти шрифты поддерживающие U+0248
+fc-list :charset=0248
+
+# Должен показать Helvetica, Geneva, etc.
+```
+
+**Если Ɉ отображается криво:**
+1. Проверь что `templates/pdf_style.css` использует Helvetica первым
+2. Убедись что шрифт установлен в системе
+3. На Linux установи: `apt install fonts-dejavu-core ttf-mscorefonts-installer`
 
 ### Step 2: Commit Changes
 
