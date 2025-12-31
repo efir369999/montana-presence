@@ -233,11 +233,45 @@ MESSAGE_MAGIC_MAINNET: Final[bytes] = b"MONT"
 MESSAGE_MAGIC_TESTNET: Final[bytes] = b"TEST"
 
 # ==============================================================================
-# GENESIS CONSTANTS
+# MONTANA TOKENOMICS - FAIR LAUNCH
 # ==============================================================================
 
-INITIAL_REWARD: Final[int] = 50_00000000        # 50 MONTANA (8 decimals)
-DECIMALS: Final[int] = 8                        # Token decimals
+# Token identity
+TOKEN_NAME: Final[str] = "Montana"
+TOKEN_SYMBOL: Final[str] = "Ɉ"
+TOKEN_TICKER: Final[str] = "MONT"
+
+# Supply parameters (all values in seconds)
+TOTAL_SUPPLY: Final[int] = 1_260_000_000        # 21 million minutes in seconds
+INITIAL_REWARD: Final[int] = 3000               # 50 minutes in seconds (3000 Ɉ)
+HALVING_INTERVAL: Final[int] = 210_000          # Blocks per halving (same as Bitcoin)
+TOTAL_BLOCKS: Final[int] = 6_930_000            # 33 eras × 210,000 blocks
+TOTAL_ERAS: Final[int] = 33                     # Number of halvings until reward = 0
+
+# Fair launch - no pre-mine
+PRE_MINE: Final[int] = 0
+FOUNDER_ALLOCATION: Final[int] = 0
+
+
+def get_block_reward(height: int) -> int:
+    """
+    Calculate block reward for given height.
+
+    Reward halves every 210,000 blocks (same as Bitcoin).
+    Initial reward: 3000 Ɉ (50 minutes in seconds).
+    After 33 halvings, reward becomes 0.
+
+    Args:
+        height: Block height
+
+    Returns:
+        Block reward in seconds (Ɉ)
+    """
+    halvings = height // HALVING_INTERVAL
+    if halvings >= TOTAL_ERAS:
+        return 0
+    return INITIAL_REWARD >> halvings  # Bit shift = divide by 2^halvings
+
 
 # ==============================================================================
 # SERIALIZATION CONSTANTS

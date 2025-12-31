@@ -3,22 +3,20 @@ ATC Protocol v7 Genesis Block
 Part XVI of Technical Specification
 
 Genesis block creation and validation.
+FAIR LAUNCH - No pre-mine, no founder allocation.
 """
 
 from __future__ import annotations
 import logging
-from typing import List, Optional
 
 from atc.constants import (
     PROTOCOL_VERSION,
     INITIAL_REWARD,
-    DECIMALS,
 )
-from atc.core.types import Hash, PublicKey
-from atc.core.block import Block, BlockHeader, BlockSigner
+from atc.core.types import Hash
+from atc.core.block import Block, BlockHeader
 from atc.core.bitcoin import BitcoinAnchor
-from atc.core.state import GlobalState, AccountState
-from atc.crypto.hash import sha3_256
+from atc.core.state import GlobalState
 
 logger = logging.getLogger(__name__)
 
@@ -39,22 +37,21 @@ TESTNET_GENESIS_BTC_HASH = bytes.fromhex(
 )
 
 
-def create_genesis_block(
-    testnet: bool = False,
-    founders: Optional[List[PublicKey]] = None
-) -> Block:
+def create_genesis_block(testnet: bool = False) -> Block:
     """
     Create the genesis block.
+
+    FAIR LAUNCH: No pre-mine, no founder allocation.
+    All coins come from block rewards only.
 
     Per specification (Part XVI):
     - Height 0
     - Parent hash is all zeros
     - Empty heartbeats and transactions
-    - Initial state with founder allocations
+    - Zero initial supply
 
     Args:
         testnet: Create testnet genesis
-        founders: List of founder public keys for initial allocation
 
     Returns:
         Genesis block
@@ -76,14 +73,13 @@ def create_genesis_block(
         timestamp=timestamp_ms // 1000,
         difficulty=0,
         epoch=btc_height // 210000,  # Bitcoin halving interval
+        confirmations=0,  # Genesis has no confirmations yet
     )
 
-    # Empty Merkle roots for genesis
+    # Empty Merkle roots for genesis (fair launch)
     heartbeats_root = Hash.zero()
     transactions_root = Hash.zero()
-
-    # Initial state root (computed from founder allocations)
-    state_root = _compute_genesis_state_root(founders)
+    state_root = Hash.zero()  # Empty state - no pre-mine
 
     # Create header
     header = BlockHeader(
@@ -105,30 +101,25 @@ def create_genesis_block(
         signers=[],
     )
 
-    logger.info(f"Created genesis block: hash={genesis.block_hash().hex()[:16]}")
+    logger.info(f"Created genesis block (fair launch): hash={genesis.block_hash().hex()[:16]}")
 
     return genesis
 
 
-def create_genesis_state(
-    testnet: bool = False,
-    founders: Optional[List[PublicKey]] = None
-) -> GlobalState:
+def create_genesis_state(testnet: bool = False) -> GlobalState:
     """
     Create the genesis state.
 
-    Per specification (Part XVI):
-    - Initial allocations to founders
-    - Empty account states otherwise
+    FAIR LAUNCH: Zero initial supply.
+    All coins come from block rewards only.
 
     Args:
         testnet: Create testnet state
-        founders: List of founder public keys
 
     Returns:
         Genesis global state
     """
-    genesis_block = create_genesis_block(testnet, founders)
+    genesis_block = create_genesis_block(testnet)
 
     state = GlobalState(
         chain_height=0,
@@ -136,64 +127,14 @@ def create_genesis_state(
         btc_height=genesis_block.header.btc_anchor.height,
         btc_hash=genesis_block.header.btc_anchor.block_hash,
         btc_epoch=genesis_block.header.btc_anchor.epoch,
-        total_supply=0,
+        total_supply=0,  # Fair launch - no pre-mine
         total_heartbeats=0,
         active_accounts=0,
     )
 
-    # Add founder allocations
-    if founders:
-        allocation_per_founder = _get_founder_allocation(len(founders))
-
-        for pubkey in founders:
-            account = AccountState(
-                pubkey=pubkey,
-                balance=allocation_per_founder,
-                nonce=0,
-            )
-            state.set_account(pubkey, account)
-            state.total_supply += allocation_per_founder
-            state.active_accounts += 1
-
-        logger.info(
-            f"Created genesis state with {len(founders)} founders, "
-            f"total supply: {state.total_supply}"
-        )
+    logger.info("Created genesis state (fair launch): total_supply=0")
 
     return state
-
-
-def _get_founder_allocation(num_founders: int) -> int:
-    """
-    Calculate allocation per founder.
-
-    Genesis allocation is 10% of max supply distributed among founders.
-    Max supply = 21,000,000 * 10^8 (like Bitcoin with 8 decimals)
-    """
-    max_supply = 21_000_000 * (10 ** DECIMALS)
-    genesis_allocation = max_supply // 10  # 10%
-
-    if num_founders == 0:
-        return 0
-
-    return genesis_allocation // num_founders
-
-
-def _compute_genesis_state_root(founders: Optional[List[PublicKey]]) -> Hash:
-    """Compute state root for genesis block."""
-    if not founders:
-        return Hash.zero()
-
-    # Hash of founder allocations
-    hasher_data = b"GENESIS_STATE:"
-
-    allocation = _get_founder_allocation(len(founders))
-
-    for pubkey in sorted(founders, key=lambda p: p.data):
-        hasher_data += pubkey.data
-        hasher_data += allocation.to_bytes(8, "big")
-
-    return sha3_256(hasher_data)
 
 
 def validate_genesis_block(block: Block, testnet: bool = False) -> bool:
@@ -267,11 +208,16 @@ def get_genesis_hash(testnet: bool = False) -> Hash:
 
 def get_genesis_info(testnet: bool = False) -> dict:
     """Get information about genesis block."""
+    from atc.constants import TOTAL_SUPPLY, HALVING_INTERVAL, TOTAL_BLOCKS
+
     return {
         "timestamp_ms": TESTNET_GENESIS_TIMESTAMP_MS if testnet else GENESIS_TIMESTAMP_MS,
         "btc_height": TESTNET_GENESIS_BTC_HEIGHT if testnet else GENESIS_BTC_HEIGHT,
         "genesis_hash": get_genesis_hash(testnet).hex(),
         "initial_reward": INITIAL_REWARD,
-        "decimals": DECIMALS,
-        "max_supply": 21_000_000 * (10 ** DECIMALS),
+        "total_supply": TOTAL_SUPPLY,
+        "halving_interval": HALVING_INTERVAL,
+        "total_blocks": TOTAL_BLOCKS,
+        "fair_launch": True,
+        "pre_mine": 0,
     }
