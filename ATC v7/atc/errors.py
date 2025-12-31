@@ -77,7 +77,7 @@ class ErrorCode(IntEnum):
 
 
 class ATCError(Exception):
-    """Base exception for all PoT protocol errors."""
+    """Base exception for all ATC protocol errors."""
 
     def __init__(
         self,

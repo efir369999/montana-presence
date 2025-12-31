@@ -1,4 +1,4 @@
-# PoT Protocol v6 Dependencies
+# ATC Protocol v7 Dependencies
 
 # Core cryptography
 liboqs-python>=0.9.0       # SPHINCS+ (FIPS 205), ML-KEM (FIPS 203)

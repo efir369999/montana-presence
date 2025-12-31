@@ -34,7 +34,7 @@ class NetworkConfig:
 class StorageConfig:
     """Storage configuration."""
     data_dir: str = "./data"
-    db_name: str = "pot_state.db"
+    db_name: str = "atc_state.db"
     max_block_cache: int = 1000
     max_state_history: int = 100
 
@@ -84,7 +84,7 @@ class NodeConfig:
     All settings for running a ATC node.
     """
     # Identity
-    name: str = "pot-node"
+    name: str = "atc-node"
     testnet: bool = False
 
     # Sub-configurations
@@ -170,7 +170,7 @@ class NodeConfig:
             data = json.load(f)
 
         config = cls(
-            name=data.get("name", "pot-node"),
+            name=data.get("name", "atc-node"),
             testnet=data.get("testnet", False),
             keyfile=data.get("keyfile"),
         )
@@ -200,7 +200,7 @@ class NodeConfig:
     def default_testnet(cls) -> "NodeConfig":
         """Create default testnet configuration."""
         config = cls(
-            name="pot-testnet-node",
+            name="atc-testnet-node",
             testnet=True,
         )
 
@@ -209,8 +209,8 @@ class NodeConfig:
         config.api.port = 8546
 
         config.network.bootstrap_nodes = [
-            "testnet1.pot.network:19657",
-            "testnet2.pot.network:19657",
+            "testnet1.atc.network:19657",
+            "testnet2.atc.network:19657",
         ]
 
         return config
@@ -219,14 +219,14 @@ class NodeConfig:
     def default_mainnet(cls) -> "NodeConfig":
         """Create default mainnet configuration."""
         config = cls(
-            name="pot-mainnet-node",
+            name="atc-mainnet-node",
             testnet=False,
         )
 
         config.network.bootstrap_nodes = [
-            "node1.pot.network:19656",
-            "node2.pot.network:19656",
-            "node3.pot.network:19656",
+            "node1.atc.network:19656",
+            "node2.atc.network:19656",
+            "node3.atc.network:19656",
         ]
 
         return config

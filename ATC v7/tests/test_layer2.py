@@ -384,7 +384,7 @@ class TestBitcoinConsensus:
     """Tests for Bitcoin multi-API consensus."""
 
     @pytest.mark.asyncio
-    @patch('pot.layers.layer2._HTTPX_AVAILABLE', False)
+    @patch('atc.layers.layer2._HTTPX_AVAILABLE', False)
     async def test_query_bitcoin_fallback(self):
         """Test fallback when httpx not available."""
         anchor = await query_bitcoin()
@@ -392,8 +392,8 @@ class TestBitcoinConsensus:
         assert anchor.height > 0
 
     @pytest.mark.asyncio
-    @patch('pot.layers.layer2._HTTPX_AVAILABLE', True)
-    @patch('pot.layers.layer2._httpx')
+    @patch('atc.layers.layer2._HTTPX_AVAILABLE', True)
+    @patch('atc.layers.layer2._httpx')
     async def test_query_bitcoin_all_fail(self, mock_httpx):
         """Test error when all APIs fail."""
         mock_client = AsyncMock()
@@ -411,7 +411,7 @@ class TestBitcoinConsensus:
 class TestSyncWrapper:
     """Tests for synchronous wrapper."""
 
-    @patch('pot.layers.layer2._HTTPX_AVAILABLE', False)
+    @patch('atc.layers.layer2._HTTPX_AVAILABLE', False)
     def test_query_bitcoin_sync(self):
         """Test synchronous query wrapper."""
         anchor = query_bitcoin_sync()

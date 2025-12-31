@@ -533,44 +533,44 @@ async def get_score(
 
 METHOD_REGISTRY = {
     # Status
-    "pot_status": get_status,
-    "pot_version": get_version,
-    "pot_syncStatus": get_sync_status,
+    "atc_status": get_status,
+    "atc_version": get_version,
+    "atc_syncStatus": get_sync_status,
 
     # Chain
-    "pot_chainInfo": get_chain_info,
-    "pot_getBlock": get_block,
-    "pot_getBlockByHeight": get_block_by_height,
-    "pot_getBlockByHash": get_block_by_hash,
-    "pot_blockCount": get_block_count,
-    "pot_bestBlockHash": get_best_block_hash,
+    "atc_chainInfo": get_chain_info,
+    "atc_getBlock": get_block,
+    "atc_getBlockByHeight": get_block_by_height,
+    "atc_getBlockByHash": get_block_by_hash,
+    "atc_blockCount": get_block_count,
+    "atc_bestBlockHash": get_best_block_hash,
 
     # Transactions
-    "pot_getTransaction": get_transaction,
-    "pot_sendTransaction": send_transaction,
-    "pot_getTransactionReceipt": get_transaction_receipt,
+    "atc_getTransaction": get_transaction,
+    "atc_sendTransaction": send_transaction,
+    "atc_getTransactionReceipt": get_transaction_receipt,
 
     # Accounts
-    "pot_getAccount": get_account,
-    "pot_getBalance": get_balance,
-    "pot_getNonce": get_nonce,
+    "atc_getAccount": get_account,
+    "atc_getBalance": get_balance,
+    "atc_getNonce": get_nonce,
 
     # Mempool
-    "pot_mempoolInfo": get_mempool_info,
-    "pot_rawMempool": get_raw_mempool,
+    "atc_mempoolInfo": get_mempool_info,
+    "atc_rawMempool": get_raw_mempool,
 
     # Network
-    "pot_peerInfo": get_peer_info,
-    "pot_peerCount": get_peer_count,
-    "pot_addPeer": add_peer,
-    "pot_removePeer": remove_peer,
+    "atc_peerInfo": get_peer_info,
+    "atc_peerCount": get_peer_count,
+    "atc_addPeer": add_peer,
+    "atc_removePeer": remove_peer,
 
     # Heartbeats
-    "pot_getHeartbeat": get_heartbeat,
-    "pot_pendingHeartbeats": get_pending_heartbeats,
+    "atc_getHeartbeat": get_heartbeat,
+    "atc_pendingHeartbeats": get_pending_heartbeats,
 
     # Score
-    "pot_getScore": get_score,
+    "atc_getScore": get_score,
 }
 
 

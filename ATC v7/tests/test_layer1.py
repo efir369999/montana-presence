@@ -250,8 +250,8 @@ class TestLayer1Info:
 class TestProofVerification:
     """Tests for proof verification with mocks."""
 
-    @patch('pot.layers.layer1.verify_vdf')
-    @patch('pot.layers.layer1._generate_vdf_seed')
+    @patch('atc.layers.layer1.verify_vdf')
+    @patch('atc.layers.layer1._generate_vdf_seed')
     def test_verify_valid_proof(
         self,
         mock_gen_seed,
@@ -277,7 +277,7 @@ class TestProofVerification:
 
         assert result is True
 
-    @patch('pot.layers.layer1._generate_vdf_seed')
+    @patch('atc.layers.layer1._generate_vdf_seed')
     def test_verify_seed_mismatch(
         self,
         mock_gen_seed,
@@ -298,8 +298,8 @@ class TestProofVerification:
 
         assert result is False
 
-    @patch('pot.layers.layer1.verify_vdf')
-    @patch('pot.layers.layer1._generate_vdf_seed')
+    @patch('atc.layers.layer1.verify_vdf')
+    @patch('atc.layers.layer1._generate_vdf_seed')
     def test_verify_insufficient_iterations(
         self,
         mock_gen_seed,
@@ -322,8 +322,8 @@ class TestProofVerification:
 
         assert result is False
 
-    @patch('pot.layers.layer1.verify_vdf')
-    @patch('pot.layers.layer1._generate_vdf_seed')
+    @patch('atc.layers.layer1.verify_vdf')
+    @patch('atc.layers.layer1._generate_vdf_seed')
     def test_verify_vdf_failure(
         self,
         mock_gen_seed,
@@ -354,7 +354,7 @@ class TestProofVerification:
 class TestStrictValidation:
     """Tests for strict validation with exceptions."""
 
-    @patch('pot.layers.layer1._generate_vdf_seed')
+    @patch('atc.layers.layer1._generate_vdf_seed')
     def test_strict_seed_mismatch_raises(
         self,
         mock_gen_seed,
@@ -373,7 +373,7 @@ class TestStrictValidation:
                 min_iterations=1000
             )
 
-    @patch('pot.layers.layer1._generate_vdf_seed')
+    @patch('atc.layers.layer1._generate_vdf_seed')
     def test_strict_insufficient_iterations_raises(
         self,
         mock_gen_seed,
@@ -402,8 +402,8 @@ class TestStrictValidation:
 class TestProgressCallback:
     """Tests for progress callback functionality."""
 
-    @patch('pot.layers.layer1.compute_vdf')
-    @patch('pot.layers.layer1._generate_vdf_seed')
+    @patch('atc.layers.layer1.compute_vdf')
+    @patch('atc.layers.layer1._generate_vdf_seed')
     def test_progress_callback_called(
         self,
         mock_gen_seed,

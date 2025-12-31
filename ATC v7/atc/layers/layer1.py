@@ -2,7 +2,7 @@
 ATC Protocol v7 Layer 1: Temporal Proof
 Part V of Technical Specification
 
-PoT Network Nodes providing temporal proof through VDF computation
+ATC Network Nodes providing temporal proof through VDF computation
 with STARK verification.
 
 Trust: T₁(c) = 1/√c where c = heartbeat count

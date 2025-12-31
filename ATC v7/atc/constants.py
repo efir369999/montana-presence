@@ -127,7 +127,7 @@ ATOMIC_SOURCES: Dict[int, List[AtomicTimeSource]] = {
 }
 
 # ==============================================================================
-# LAYER 1: POT NETWORK CONSTANTS
+# LAYER 1: ATC NETWORK CONSTANTS
 # ==============================================================================
 
 # VDF Parameters

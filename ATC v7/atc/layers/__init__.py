@@ -2,7 +2,7 @@
 ATC Protocol v7 Protocol Layers
 
 Layer 0: Physical Time (Global Atomic Nodes)
-Layer 1: Temporal Proof (PoT Network Nodes)
+Layer 1: Temporal Proof (ATC Network Nodes)
 Layer 2: Finalization (Bitcoin Anchor)
 """
 
