@@ -1,0 +1,96 @@
+[package]
+name = "pot_core"
+version = "1.2.0"
+edition = "2021"
+authors = ["Proof of Time Contributors"]
+description = "Proof of Time - Core cryptographic and consensus modules in Rust"
+license = "MIT"
+repository = "https://github.com/afgrouptime/proofoftime"
+
+[lib]
+name = "pot_core"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Cryptography
+ed25519-dalek = { version = "2.1", features = ["rand_core", "digest", "batch"] }
+curve25519-dalek = { version = "4.1", features = ["digest", "rand_core"] }
+x25519-dalek = "2.0"
+sha2 = "0.10"
+sha3 = "0.10"
+blake2 = "0.10"
+hmac = "0.12"
+hkdf = "0.12"
+rand = "0.8"
+rand_core = "0.6"
+rand_chacha = "0.3"
+zeroize = { version = "1.7", features = ["derive"] }
+
+# Big integers for VDF
+num-bigint = "0.4"
+num-traits = "0.2"
+num-integer = "0.1"
+rug = { version = "1.24", features = ["integer"], optional = true }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+bincode = "1.3"
+hex = "0.4"
+
+# Async networking
+tokio = { version = "1.35", features = ["full"] }
+tokio-util = { version = "0.7", features = ["codec"] }
+
+# Noise Protocol
+snow = "0.9"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Utilities
+lazy_static = "1.4"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# Python bindings
+pyo3 = { version = "0.20", features = ["extension-module"], optional = true }
+
+# Database
+rusqlite = { version = "0.30", features = ["bundled"] }
+
+# Time
+chrono = "0.4"
+
+# Argon2 for key derivation
+argon2 = "0.5"
+
+# AES-GCM for wallet encryption
+aes-gcm = "0.10"
+
+# Bulletproofs (range proofs)
+bulletproofs = { version = "4.0", optional = true }
+merlin = "3.0"
+
+[features]
+default = ["gmp"]
+gmp = ["rug"]
+python = ["pyo3"]
+full-privacy = ["bulletproofs"]
+
+[dev-dependencies]
+criterion = "0.5"
+proptest = "1.4"
+
+[[bench]]
+name = "vdf_bench"
+harness = false
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+opt-level = 3
