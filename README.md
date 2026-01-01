@@ -1,172 +1,137 @@
-# ATC Protocol v7
+# Layer -1: Physical Constraints
 
-**Asymptotic Trust Consensus** — a temporal consensus mechanism where trust approaches zero asymptotically.
+**The boundary conditions imposed by physical law on any information-processing system.**
 
-```
-Trust(t) → 0 as t → ∞
-```
+---
 
 ## Overview
 
-ATC is a three-layer consensus protocol that uses **time** as the fundamental scarce resource instead of energy (PoW) or capital (PoS).
+Layer -1 enumerates the physical constraints that bound all possible protocols.
 
-| Layer | Name | Trust Formula | Mechanism |
-|-------|------|---------------|-----------|
-| 0 | Physical Time | T₀ = 0 | Global atomic clocks (34 laboratories) |
-| 1 | Temporal Proof | T₁(c) = 1/√c | VDF + STARK proofs |
-| 2 | Finalization | T₂(c) = 2^(-c) | Bitcoin anchoring |
+This layer contains:
+- **No protocol logic**
+- **No cryptographic assumptions**
+- **No design decisions**
 
-**Key insight:** Time from atomic clocks is a physical observable, not a cryptographic claim.
+It represents the epistemological foundation upon which any secure system must be built.
 
-## Features
+---
 
-- **Post-quantum cryptography:** SPHINCS+ signatures, SHAKE256 hashing, ML-KEM key exchange
-- **ASIC-resistant rate limiting:** Argon2id + RandomX personal proof of work
-- **Sybil resistance:** √N efficiency decay makes identity multiplication unprofitable
-- **Equal distribution:** Every participant receives exactly 86,400 seconds per day
+## Foundational Axiom
 
-## Installation
+**Any adversary operates within known physics.**
 
-```bash
-pip install atc-protocol
-```
+This is the minimal assumption required for "security" to be meaningful. An adversary unconstrained by physics could violate mathematical axioms themselves.
 
-With full cryptographic support:
+---
 
-```bash
-pip install atc-protocol[full]
-```
+## Physical Constraints
 
-### Building Rust Extensions
+| ID | Constraint | Precision | Status |
+|----|------------|-----------|--------|
+| L-1.1 | Thermodynamic Arrow | — | 150+ years, no macroscopic violation |
+| L-1.2 | Atomic Time Reproducibility | 10⁻¹⁸ | NIST, PTB, NPL, SYRTE confirmed |
+| L-1.3 | Landauer Limit | kT ln(2) | Experimentally approached |
+| L-1.4 | Speed of Light | 10⁻¹⁷ | GPS continuous verification |
+| L-1.5 | Terrestrial Time Uniformity | 10⁻¹¹ | GPS since 1978 |
+| L-1.6 | Bekenstein Bound | — | Indirect (black hole thermodynamics) |
+| L-1.7 | Thermal Noise Floor | kT/Hz | Confirmed since 1928 |
+| L-1.8 | Quantum Decoherence | — | Many scales confirmed |
 
-For native performance (STARK proofs and RandomX):
+---
 
-```bash
-# STARK proofs
-cd rust/winterfell_stark
-maturin develop --release
+## Adversary Model
 
-# RandomX PoW
-cd rust/randomx
-maturin develop --release
-```
+The adversary has **arbitrarily large but finite** physical resources.
 
-## Quick Start
+The adversary **CANNOT**:
 
-### Run a Node
+| Action | Violates |
+|--------|----------|
+| Reverse macroscopic entropy | L-1.1 |
+| Fake atomic clock readings | L-1.2 |
+| Compute without energy dissipation | L-1.3 |
+| Signal faster than light | L-1.4 |
+| Create time rate differential > 10⁻¹¹ on Earth | L-1.5 |
+| Store infinite information | L-1.6 |
+| Measure with infinite precision | L-1.7 |
+| Maintain macroscopic superposition | L-1.8 |
 
-```bash
-atc-node --testnet
-```
+---
 
-### Configuration
+## Epistemological Status
 
-```python
-from atc.node.config import NodeConfig
+We do not claim metaphysical certainty.
 
-config = NodeConfig.default_testnet()
-config.network.listen_port = 19657
-config.api.port = 8546
-config.save("config.json")
-```
+We claim **maximal empirical confidence**: these constraints have been tested more rigorously than any cryptographic assumption, across scales from 10⁻¹⁸ m to 10²⁶ m.
 
-### API
+Violation at protocol-relevant scales would require revision of physics with no observed failure at any tested scale.
 
-The node exposes a JSON-RPC API:
-
-```bash
-curl -X POST http://localhost:8545 \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"atc_chainInfo","params":[],"id":1}'
-```
-
-Available methods:
-- `atc_status` — Node status
-- `atc_chainInfo` — Blockchain info
-- `atc_getBlock` — Get block by height or hash
-- `atc_getAccount` — Get account info
-- `atc_sendTransaction` — Submit transaction
-- `atc_getScore` — Get account score
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    ATC Protocol v7                       │
-├─────────────────────────────────────────────────────────┤
-│  Layer 2: Bitcoin Finalization                          │
-│  ├── Epoch anchoring (halving cycle)                    │
-│  └── Trust: T₂(c) = 2^(-c)                              │
-├─────────────────────────────────────────────────────────┤
-│  Layer 1: Temporal Proof                                │
-│  ├── VDF: SHAKE256 (2^24 - 2^28 iterations)             │
-│  ├── STARK proofs (Winterfell)                          │
-│  └── Trust: T₁(c) = 1/√c                                │
-├─────────────────────────────────────────────────────────┤
-│  Layer 0: Physical Time                                 │
-│  ├── 34 atomic clock laboratories                       │
-│  ├── W-MSR Byzantine consensus                          │
-│  └── Trust: T₀ = 0 (physical observable)                │
-└─────────────────────────────────────────────────────────┘
-```
-
-## Protocol Constants
-
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `PROTOCOL_VERSION` | 7 | Current protocol version |
-| `VDF_BASE_ITERATIONS` | 2^24 | ~2.5 seconds computation |
-| `VDF_MAX_ITERATIONS` | 2^28 | ~40 seconds maximum |
-| `HEARTBEAT_INTERVAL` | 60s | Time between heartbeats |
-| `EPOCH_BLOCKS` | 210,000 | Bitcoin halving cycle |
-| `MAX_TIME_DRIFT` | 100ms | Maximum allowed clock drift |
-
-## Score Function
-
-Influence is determined by the square root of heartbeat count:
-
-```
-Score = √(epoch_heartbeats)
-```
-
-This creates natural Sybil resistance:
-- 1 identity with 100 heartbeats: Score = 10
-- 100 identities with 1 heartbeat each: Score = 100 × 1 = 100, but 100× cost
-
-Efficiency decreases as 1/√N, making Sybil attacks economically irrational.
+---
 
 ## Repository Structure
 
 ```
-ATC v7/          Current implementation
-├── atc/         Python package
-├── rust/        Rust extensions (STARK, RandomX)
-└── tests/       Test suite
+ATC v8/                      Current focus: Layer -1
+├── layer_minus_1.md             Physical constraints specification
+
+CLAUDE.md                    AI architect role (Layer -1 focused)
+
+ATC v7/                      Archive: Protocol implementation
+PoT v1-6/                    Archive: Legacy versions
+Montana/                     Token specification
 ```
 
-## Development
-
-```bash
-cd "ATC v7"
-
-# Install dev dependencies
-pip install -e .[dev]
-
-# Run tests
-pytest
-
-# Run specific test
-pytest tests/test_layer1.py -v
-```
+---
 
 ## Documentation
 
-- [Whitepaper](ATC%20v7/Asymptotic_Trust_Consensus.md) — Academic paper
-- [Technical Specification](ATC%20v7/Asymptotic_Trust_Consensus_TECH_SPECIFICATION.md) — Implementation details
+| Document | Description |
+|----------|-------------|
+| [Layer -1 Specification](ATC%20v8/layer_minus_1.md) | Full physical constraints document |
+| [CLAUDE.md](CLAUDE.md) | AI architect role definition |
+
+---
+
+## Explicit Exclusions
+
+Layer -1 excludes by design:
+
+- Computational hardness assumptions (P ≠ NP, factoring)
+- Specific cryptographic primitives
+- Network topology and latency distributions
+- Security definitions
+- Quantum computing capabilities
+
+These belong to higher layers (0, 1, 2, ...) which may be developed in the future.
+
+---
+
+## References
+
+Key sources (full list in `layer_minus_1.md`):
+
+- Einstein (1905, 1915) — Special/General Relativity
+- Landauer (1961) — Irreversibility and Heat Generation
+- Bekenstein (1981) — Entropy-to-Energy Bound
+- Bérut et al. (2012) — Landauer limit verification
+- Bothwell et al. (2022) — mm-scale gravitational redshift
+- BIPM SI Brochure, 9th edition (2019)
+
+---
 
 ## License
 
 MIT License
+
+---
+
+## Closing Principle
+
+> *Layer -1 represents the boundary conditions imposed by physical law on any information-processing system.*
+> *Protocols may assume weaker physics (additional constraints);*
+> *they cannot assume stronger physics (fewer constraints)*
+> *without leaving the domain of known science.*
 
 ---
 

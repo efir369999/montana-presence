@@ -14,7 +14,42 @@ This layer contains no protocol logic, no cryptographic assumptions, no design d
 
 -----
 
+## L-1.0.1 Classification of Statements
+
+**For maximal epistemic precision**, this document classifies every physical constraint by evidential basis:
+
+### Type 1: Direct Experimental Measurements
+Physical quantities measured directly in controlled experiments with quantified precision.
+- Example: Speed of light isotropy tested to Δc/c < 10⁻¹⁷
+- Epistemic status: **Highest confidence** - repeated independent verification
+
+### Type 2: Theoretical Derivations from Tested Principles
+Consequences mathematically derived from experimentally-verified theories (stat. mech., QM, GR).
+- Example: Landauer limit derived from second law + information theory
+- Epistemic status: **As confident as underlying theory** - limited by theoretical foundations
+
+### Type 3: Theory-Based Extrapolations
+Predictions from tested theories applied to regimes not directly accessible to experiment.
+- Example: Decoherence time for macroscopic superpositions (cat states)
+- Epistemic status: **Confident within theory's domain** - assumes no new physics at untested scales
+
+### Type 4: Consistency Requirements
+Bounds derived from requiring consistency between multiple tested theories.
+- Example: Bekenstein bound from GR + thermodynamics + quantum mechanics
+- Epistemic status: **Indirect support** - no violation observed; derivation assumes theory integration is correct
+
+**Reading strategy:** Each section L-1.1 through L-1.8 now includes explicit statement type classification. When a statement combines multiple types, the weakest link determines overall confidence.
+
+**Notation in tables:**
+- ✓ = Direct experimental support (Type 1)
+- ◐ = Theoretical derivation with experimental verification of consequences (Type 2)
+- ○ = Theoretical consistency requirement (Type 4)
+
+-----
+
 ## L-1.1 Thermodynamic Arrow
+
+**Statement type:** Type 1 (Direct Measurement) + Type 2 (Theoretical Derivation)
 
 **Constraint:** In any macroscopic isolated system, total entropy does not decrease over protocol-relevant timescales (< 10¹⁰ years), except with probability exponentially suppressed by particle count.
 
@@ -38,11 +73,15 @@ This means microscopic violations occur constantly but cancel statistically. For
 
 **Timescale clarification:** The Poincaré recurrence theorem guarantees eventual return to low-entropy states in finite bounded systems, but recurrence times for macroscopic systems exceed 10^(10²³) years—far beyond any protocol-relevant consideration.
 
-**Implication for protocols:** Macroscopic state transitions have irreversible causal ordering. If state B is derived from state A through an entropy-increasing process, B cannot precede A. This provides a physical arrow of time independent of any protocol definition.
+**Implication for protocols:** Macroscopic state transitions have irreversible causal ordering. 
+
+**Derivation of causal ordering:** If state B is derived from state A through an entropy-increasing process (S_B > S_A), then the reverse transition (B → A) requires entropy decrease ΔS = -(S_B - S_A) < 0. By the quantitative bound above, the probability of this spontaneous reversal is exp(-|ΔS|/k_B). For macroscopic ΔS ≫ k_B, this probability is negligible (< 10⁻¹⁰⁰ for typical processes). Therefore, observing B provides evidence that A preceded B, not the reverse. This establishes a **physical arrow of time independent of any protocol definition** - it is a mathematical consequence of probability theory applied to thermodynamics, not a metaphysical claim about time's nature.
 
 -----
 
 ## L-1.2 Reproducibility of Atomic Time Standards
+
+**Statement type:** Type 1 (Direct Measurement)
 
 **Constraint:** Isolated atoms of a given isotope, in identical quantum states, exhibit identical transition frequencies in their local inertial frames.
 
@@ -66,6 +105,8 @@ This means microscopic violations occur constantly but cancel statistically. For
 -----
 
 ## L-1.3 Landauer Limit
+
+**Statement type:** Type 2 (Theoretical Derivation) with Type 1 (Experimental Verification)
 
 **Constraint:** Irreversibly erasing one bit of information in a system at temperature T dissipates at least kT ln(2) of energy into the environment.
 
@@ -100,6 +141,8 @@ No sub-Landauer erasure has been observed.
 -----
 
 ## L-1.4 Maximum Information Propagation Speed
+
+**Statement type:** Type 1 (Direct Measurement of isotropy and constancy)
 
 **Constraint:** No information propagates faster than c = 299,792,458 m/s in vacuum.
 
@@ -140,6 +183,8 @@ Simultaneity is frame-dependent (relativity of simultaneity). Instantaneous glob
 -----
 
 ## L-1.5 Terrestrial Proper Time Uniformity
+
+**Statement type:** Type 2 (Theoretical Derivation from GR/SR) + Type 1 (Experimental Verification via GPS and optical clocks)
 
 **Constraint:** For observers on Earth's surface with altitude difference ΔH < 20 km and relative velocity Δv < 1 km/s, proper time rates differ by less than 10⁻¹¹.
 
@@ -237,6 +282,15 @@ Ground receivers achieve nanosecond-level timing accuracy, confirming relativist
 
 ## L-1.6 Bekenstein Bound
 
+**Statement type:** Type 4 (Theoretical Consistency Requirement)
+
+**EPISTEMIC STATUS WARNING:** This constraint has **NO direct experimental verification**. It is a theoretical derivation requiring the integration of general relativity, quantum mechanics, and thermodynamics to be mutually consistent. The bound has been tested only indirectly through:
+- Consistency of Hawking radiation calculations (also not directly observed)
+- AdS/CFT correspondence results (mathematical framework, not measurement)
+- Absence of observed violations of the generalized second law (negative evidence)
+
+The Bekenstein bound is ~10²⁰ times higher than any achievable storage density, making direct testing infeasible with current technology. **Inclusion rationale:** Despite indirect support, this bound represents the ultimate physical limit on information storage if current fundamental theories are correct. Violation would require breakdown of GR, QM, or thermodynamics at scales relevant to computation.
+
 **Constraint:** The maximum information content of a region of space is bounded by its surface area, not its volume.
 
 **Formal statement:** A system of energy E enclosed in a sphere of radius R can contain at most:
@@ -261,6 +315,8 @@ $$I_{\max} \approx 2.6 \times 10^{43}\ \text{bits}$$
 -----
 
 ## L-1.7 Thermal Noise Floor
+
+**Statement type:** Type 2 (Theoretical Derivation) + Type 1 (Experimental Verification since 1928)
 
 **Constraint:** Any measurement at temperature T has fundamental noise power spectral density of at least kT per unit bandwidth.
 
@@ -290,6 +346,8 @@ $$k_B T = 4.14 \times 10^{-21}\ \text{J} = 25.9\ \text{meV}$$
 
 ## L-1.8 Quantum Decoherence
 
+**Statement type:** Type 2 (Theoretical Framework) + Type 1 (Experimental Verification) for small systems; Type 3 (Extrapolation) for macroscopic objects
+
 **Constraint:** Quantum superpositions of macroscopically distinguishable states decohere on timescales inversely proportional to environmental coupling strength.
 
 **Formal basis:** Quantum mechanics + environmental interaction. A quantum system in superposition |ψ⟩ = α|0⟩ + β|1⟩ interacting with an environment undergoes:
@@ -298,18 +356,28 @@ $$\rho(t) = |\alpha|^2|0⟩⟨0| + |\beta|^2|1⟩⟨1| + (\alpha\beta^* e^{-t/\t
 
 where τ_d is the decoherence time.
 
-**Decoherence timescales (order of magnitude):**
+**Decoherence timescales:**
 
-| System | Environment | τ_d |
-|---|---|---|
-| Superconducting qubit | Dilution fridge (10 mK) | ~100 μs |
-| Trapped ion | Ultra-high vacuum | ~1 s |
-| Electron spin (diamond NV) | Room temperature | ~ms |
-| Large molecule (C₆₀) | Vacuum, thermal | ~ns |
-| Dust grain (10 μm) | Air, room temp | ~10⁻³⁶ s (for Δx ~ 1 cm) |
-| Cat (superposition) | Any environment | < 10⁻⁴⁰ s |
+**MEASURED VALUES (Type 1):**
+| System | Environment | τ_d | Status |
+|---|---|---|---|
+| Superconducting qubit | Dilution fridge (10 mK) | ~100 μs | Directly measured |
+| Trapped ion | Ultra-high vacuum | ~1 s | Directly measured |
+| Electron spin (diamond NV) | Room temperature | ~ms | Directly measured |
+| Large molecule (C₆₀) | Vacuum, thermal | ~ns | Interference experiments |
 
-**Empirical status:** Decoherence rates match theoretical predictions across many orders of magnitude. Interference experiments confirm loss of coherence at predicted rates.
+**THEORETICAL EXTRAPOLATIONS (Type 3):**
+| System | Environment | τ_d (predicted) | Basis |
+|---|---|---|---|
+| Dust grain (10 μm) | Air, room temp | ~10⁻³⁶ s (for Δx ~ 1 cm) | Theory extrapolation |
+| Cat (superposition) | Any environment | < 10⁻⁴⁰ s | Theory extrapolation |
+
+**CRITICAL DISTINCTION:** The values for dust grains and cats are **theoretical predictions**, not measurements. They represent extrapolations of quantum mechanics to macroscopic scales. No experiment has prepared or measured decoherence of such macroscopic superpositions. The predictions assume:
+1. Quantum mechanics remains valid at these scales
+2. No new physics emerges between molecular and macroscopic regimes
+3. Environmental coupling can be modeled classically
+
+These are reasonable assumptions given current evidence, but they remain **assumptions**.
 
 **Implication for protocols:**
 1. Macroscopic superpositions do not persist—classical definiteness emerges naturally
@@ -329,22 +397,24 @@ This layer excludes by design:
 | Specific hash functions, signature schemes, encryption algorithms | Design choices | Protocol specification |
 | Network topology, latency distributions, node behavior | Implementation-dependent | System model layers |
 | Security definitions (unforgeability, confidentiality, etc.) | Derived from physical + computational assumptions | Higher layers |
-| Quantum computing capabilities | Technology-dependent, not physical limit | Adversary model layers |
+| Quantum computing **capabilities** | Technology-dependent implementation of physically-allowed operations | Adversary model layers |
+
+**Clarification on quantum computing:** Layer -1 **does** constrain quantum computation through L-1.8 (decoherence limits coherence times) and L-1.3 (Landauer limit applies to error correction). What is excluded is **specific technological capabilities** (e.g., "adversary has N logical qubits"). The physical constraints remain: any quantum computer must overcome decoherence (L-1.8), operates at finite energy (L-1.3), and has finite information capacity (L-1.6). Layer -1 provides the physical envelope; specific quantum capabilities belong to higher layers.
 
 -----
 
 ## L-1.10 Classification of Constraints
 
-| ID | Constraint | Type | Confidence | Violation would require |
-|---|---|---|---|---|
-| L-1.1 | Thermodynamic arrow | Fundamental statistical law | No macroscopic exception in 150+ years | New physics at macroscopic scales; would invalidate statistical mechanics |
-| L-1.2 | Atomic time reproducibility | Empirical regularity from QM | Reproducible to 10⁻¹⁸ | Variation in fundamental constants; would invalidate QED |
-| L-1.3 | Landauer limit | Theorem (given stat. mech.) | Experimentally approached at slow rates | Violation of second law or information-entropy equivalence |
-| L-1.4 | Speed of light limit | Fundamental spacetime structure | Isotropy tested to 10⁻¹⁷ | Lorentz invariance breakdown; would invalidate special relativity |
-| L-1.5 | Terrestrial time uniformity | Derived from L-1.4 + GR | Continuously verified (GPS, optical clocks) | General relativity failure at weak-field limit |
-| L-1.6 | Bekenstein bound | Theorem (given GR + QM) | Indirect (black hole thermodynamics) | Violation of generalized second law |
-| L-1.7 | Thermal noise floor | Theorem (given stat. mech.) | Confirmed since 1928 | Violation of fluctuation-dissipation theorem |
-| L-1.8 | Quantum decoherence | Derived from QM + environment | Confirmed across many systems | Failure of quantum mechanics or thermodynamics |
+| ID | Constraint | Type | Statement Type | Confidence | Violation would require |
+|---|---|---|---|---|---|
+| L-1.1 | Thermodynamic arrow | Fundamental statistical law | Type 1 + Type 2 | No macroscopic exception in 150+ years | New physics at macroscopic scales; would invalidate statistical mechanics |
+| L-1.2 | Atomic time reproducibility | Empirical regularity from QM | Type 1 | Reproducible to 10⁻¹⁸ | Variation in fundamental constants; would invalidate QED |
+| L-1.3 | Landauer limit | Theorem (given stat. mech.) | Type 2 + Type 1 | Experimentally approached at slow rates | Violation of second law or information-entropy equivalence |
+| L-1.4 | Speed of light limit | Fundamental spacetime structure | Type 1 | Isotropy tested to 10⁻¹⁷ | Lorentz invariance breakdown; would invalidate special relativity |
+| L-1.5 | Terrestrial time uniformity | Derived from L-1.4 + GR | Type 2 + Type 1 | Continuously verified (GPS, optical clocks) | General relativity failure at weak-field limit |
+| L-1.6 | Bekenstein bound | Theorem (given GR + QM) | Type 4 | Indirect (black hole thermodynamics) | Violation of generalized second law |
+| L-1.7 | Thermal noise floor | Theorem (given stat. mech.) | Type 2 + Type 1 | Confirmed since 1928 | Violation of fluctuation-dissipation theorem |
+| L-1.8 | Quantum decoherence | Derived from QM + environment | Type 1 (small), Type 3 (large) | Confirmed for small systems; extrapolated for macroscopic | Failure of quantum mechanics or thermodynamics |
 
 -----
 
@@ -419,14 +489,18 @@ Each constraint in L-1.1–L-1.8 satisfies:
 
 | Criterion | Requirement | L-1.1 | L-1.2 | L-1.3 | L-1.4 | L-1.5 | L-1.6 | L-1.7 | L-1.8 |
 |---|---|---|---|---|---|---|---|---|---|
-| Empirical basis | Experimentally tested | ✓ | ✓ | ✓ | ✓ | ✓ | ○ | ✓ | ✓ |
+| Empirical basis | Experimentally tested | ✓ | ✓ | ◐ | ✓ | ◐ | ○ | ◐ | ✓* |
 | Quantified precision | Uncertainty bounds stated | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Independent verification | Confirmed by multiple groups | ✓ | ✓ | ✓ | ✓ | ✓ | ○ | ✓ | ✓ |
+| Independent verification | Confirmed by multiple groups | ✓ | ✓ | ✓ | ✓ | ✓ | ○ | ✓ | ✓* |
 | No circularity | Does not assume conclusion | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Protocol independence | Applies regardless of design | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Explicit scope | Domain of applicability stated | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
-**Legend:** ✓ = fully satisfied, ○ = satisfied indirectly (theoretical derivation from tested principles)
+**Legend:** 
+- ✓ = Direct experimental support (Type 1) or extensively verified theoretical framework
+- ◐ = Theoretical derivation (Type 2) with experimental verification of key predictions
+- ○ = Theoretical consistency requirement (Type 4) with indirect support only
+- \* = ✓ for small systems (direct measurement); extrapolation (Type 3) for macroscopic objects
 
 -----
 
@@ -444,6 +518,14 @@ Layer -1 is not a claim of metaphysical certainty. It is a claim of **maximal em
 3. **Failure mode:** Violation at protocol-relevant scales (meters, seconds, joules) would require revision of physics that has no observed failure at any tested scale. This is not impossible, but represents the highest confidence level achievable through empirical science.
 
 4. **Implicit assumption:** Any protocol implicitly assumes these constraints. A protocol that assumes computational hardness already assumes physics (computation requires physical substrate). Layer -1 makes this assumption explicit.
+
+5. **Extrapolation boundaries:** Some statements in Layer -1 involve extrapolations beyond directly tested regimes:
+   - **Direct measurements:** Clock reproducibility (10⁻¹⁸), speed of light isotropy (10⁻¹⁷), thermal noise
+   - **Verified derivations:** Landauer limit experimentally approached; GR time dilation tested via GPS
+   - **Theoretical extrapolations:** Decoherence times for macroscopic superpositions (never prepared experimentally); Poincaré recurrence times (calculated, not observed)
+   - **Consistency requirements:** Bekenstein bound (no direct test possible with current technology)
+   
+   Where extrapolations appear, they are **explicitly marked** with statement type classification (see L-1.0.1). The document maintains epistemic honesty by distinguishing measured facts from theoretical predictions.
 
 **Inherited constraints:** A protocol built on Layer -1 inherits no additional physical assumptions. Its security reduces entirely to:
 
@@ -495,3 +577,5 @@ Layer -1 is not a claim of metaphysical certainty. It is a claim of **maximal em
 -----
 
 *Layer -1 represents the boundary conditions imposed by physical law on any information-processing system. Protocols may assume weaker physics (additional constraints); they cannot assume stronger physics (fewer constraints) without leaving the domain of known science.*
+
+*This layer employs a four-tier epistemic framework (L-1.0.1) to distinguish direct measurements from theoretical derivations and extrapolations. Where statements rest on theory rather than direct measurement, this is explicitly marked. The goal is not metaphysical certainty but maximal transparency about the evidential basis for each constraint.*
