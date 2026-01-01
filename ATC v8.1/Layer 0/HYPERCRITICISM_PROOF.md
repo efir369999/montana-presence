@@ -233,7 +233,7 @@ Evaluator: "Missing [primitive X]"
 - Quantum computing advances (if PQ primitives still secure)
 - Alternative interpretations of hardness
 
-**Next scheduled review:** January 2027
+**Next scheduled review:** December 2026
 
 ---
 
@@ -288,7 +288,7 @@ Evaluator: "Missing [primitive X]"
 **Recommended Citation:**
 ```
 Layer 0 — Computational Constraints, Version 1.0
-Last Updated: January 1, 2026
+Last Updated: December 2025
 Rating: 10/10 (Certified via L-0.0.2 Evaluation Protocol)
 Depends On: Layer -1 v2.1
 ```

@@ -1,7 +1,7 @@
 # Layer 0 — Computational Constraints
 
 **Document Version:** 1.0
-**Last Updated:** January 1, 2026
+**Last Updated:** December 2025
 **Depends On:** Layer -1 v2.1
 **Update Frequency:** Annual review recommended
 
@@ -52,7 +52,7 @@ Security reductions: "X is secure if Y is hard."
 
 ### Type C: Empirical Hardness
 No proof, but extensive study and no successful attacks.
-- Example: SHA-3 collision resistance (15+ years, no attack)
+- Example: SHA-3 collision resistance (10+ years since standardization, no attack)
 - Epistemic status: **High confidence** — cryptanalytic community consensus
 
 ### Type D: Conjectured Hardness
@@ -261,7 +261,7 @@ This exceeds observable universe's mass-energy (~10⁶⁹ J per 10¹⁰ years)
 
 **Quantitative:**
 - Minimum gate time (theoretical): ~10⁻¹⁴ s (light crossing atomic scale)
-- Practical gate time (2025): ~10⁻¹⁰ s (fastest logic)
+- Practical gate time (current): ~10⁻¹⁰ s (fastest commercial logic)
 - For T = 2⁴⁰ sequential operations at 10⁻¹⁰ s: ~110,000 seconds ≈ 31 hours
 
 **Implication:** Verifiable Delay Functions (VDFs) derive their security from this bound. No parallelism can reduce sequential time below physical limits.
@@ -357,10 +357,10 @@ Pr[A(k) outputs (x, x') with x ≠ x' and Hₖ(x) = Hₖ(x')] < negl(n)
 
 **Reduction:** MLWE reduces to worst-case lattice problems (Regev 2005, Lyubashevsky 2010).
 
-**Status (January 2026):**
-- NIST standardized ML-KEM (Kyber) and ML-DSA (Dilithium)
+**Status (December 2025):**
+- NIST standardized ML-KEM and ML-DSA (August 2024)
 - No significant attacks since standardization
-- Active research continues
+- Active cryptanalytic research continues
 
 ### L-0.3.5 Discrete Logarithm Is Hard (Classical)
 
@@ -402,12 +402,17 @@ These are MODULAR — replaceable without changing Layer 0 structure.
 | SHAKE128/256 | FIPS 202 | Variable | XOF applications |
 | BLAKE3 | — | 256+ | High performance alternative |
 
-**NOT recommended (deprecated):**
+**Secure but legacy:**
+| Primitive | Standard | Status |
+|-----------|----------|--------|
+| SHA-256 | FIPS 180-4 | Secure, widely deployed |
+| SHA-512 | FIPS 180-4 | Secure, widely deployed |
+
+**Broken (do not use):**
 | Primitive | Reason |
 |-----------|--------|
-| MD5 | Broken (collisions found) |
-| SHA-1 | Broken (collisions found 2017) |
-| SHA-256 | Secure but SHA-3 preferred for new designs |
+| MD5 | Collisions found (2004) |
+| SHA-1 | Collisions found (2017) |
 
 **Quantum security:** All above have n/2 quantum security (Grover). Use ≥384-bit output for 128-bit post-quantum security.
 
@@ -425,10 +430,10 @@ These are MODULAR — replaceable without changing Layer 0 structure.
 | X25519 | Hybrid mode only (ML-KEM + X25519) |
 | ECDH P-384 | Compliance requirements only |
 
-**Transition timeline:**
-- 2026-2030: Hybrid mode (classical + PQ) recommended
-- 2030+: PQ-only acceptable for new systems
-- 2035+: Classical-only deprecated
+**Transition principle:**
+- Hybrid mode (classical + PQ) recommended during transition
+- PQ-only when confidence in PQ primitives matures
+- Timeline depends on quantum computing advances (see L-0.14)
 
 ### L-0.4.3 Digital Signatures
 
@@ -567,18 +572,18 @@ From Layer -1, regardless of classical or quantum:
 
 ## L-0.12 Quantum Considerations
 
-### Quantum Threat Timeline
+### Quantum Threat Assessment
 
-**Current assessment (January 2026):**
+**Current status (December 2025):**
 
 | Capability | Status | Threat to crypto |
 |------------|--------|------------------|
 | Fault-tolerant QC | Not achieved | None currently |
-| Cryptographically relevant QC | 2030-2040 estimate | DLog, Factoring broken |
+| Cryptographically relevant QC | Uncertain timeline | DLog, Factoring at risk |
 | Hash function attacks | Grover speedup | Mitigated by larger outputs |
 | Lattice attacks | No polynomial speedup known | PQ primitives secure |
 
-**Recommendation:** Treat post-quantum migration as urgent. Harvest-now-decrypt-later attacks mean data encrypted today may be decrypted in 2035.
+**Recommendation:** Post-quantum migration should be treated as urgent due to harvest-now-decrypt-later threat model. Long-lived secrets encrypted today may be vulnerable when cryptographically relevant quantum computers emerge.
 
 ### Post-Quantum Strategy
 
@@ -590,8 +595,8 @@ From Layer -1, regardless of classical or quantum:
 **Migration priority:**
 | Use case | Priority | Recommendation |
 |----------|----------|----------------|
-| Long-term secrets | Critical | PQ now |
-| Signatures | High | Hybrid 2026, PQ 2030 |
+| Long-term secrets | Critical | PQ or hybrid immediately |
+| Signatures | High | Hybrid now, PQ when mature |
 | Session keys | Medium | Hybrid acceptable |
 
 ---
@@ -660,9 +665,9 @@ MAJOR.MINOR.PATCH
 
 **2. Quantum Computing Timeline:**
 - When will cryptographically relevant QC exist?
-- Estimates range 2030-2050
-- Uncertainty: ±10 years
-- Recommendation: Migrate now (harvest-now-decrypt-later threat)
+- Expert estimates vary widely; inherently uncertain
+- No scientific consensus on timeline
+- Recommendation: Migrate now due to harvest-now-decrypt-later threat
 
 **3. Lattice Security Margins:**
 - Are current parameters sufficient?
@@ -743,7 +748,7 @@ MAJOR.MINOR.PATCH
 
 ## L-0.16 Self-Assessment
 
-**As of January 2026, Version 1.0:**
+**As of December 2025, Version 1.0:**
 
 - ✅ No known mathematical errors
 - ✅ All statement types correctly classified
@@ -761,7 +766,7 @@ MAJOR.MINOR.PATCH
 - Major cryptanalytic result
 - Quantum computing milestone
 
-**Next scheduled review:** January 2027
+**Next scheduled review:** December 2026
 
 ---
 
