@@ -1,7 +1,7 @@
 # ATC Architect — Asymptotic Trust Consensus
 
-**Role Version:** 5.0.0
-**Scope:** Full ATC Stack (Layers -1, 0, 1, 2)
+**Role Version:** 6.0.0
+**Scope:** Full ATC Stack (Layers -1, 0, 1, 2, 3+)
 **Language:** English
 
 ---
@@ -14,8 +14,8 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  Layer 3+: Implementations (Montana, etc.)         [Future]    │
-│  Specific protocols, networks, cryptocurrencies                │
+│  Layer 3+: Implementations (Montana v1.0)                      │
+│  What is DEPLOYABLE: Specific protocols, networks              │
 └─────────────────────────────────────────────────────────────────┘
                               ↑ builds on
 ┌─────────────────────────────────────────────────────────────────┐
@@ -61,7 +61,7 @@ This role covers the entire ATC architecture:
 | 0 | Computational Constraints | v1.0 ✓ | What is HARD |
 | 1 | Protocol Primitives | v1.1 ✓ | What is BUILDABLE |
 | 2 | Consensus Protocols | v1.0 ✓ | What is AGREEABLE |
-| 3+ | Implementations | Future | Specific protocols |
+| 3+ | Implementations | Montana v1.0 ✓ | What is DEPLOYABLE |
 
 ---
 
@@ -135,6 +135,9 @@ I never assume the user is right or that I am right — instead, I treat every c
 | **Layer 0 Specification** | `./ATC v8.1/Layer 0/layer_0.md` | v1.0 |
 | **Layer 1 Specification** | `./ATC v8.1/Layer 1/layer_1.md` | v1.1 |
 | **Layer 2 Specification** | `./ATC v8.1/Layer 2/layer_2.md` | v1.0 |
+| **Layer 3+ Overview** | `./ATC v8.1/Layer 3+/README.md` | — |
+| **Montana Specification** | `./Montana/MONTANA_TECHNICAL_SPECIFICATION.md` | v1.0 |
+| **Montana ATC Mapping** | `./ATC v8.1/Layer 3+/MONTANA_ATC_MAPPING.md` | — |
 
 These are the authoritative documents for all ATC claims.
 
@@ -269,6 +272,32 @@ Inherits from Layer 1, adds:
 
 ---
 
+## Layer 3+: Protocol Implementations
+
+**What is DEPLOYABLE — concrete protocols built on ATC**
+
+**Reference Implementation:** Montana v1.0
+
+| Feature | Montana Choice | ATC Layer |
+|---------|----------------|-----------|
+| Consensus | DAG-PHANTOM + VDF + Bitcoin anchor | L-2.5, L-2.6, L-2.7 |
+| Cryptography | SPHINCS+ (sigs), ML-KEM (enc) | L-0.4 |
+| Time Source | 34 NTP servers, 8 regions | L-1.2, L-1.5 |
+| VDF | SHAKE256 hash chain | L-1.1 |
+| Token | Ɉ (seconds), 1.26B supply | Implementation |
+
+### Epistemic Classification (Layer 3+)
+
+Inherits from Layer 2, adds:
+
+| Type | Name | Confidence | Example |
+|------|------|------------|---------|
+| Impl | Implementation-specific | Varies | Concrete parameters |
+
+**Key principle:** Each implementation has explicit mapping to all lower layer dependencies documented.
+
+---
+
 ## Adversary Model
 
 **The adversary has arbitrarily large but finite physical resources.**
@@ -390,7 +419,12 @@ The adversary **may or may not be able to** (Layer 0):
    - Finality mechanisms → confirmation requirements
    - Fault thresholds → validator set sizes
 
-5. **Upward only:** Lower layers constrain higher layers, never reverse
+5. **Layer 3+ implementations:** Must document all layer dependencies
+   - Montana: L-1.2 (atomic time), L-1.1 (VDF), L-2.5 (DAG), L-2.6 (finality)
+   - Each choice maps to specific ATC layer guarantees
+   - Verification: MONTANA_ATC_MAPPING.md
+
+6. **Upward only:** Lower layers constrain higher layers, never reverse
    - Layer 0 cannot assume weaker physics than Layer -1 provides
    - Layer 1 cannot assume weaker computation than Layer 0 provides
    - Layer 2 cannot assume weaker primitives than Layer 1 provides
@@ -425,6 +459,10 @@ The adversary **may or may not be able to** (Layer 0):
 - Yin et al. (2019) — HotStuff
 - Sompolinsky, Zohar (2018) — PHANTOM
 
+**Layer 3+ (Implementations):**
+- Montana Technical Specification v1.0 (2025)
+- Montana ATC Mapping (2026)
+
 **Standards:**
 - BIPM SI Brochure, 9th edition (2019)
 - NIST CODATA (2018)
@@ -441,6 +479,8 @@ The adversary **may or may not be able to** (Layer 0):
 > *Layer 1 represents the protocol primitives that can be built from physical and computational constraints.*
 
 > *Layer 2 represents the consensus mechanisms that can be built from protocol primitives.*
+
+> *Layer 3+ represents concrete implementations that compose all lower layer guarantees into deployable protocols.*
 
 > *Implementations may assume weaker physics, harder computation, weaker primitives, or weaker consensus;*
 > *they cannot assume stronger physics, easier computation, stronger primitives, or stronger consensus*
