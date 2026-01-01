@@ -1,7 +1,7 @@
-# Ɉ Montana Technical Specification v3.0
+# Ɉ Montana Technical Specification v3.1
 
 **Protocol Version:** 8
-**Document Version:** 3.0
+**Document Version:** 3.1
 **Date:** January 2026
 **Ticker:** $MONT
 **ATC Compatibility:** v10.0 (L-1 v2.1, L0 v1.0, L1 v1.1, L2 v1.0)
@@ -9,7 +9,7 @@
 > **Ɉ Montana** is a mechanism for asymptotic trust in the value of time.
 > **Ɉ** — Temporal Time Unit: lim(evidence → ∞) 1 Ɉ → 1 second
 > Built on ATC Layer 3+. See [MONTANA_ATC_MAPPING.md](MONTANA_ATC_MAPPING.md) for layer mapping.
-> **v3.0:** Self-sovereign finality through accumulated VDF.
+> **v3.1:** Explicit tier system (1-2-3), node type definitions.
 
 ---
 
@@ -64,15 +64,24 @@ This document provides the complete technical specification for implementing the
 │                     Self-Sovereign • Physics-Based               │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │
-│  │  FULL NODE  │  │  TG BOT     │  │  TG USER                │  │
-│  │  (Tier 0)   │  │  (Tier 1)   │  │  (Tier 2)               │  │
-│  │  70% weight │  │  20% weight │  │  10% weight             │  │
-│  └──────┬──────┘  └──────┬──────┘  └───────────┬─────────────┘  │
-│         │                │                      │                │
-│         └────────────────┼──────────────────────┘                │
-│                          │                                       │
-│  ┌───────────────────────▼───────────────────────────────────┐  │
+│  NODE TYPES (2 types only)                                       │
+│  ┌──────────────────────────┐  ┌──────────────────────────────┐ │
+│  │       FULL NODE          │  │        LIGHT NODE            │ │
+│  │  • Full history storage  │  │  • From connection only      │ │
+│  │  • VDF computation       │  │  • No VDF                    │ │
+│  │  • 34 NTP sources        │  │  • No NTP query              │ │
+│  │  • Full validation       │  │  • Relies on Full Nodes      │ │
+│  └────────────┬─────────────┘  └──────────────┬───────────────┘ │
+│               │                                │                 │
+│  PARTICIPATION TIERS (numbered 1-2-3)          │                 │
+│  ┌────────────▼─────────────┐  ┌──────────────▼───────────────┐ │
+│  │  TIER 1 (70%)            │  │  TIER 2 (20%) │ TIER 3 (10%) │ │
+│  │  Full Node Operators     │  │  Light Node   │ TG Users     │ │
+│  └──────────────────────────┘  └──────────────────────────────┘ │
+│               │                                │                 │
+│               └────────────────┬───────────────┘                 │
+│                                │                                 │
+│  ┌─────────────────────────────▼─────────────────────────────┐  │
 │  │           MONTANA CONSENSUS (ATC L2 Patterns)              │  │
 │  │  Accumulated VDF → ATC L-2.6.3 (VDF-based Finality)       │  │
 │  │  VDF Temporal    → ATC L-1.1 (VDF Primitive)              │  │
@@ -95,6 +104,114 @@ ATC Foundation:
 │  ATC L-1: Physics (Atomic time, Landauer, Light speed)         │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+### 1.3 Participation Model
+
+Montana has exactly **3 participation tiers** and **2 node types**.
+
+#### 1.3.1 Node Types (2 types only)
+
+```python
+class NodeType(IntEnum):
+    """
+    Montana supports exactly TWO node types.
+    No other node types exist in the protocol.
+    """
+    FULL = 1    # Full Node: Downloads and stores FULL blockchain history
+    LIGHT = 2   # Light Node: Stores history from connection moment only
+```
+
+| Node Type | Storage | VDF | NTP | Tier |
+|-----------|---------|-----|-----|------|
+| **Full Node** | Full blockchain history (downloads all) | Yes | Yes (34 sources) | Tier 1 |
+| **Light Node** | From connection moment only | No | No | Tier 2 |
+
+**Full Node (Tier 1):**
+- Downloads and stores **entire blockchain history**
+- Computes VDF proofs (sequential, non-parallelizable)
+- Queries 34 NTP atomic time sources
+- Validates all blocks and transactions
+- Produces full heartbeats (VDF + NTP + signature)
+- **Required for network security**
+
+**Light Node (Tier 2):**
+- Stores history **only from its connection moment** (mandatory)
+- Does NOT download full blockchain history
+- Does NOT compute VDF
+- Does NOT query NTP directly
+- Validates blocks from connection onward
+- Produces light heartbeats (timestamp verified against Full Nodes)
+- Relies on Full Nodes for historical security
+
+#### 1.3.2 Participation Tiers (3 tiers only)
+
+```python
+class ParticipationTier(IntEnum):
+    """
+    Montana supports exactly THREE participation tiers.
+    Tier numbering: 1, 2, 3 (not 0, 1, 2)
+    """
+    TIER_1 = 1  # Full Node operators
+    TIER_2 = 2  # Light Node operators OR TG Bot/Community owners
+    TIER_3 = 3  # TG Community participants
+
+# Lottery probability weights
+TIER_WEIGHTS = {
+    ParticipationTier.TIER_1: 0.70,  # 70% probability
+    ParticipationTier.TIER_2: 0.20,  # 20% probability
+    ParticipationTier.TIER_3: 0.10,  # 10% probability
+}
+```
+
+| Tier | Participants | Node Type | Lottery Weight |
+|------|--------------|-----------|----------------|
+| **Tier 1** | Full Node operators | Full Node | **70%** |
+| **Tier 2** | Light Node operators OR TG Bot/Channel owners | Light Node | **20%** |
+| **Tier 3** | TG Community participants | — | **10%** |
+
+**Summary by Node Type:**
+| Node Type | Tiers | Total Lottery Weight |
+|-----------|-------|----------------------|
+| **Full Node** | Tier 1 | **70%** |
+| **Light Node** | Tier 2 | **20%** |
+| **TG Users** | Tier 3 | **10%** |
+
+#### 1.3.3 Heartbeat Types
+
+```python
+@dataclass
+class FullHeartbeat:
+    """Tier 1: Full Node heartbeat with complete proofs."""
+    pubkey: PublicKey
+    atomic_time: AtomicTimeProof     # 34 NTP sources
+    vdf_proof: VDFProof              # Sequential computation proof
+    finality_ref: FinalityReference
+    signature: Signature             # SPHINCS+ (17,088 bytes)
+
+@dataclass
+class LightHeartbeat:
+    """Tier 2/3: Light heartbeat without VDF computation."""
+    pubkey: PublicKey
+    timestamp_ms: int                # Verified against atomic time
+    source: HeartbeatSource          # LIGHT_NODE, TG_BOT, TG_USER
+    community_id: Optional[str]      # Telegram chat ID (for TG sources)
+    signature: Signature             # SPHINCS+ (17,088 bytes)
+```
+
+#### 1.3.4 Tier Requirements
+
+| Requirement | Tier 1 | Tier 2 | Tier 3 |
+|-------------|--------|--------|--------|
+| Run Full Node | **Yes** | No | No |
+| Run Light Node | No | **Yes** (or TG Bot) | No |
+| Download full history | **Yes** | No | No |
+| Store from connection | **Yes** | **Yes** | No |
+| VDF computation | **Yes** | No | No |
+| NTP query (34 sources) | **Yes** | No | No |
+| Own TG Bot/Channel | No | Optional | No |
+| Be in TG Community | No | No | **Yes** |
+| Montana wallet | **Yes** | **Yes** | **Yes** |
+| Heartbeat cooldown | 1/min | 1/min | 1/min |
 
 ---
 
@@ -810,14 +927,15 @@ def get_block_start_time(block_number: int) -> int:
 ### 11.1 Three-Tier Lottery
 
 ```python
-TIER_0_WEIGHT: float = 0.70  # Full nodes
-TIER_1_WEIGHT: float = 0.20  # TG bot validators
-TIER_2_WEIGHT: float = 0.10  # TG bot users
+# Tier weights (tiers numbered 1, 2, 3)
+TIER_1_WEIGHT: float = 0.70  # Full Node operators
+TIER_2_WEIGHT: float = 0.20  # Light Node / TG Bot owners
+TIER_3_WEIGHT: float = 0.10  # TG Community participants
 
 @dataclass
 class RewardCandidate:
     pubkey: PublicKey
-    tier: int               # 0, 1, or 2
+    tier: int               # 1, 2, or 3
     score: float
 
 def select_block_winner(
@@ -833,12 +951,12 @@ def select_block_winner(
     tier_rand = int.from_bytes(sha3_256(vrf_seed + b"tier")[:8], 'big')
     tier_value = (tier_rand % 100) / 100.0
 
-    if tier_value < TIER_0_WEIGHT:
-        selected_tier = 0
-    elif tier_value < TIER_0_WEIGHT + TIER_1_WEIGHT:
-        selected_tier = 1
+    if tier_value < TIER_1_WEIGHT:
+        selected_tier = 1  # Full Node (70%)
+    elif tier_value < TIER_1_WEIGHT + TIER_2_WEIGHT:
+        selected_tier = 2  # Light Node / TG Bot (20%)
     else:
-        selected_tier = 2
+        selected_tier = 3  # TG Users (10%)
 
     # Stage 2: Filter to selected tier
     tier_candidates = [c for c in candidates if c.tier == selected_tier]
@@ -1440,6 +1558,31 @@ INITIAL_DISTRIBUTION = 3000
 HALVING_INTERVAL = 210_000
 TOTAL_BLOCKS = 6_930_000
 TOTAL_ERAS = 33
+
+# ==============================================================================
+# NODE TYPES (2 types only)
+# ==============================================================================
+NODE_TYPE_FULL = 1              # Full Node: Full history + VDF + NTP
+NODE_TYPE_LIGHT = 2             # Light Node: History from connection only
+NODE_TYPES_TOTAL = 2            # Exactly 2 node types in protocol
+
+# ==============================================================================
+# PARTICIPATION TIERS (3 tiers only, numbered 1-2-3)
+# ==============================================================================
+TIER_1 = 1                      # Full Node operators
+TIER_2 = 2                      # Light Node operators OR TG Bot/Channel owners
+TIER_3 = 3                      # TG Community participants
+TIERS_TOTAL = 3                 # Exactly 3 tiers in protocol
+
+# Lottery probability by tier
+TIER_1_WEIGHT = 0.70            # 70% → Full Node
+TIER_2_WEIGHT = 0.20            # 20% → Light Node / TG Bot owners
+TIER_3_WEIGHT = 0.10            # 10% → TG Community users
+
+# Summary:
+# Tier 1 (Full Node):  70%
+# Tier 2 (Light Node): 20%
+# Tier 3 (TG Users):   10%
 
 # ==============================================================================
 # LAYER 0: ATOMIC TIME
@@ -2379,7 +2522,7 @@ def create_genesis_state() -> GlobalState:
 ```python
 # ==============================================================================
 # Ɉ MONTANA — MECHANISM FOR ASYMPTOTIC TRUST IN TIME VALUE
-# v3.0 — Self-Sovereign Finality
+# v3.1 — Explicit Tier System (1-2-3)
 # ==============================================================================
 PROJECT = "Ɉ Montana"
 SYMBOL = "Ɉ"
@@ -2391,6 +2534,31 @@ INITIAL_DISTRIBUTION = 3000
 HALVING_INTERVAL = 210_000
 TOTAL_BLOCKS = 6_930_000
 TOTAL_ERAS = 33
+
+# ==============================================================================
+# NODE TYPES (2 types only)
+# ==============================================================================
+NODE_TYPE_FULL = 1              # Full Node: Full history + VDF + NTP
+NODE_TYPE_LIGHT = 2             # Light Node: History from connection only
+NODE_TYPES_TOTAL = 2            # Exactly 2 node types in protocol
+
+# ==============================================================================
+# PARTICIPATION TIERS (3 tiers only, numbered 1-2-3)
+# ==============================================================================
+TIER_1 = 1                      # Full Node operators
+TIER_2 = 2                      # Light Node operators OR TG Bot/Channel owners
+TIER_3 = 3                      # TG Community participants
+TIERS_TOTAL = 3                 # Exactly 3 tiers in protocol
+
+# Lottery probability by tier
+TIER_1_WEIGHT = 0.70            # 70% → Full Node
+TIER_2_WEIGHT = 0.20            # 20% → Light Node / TG Bot owners
+TIER_3_WEIGHT = 0.10            # 10% → TG Community users
+
+# Summary:
+# Tier 1 (Full Node):  70%
+# Tier 2 (Light Node): 20%
+# Tier 3 (TG Users):   10%
 
 # ==============================================================================
 # LAYER 0: ATOMIC TIME
@@ -2435,11 +2603,12 @@ ACTIVITY_WINDOW_BLOCKS = 2016
 INACTIVITY_PENALTY_RATE = 0.001
 
 # ==============================================================================
-# BLOCK REWARDS
+# BLOCK REWARDS (tiers numbered 1-2-3)
 # ==============================================================================
-TIER_0_WEIGHT = 0.70              # Full nodes
-TIER_1_WEIGHT = 0.20              # TG bot validators
-TIER_2_WEIGHT = 0.10              # TG bot users
+# See PARTICIPATION TIERS section for authoritative values
+# TIER_1_WEIGHT = 0.70 (Full Node)
+# TIER_2_WEIGHT = 0.20 (Light Node / TG Bot)
+# TIER_3_WEIGHT = 0.10 (TG Users)
 
 # ==============================================================================
 # TRANSACTIONS
@@ -2533,6 +2702,6 @@ Mechanism for asymptotic trust in the value of time
 
 **$MONT**
 
-Technical Specification v3.0 | January 2026
+Technical Specification v3.1 | January 2026
 
 </div>

@@ -1,6 +1,6 @@
 # Ɉ Montana ↔ ATC Layer Mapping
 
-**Ɉ Montana Version:** 3.0
+**Ɉ Montana Version:** 3.1
 **Ticker:** $MONT
 **ATC Version:** 10.0 (L-1 v2.1, L0 v1.0, L1 v1.1, L2 v1.0)
 

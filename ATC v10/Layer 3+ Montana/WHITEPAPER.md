@@ -1,6 +1,6 @@
 # Ɉ Montana
 
-**Version:** 3.0
+**Version:** 3.1
 **Date:** January 2026
 **Ticker:** $MONT
 
@@ -233,27 +233,39 @@ All TTUs distributed through participation. No one starts with an advantage.
 
 ## 6. Participation
 
-### 6.1 Tiers
+### 6.1 Node Types (2 only)
 
-| Tier | Role | Weight |
-|------|------|--------|
-| 0 | Full Verifier | 70% |
-| 1 | Light Verifier | 20% |
-| 2 | Participant | 10% |
+| Node Type | Storage | Tier |
+|-----------|---------|------|
+| **Full Node** | Full blockchain history (downloads all) | Tier 1 |
+| **Light Node** | From connection moment only (mandatory) | Tier 2 |
 
-### 6.2 Heartbeat
+### 6.2 Participation Tiers (3 only)
+
+| Tier | Participants | Node Type | Lottery Weight |
+|------|--------------|-----------|----------------|
+| **1** | Full Node operators | Full Node | **70%** |
+| **2** | Light Node operators OR TG Bot/Channel owners | Light Node | **20%** |
+| **3** | TG Community participants | — | **10%** |
+
+**Summary:**
+- Tier 1 (Full Node): **70%**
+- Tier 2 (Light Node): **20%**
+- Tier 3 (TG Users): **10%**
+
+### 6.3 Heartbeat
 
 A **heartbeat** proves temporal presence:
 
 ```
-Heartbeat:
-├─ Atomic time proof
-├─ VDF proof
-├─ Accumulated depth reference
-└─ Signature
+Full Heartbeat (Tier 1):       Light Heartbeat (Tier 2/3):
+├─ Atomic time proof (34 NTP)  ├─ Timestamp (verified)
+├─ VDF proof                   ├─ Source (LIGHT_NODE/TG_BOT/TG_USER)
+├─ Finality reference          ├─ Community ID
+└─ SPHINCS+ signature          └─ SPHINCS+ signature
 ```
 
-### 6.3 Score
+### 6.4 Score
 
 ```
 Score = √(heartbeats)
@@ -392,6 +404,15 @@ SYMBOL = "Ɉ"
 TICKER = "$MONT"
 DEFINITION = "lim(evidence → ∞) 1 Ɉ → 1 second"
 TOTAL_SUPPLY = 1_260_000_000
+
+# Node Types (2 only)
+NODE_TYPES = 2               # Full Node, Light Node
+
+# Participation Tiers (3 only, numbered 1-2-3)
+TIERS = 3                    # Tier 1, 2, 3
+TIER_1_WEIGHT = 0.70         # Full Node → 70%
+TIER_2_WEIGHT = 0.20         # Light Node / TG Bot owners → 20%
+TIER_3_WEIGHT = 0.10         # TG Community users → 10%
 
 # Verification
 NTP_SOURCES = 34

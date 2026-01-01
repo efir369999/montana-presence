@@ -2,7 +2,7 @@
 
 > *Mechanism for asymptotic trust in the value of time*
 
-**Version:** 3.0
+**Version:** 3.1
 **Ticker:** $MONT
 
 ---
@@ -23,7 +23,7 @@ Montana builds trust through **Asymptotic Trust Consensus** (ATC):
 - Protocol primitives (VDF, VRF)
 - Consensus mechanisms (DAG, finality)
 
-**v3.0:** Self-sovereign finality through accumulated VDF. No external dependencies.
+**v3.1:** Explicit tier system (1-2-3), node type definitions.
 
 ---
 
@@ -66,6 +66,23 @@ This is a physical law.
 
 ---
 
+## Participation (3 Tiers, 2 Node Types)
+
+**Node Types:**
+| Type | Storage | Tier |
+|------|---------|------|
+| **Full Node** | Full blockchain history | Tier 1 |
+| **Light Node** | From connection only | Tier 2 |
+
+**Tiers:**
+| Tier | Participants | Lottery |
+|------|--------------|---------|
+| **1** | Full Node operators | 70% |
+| **2** | Light Node / TG Bot owners | 20% |
+| **3** | TG Community users | 10% |
+
+---
+
 ## Key Properties
 
 | Property | Value |
@@ -76,6 +93,8 @@ This is a physical law.
 | Definition | lim(evidence → ∞) 1 Ɉ → 1 second |
 | Total Supply | 1,260,000,000 Ɉ |
 | Pre-allocation | 0 |
+| Node Types | 2 (Full, Light) |
+| Tiers | 3 (numbered 1-2-3) |
 | Cryptography | Post-quantum (NIST 2024) |
 | Finality | Self-sovereign (accumulated VDF) |
 
