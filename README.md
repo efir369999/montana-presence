@@ -26,6 +26,7 @@
 [![Layer 0](https://img.shields.io/badge/Layer%200-v1.0-blue)](ATC%20v8.1/Layer%200/layer_0.md)
 [![Layer 1](https://img.shields.io/badge/Layer%201-v1.1-blue)](ATC%20v8.1/Layer%201/layer_1.md)
 [![Layer 2](https://img.shields.io/badge/Layer%202-v1.0-blue)](ATC%20v8.1/Layer%202/layer_2.md)
+[![Layer 3+](https://img.shields.io/badge/Layer%203%2B-Montana%20v1.0-purple)](Montana/MONTANA_TECHNICAL_SPECIFICATION.md)
 [![Rating](https://img.shields.io/badge/rating-10%2F10-brightgreen)](ATC%20v8.1/Layer%20-1/HYPERCRITICISM_PROOF.md)
 [![Physics](https://img.shields.io/badge/foundation-physics-orange)](ATC%20v8.1/Layer%20-1/layer_minus_1.md)
 
@@ -65,7 +66,7 @@ Traditional Cryptography:          ATC Architecture:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  Layer 3+: Implementations (Montana, etc.)         [Future]    │
+│  Layer 3+: Implementations (Montana v1.0)                      │
 │  ─────────────────────────────────────────────────────────────  │
 │  Specific protocols, networks, cryptocurrencies                │
 └─────────────────────────────────────────────────────────────────┘
@@ -195,6 +196,29 @@ An adversary unconstrained by physics could:
 
 ---
 
+## Layer 3+: Protocol Implementations
+
+*What is DEPLOYABLE — concrete protocols built on ATC*
+
+| Implementation | Description | Status |
+|----------------|-------------|--------|
+| Montana | Time-based consensus with Bitcoin anchoring | v1.0 |
+
+**Reference Implementation:** Montana v1.0
+
+| Feature | Montana Choice |
+|---------|----------------|
+| Consensus | DAG-PHANTOM + VDF + Bitcoin anchor |
+| Cryptography | SPHINCS+ (signatures), ML-KEM (encryption) |
+| Time Source | 34 NTP servers, 8 geographic regions |
+| Token | Ɉ (seconds), 1.26B supply, fair launch |
+
+**→ [Layer 3+ Overview](ATC%20v8.1/Layer%203%2B/README.md)**
+**→ [Montana Specification](Montana/MONTANA_TECHNICAL_SPECIFICATION.md)**
+**→ [ATC Mapping](ATC%20v8.1/Layer%203%2B/MONTANA_ATC_MAPPING.md)**
+
+---
+
 ## Asymptotic — Not Absolute
 
 | What we claim | What we don't claim |
@@ -234,11 +258,18 @@ ATC v8.1/
 │   ├── EVALUATION_QUICK_REFERENCE.md  Assessment card
 │   └── RELEASE_v1.1.md                Release notes
 │
-└── Layer 2/                       Consensus Protocols (v1.0)
-    ├── layer_2.md                     Specification
-    ├── HYPERCRITICISM_PROOF.md        Certification
-    ├── EVALUATION_QUICK_REFERENCE.md  Assessment card
-    └── RELEASE_v1.0.md                Release notes
+├── Layer 2/                       Consensus Protocols (v1.0)
+│   ├── layer_2.md                     Specification
+│   ├── HYPERCRITICISM_PROOF.md        Certification
+│   ├── EVALUATION_QUICK_REFERENCE.md  Assessment card
+│   └── RELEASE_v1.0.md                Release notes
+│
+└── Layer 3+/                      Protocol Implementations
+    ├── README.md                      Overview
+    └── MONTANA_ATC_MAPPING.md         Montana ↔ ATC mapping
+
+Montana/                           Reference Implementation
+└── MONTANA_TECHNICAL_SPECIFICATION.md  v1.0 Specification
 
 CLAUDE.md                          AI Architect role definition
 ```
@@ -253,10 +284,9 @@ CLAUDE.md                          AI Architect role definition
 | [Layer 0 Spec](ATC%20v8.1/Layer%200/layer_0.md) | 0 | Computational constraints |
 | [Layer 1 Spec](ATC%20v8.1/Layer%201/layer_1.md) | 1 | Protocol primitives |
 | [Layer 2 Spec](ATC%20v8.1/Layer%202/layer_2.md) | 2 | Consensus protocols |
-| [L-1 Certification](ATC%20v8.1/Layer%20-1/HYPERCRITICISM_PROOF.md) | -1 | Why 10/10 |
-| [L0 Certification](ATC%20v8.1/Layer%200/HYPERCRITICISM_PROOF.md) | 0 | Why 10/10 |
-| [L1 Certification](ATC%20v8.1/Layer%201/HYPERCRITICISM_PROOF.md) | 1 | Why 10/10 |
-| [L2 Certification](ATC%20v8.1/Layer%202/HYPERCRITICISM_PROOF.md) | 2 | Why 10/10 |
+| [Layer 3+ Overview](ATC%20v8.1/Layer%203%2B/README.md) | 3+ | Implementations |
+| [Montana Spec](Montana/MONTANA_TECHNICAL_SPECIFICATION.md) | 3+ | Reference implementation |
+| [Montana Mapping](ATC%20v8.1/Layer%203%2B/MONTANA_ATC_MAPPING.md) | 3+ | ATC layer mapping |
 
 ---
 
@@ -294,6 +324,7 @@ C O N S E N S U S
 | 0 | v1.0.0 | [layer-0-v1.0.0](https://github.com/afgrouptime/atc/releases/tag/layer-0-v1.0.0) | 10/10 |
 | 1 | v1.1.0 | [layer-1-v1.1.0](https://github.com/afgrouptime/atc/releases/tag/layer-1-v1.1.0) | 10/10 + 100% impl |
 | 2 | v1.0.0 | [layer-2-v1.0.0](https://github.com/afgrouptime/atc/releases/tag/layer-2-v1.0.0) | 10/10 |
+| 3+ | Montana v1.0 | — | Reference impl |
 
 ---
 
