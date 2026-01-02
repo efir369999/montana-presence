@@ -62,7 +62,7 @@ This role covers the entire ATC architecture:
 | 0 | Computational Constraints | v1.0 ✓ | What is HARD |
 | 1 | Protocol Primitives | v1.1 ✓ | What is BUILDABLE |
 | 2 | Consensus Protocols | v1.0 ✓ | What is AGREEABLE |
-| 3+ | Ɉ Montana ($MONT) | v3.9 ✓ | Asymptotic trust in time value |
+| 3+ | Ɉ Montana ($MONT) — Temporal Time Unit | v3.9 ✓ | Mechanism for asymptotic trust in the value of time |
 
 ---
 
