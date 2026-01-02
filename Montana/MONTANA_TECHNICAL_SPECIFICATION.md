@@ -1,17 +1,19 @@
-# Ɉ Montana Technical Specification v3.5
+# Ɉ Montana: Temporal Time Unit — Technical Specification v3.6
 
 **Protocol Version:** 9
-**Document Version:** 3.5
+**Document Version:** 3.6
 **Date:** January 2026
 **Ticker:** $MONT
 **Architecture:** Timechain
 **ATC Compatibility:** v10.0 (L-1 v2.1, L0 v1.0, L1 v1.1, L2 v1.0)
 
-> **Ɉ Montana** is a mechanism for asymptotic trust in the value of time.
-> **Ɉ** — Temporal Time Unit: lim(evidence → ∞) 1 Ɉ → 1 second
-> **Montana is a Timechain** — not a blockchain. Chains time, secured by physics.
+> **Ɉ** (inverted t) is a Temporal Time Unit. **Montana** is the Timechain that produces it.
+> ```
+> lim(evidence → ∞) 1 Ɉ → 1 second
+> ```
+> **Timechain:** chain of time, bounded by physics.
 > Built on ATC Layer 3+. See [MONTANA_ATC_MAPPING.md](MONTANA_ATC_MAPPING.md) for layer mapping.
-> **v3.5:** Timechain architecture, UTC finality, ±5s tolerance, platform-independent light clients.
+> **v3.6:** Timechain architecture, UTC finality, ±5s tolerance, platform-independent light clients.
 
 ---
 
@@ -21,8 +23,11 @@
 2. [Time Unit Specification](#2-time-unit-specification)
 3. [Asymptotic Trust Consensus (ATC)](#3-asymptotic-trust-consensus-atc)
 4. [Layer 0: Sequential Computation](#4-layer-0-sequential-computation)
-5. [Layer 1: Temporal Proof](#5-layer-1-temporal-proof)
+5. [Layer 1: Temporal Proof (Class Group VDF)](#5-layer-1-temporal-proof-class-group-vdf)
 6. [Layer 2: Accumulated Finality](#6-layer-2-accumulated-finality)
+    - [6.8 Fork Choice Rule](#68-fork-choice-rule)
+    - [6.9 Network Partition Handling](#69-network-partition-handling)
+    - [6.10 Minimum Viable Network](#610-minimum-viable-network)
 7. [Heartbeat Structure](#7-heartbeat-structure)
 8. [Score System](#8-score-system)
 9. [Block Structure](#9-block-structure)
@@ -126,17 +131,17 @@ class NodeType(IntEnum):
     Montana supports exactly TWO node types.
     No other node types exist in the protocol.
     """
-    FULL = 1    # Full Node: Downloads and stores FULL blockchain history
+    FULL = 1    # Full Node: Downloads and stores FULL timechain history
     LIGHT = 2   # Light Node: Stores history from connection moment only
 ```
 
 | Node Type | Storage | VDF | Tier |
 |-----------|---------|-----|------|
-| **Full Node** | Full blockchain history (downloads all) | Yes | Tier 1 |
+| **Full Node** | Full timechain history (downloads all) | Yes | Tier 1 |
 | **Light Node** | From connection moment only | No | Tier 2 |
 
 **Full Node (Tier 1):**
-- Downloads and stores **entire blockchain history**
+- Downloads and stores **entire timechain history**
 - Computes VDF proofs (sequential, non-parallelizable)
 - Validates all blocks and transactions
 - Produces full heartbeats (VDF + signature)
@@ -144,8 +149,8 @@ class NodeType(IntEnum):
 
 **Light Node (Tier 2):**
 - Stores history **only from its connection moment** (mandatory)
-- Does NOT download full blockchain history
-- Does NOT compute VDF
+- Downloads timechain from connection point forward only
+- Receives VDF proofs from Full Nodes (validates, does not compute)
 - Validates blocks from connection onward
 - Produces light heartbeats (timestamp verified against Full Nodes)
 - Relies on Full Nodes for historical security
@@ -345,7 +350,7 @@ Trust requirements approach certainty asymptotically as evidence accumulates acr
 
 | Montana Internal | ATC Layer | Trust Model | Data Source |
 |------------------|-----------|-------------|-------------|
-| Layer 0: VDF Computation | ATC L-1.1 | Sequential computation | SHAKE256 iteration |
+| Layer 0: VDF Computation | ATC L-1.1 | Sequential computation | Class Group squaring |
 | Layer 1: VDF Temporal | ATC L-1.1 | Sequential computation | VDF heartbeats |
 | Layer 2: Accumulated Finality | ATC L-2.6.3 | VDF-based finality | Accumulated VDF depth |
 
@@ -355,12 +360,12 @@ Montana inherits guarantees from all ATC layers:
 
 | ATC Layer | Montana Uses | Constraint |
 |-----------|--------------|------------|
-| L-1 (Physics) | Sequentiality, Landauer | Cannot be violated |
+| L-1 (Physics) | Sequentiality, Landauer | Physical bound |
 | L0 (Computation) | SHA-3, SPHINCS+, ML-KEM | Post-quantum secure |
 | L1 (Primitives) | VDF, VRF, Commitment | Proven security |
 | L2 (Consensus) | DAG, BFT, VDF Finality | Formal guarantees |
 
-**Closing Principle:** Montana may assume weaker guarantees than ATC provides; it cannot assume stronger guarantees without leaving known science.
+**Closing Principle:** Montana may assume weaker guarantees than ATC provides. Stronger assumptions require leaving known science.
 
 ---
 
@@ -370,181 +375,238 @@ Montana inherits guarantees from all ATC layers:
 
 Montana's Layer 0 provides the physical foundation for time verification. Time is sequential — each moment depends on the previous. This sequentiality is the basis for VDF security.
 
-### 4.1 Sequentiality Assumption
+### 4.1 Sequentiality Guarantee
 
 ```python
-# Core assumption: SHAKE256 iteration is sequential
-# No algorithm computes H^T(x) faster than T sequential evaluations
-# This is an empirical assumption (Type C), not proven theorem
+# Core guarantee: Class Group squaring is mathematically sequential
+# Security reduction to class group order problem (Type B security)
 
-VDF_SEQUENTIALITY_ASSUMPTION = """
-For SHAKE256 as H:
-  H^T(x) = H(H(H(...H(x)...)))  # T iterations
+VDF_SEQUENTIALITY_GUARANTEE = """
+For imaginary quadratic class group Cl(Δ):
+  g^(2^T) requires T sequential squarings
 
-  No known algorithm computes H^T(x) without computing H^(T-1)(x) first.
-  This follows from SHAKE256 behaving as a random oracle for iteration.
+  Security reduction:
+    "VDF shortcut exists" → "Class group order efficiently computable"
+
+  Class group order problem: hard for 40+ years (Buchmann, Williams 1988)
 """
 ```
 
-### 4.2 Physical Bound
+### 4.2 Mathematical Foundation
 
 The VDF sequentiality property derives from:
-- **No iteration shortcut:** SHAKE256 has no known algebraic structure enabling shortcuts
-- **Sponge construction:** Keccak's sponge mixes state thoroughly each iteration
-- **10+ years analysis:** No successful attacks on SHAKE256 iteration
+- **Group structure:** Class groups require sequential exponentiation
+- **Order hardness:** Computing |Cl(Δ)| is subexponential (best known algorithms)
+- **40+ years analysis:** Class group order problem remains hard
 
-### 4.3 Security Degradation
+### 4.3 UTC Neutralization of Quantum Advantage
 
-If VDF sequentiality is broken:
-- Finality guarantees degrade to the broken primitive's security
-- Hardware speedups provide constant factor only (not asymptotic)
-- System degrades gracefully — attack cost remains non-zero time
+Class Group VDF is vulnerable to Shor's algorithm. Montana's UTC finality model makes this irrelevant:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    UTC BOUNDARY = PHYSICAL EQUALIZER                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Finality window: 60 seconds (UTC boundary to UTC boundary)             │
+│                                                                          │
+│  Classical node:    VDF in 30 sec → wait 30 sec → 1 heartbeat           │
+│  ASIC node:         VDF in 5 sec  → wait 55 sec → 1 heartbeat           │
+│  Quantum attacker:  VDF in 0.001s → wait 59.999s → 1 heartbeat          │
+│                                                                          │
+│  Result: ALL receive exactly ONE heartbeat per finality window          │
+│                                                                          │
+│  UTC boundary is the rate limiter                                        │
+│  VDF speed is irrelevant                                                 │
+│  Time passes at the same rate for quantum computers                      │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**Security Analysis:**
+
+| Attacker | VDF Computation | Heartbeats/Minute | Advantage |
+|----------|-----------------|-------------------|-----------|
+| Classical CPU | 30 seconds | 1 | Baseline |
+| ASIC | 5 seconds | 1 | None (waits for UTC) |
+| Quantum computer | 0.001 seconds | 1 | None (waits for UTC) |
+
+VDF proves participation eligibility within a finality window. The physical constraint is UTC time itself.
 
 ---
 
-## 5. Montana Layer 1: Temporal Proof (Sequential Hash Chain)
+## 5. Montana Layer 1: Temporal Proof (Class Group VDF)
 
 *Maps to ATC L-1.1 (Verifiable Delay Functions)*
 
-Montana's Layer 1 uses a **sequential hash chain** to prove elapsed time.
+Montana's Layer 1 uses **Class Group VDF** (Wesolowski 2019) for temporal proof — Type B security with mathematical guarantees.
 
-### Terminology Clarification
+### 5.1 Class Group VDF
 
-**Montana does NOT use a classical VDF** in the Boneh et al. (2018) sense. Classical VDFs use algebraic structures (RSA groups, class groups) that provide mathematical sequentiality guarantees through group-theoretic properties.
+**Type B Security:** Mathematical reduction to class group order problem.
 
-| Property | Classical VDF (RSA/Class Groups) | Montana (SHAKE256 Chain) |
-|----------|----------------------------------|--------------------------|
-| Sequentiality basis | Mathematical (group structure) | Empirical (no shortcut known) |
-| Security type | Type B (reduction to group problem) | Type C (empirical, 10+ years) |
-| Shortcut | Provably requires group computation | Unknown but theoretically possible |
-| Verification | O(1) using group properties | O(log T) via STARK proofs |
-| Quantum status | Vulnerable (Shor's algorithm) | Resistant (Grover √T only) |
+| Property | Guarantee |
+|----------|-----------|
+| Sequentiality | Mathematical (group structure requires sequential squaring) |
+| Security | Type B (reduction to class group order problem) |
+| Trusted setup | None required (class groups are parameter-free) |
+| Verification | O(log T) using Wesolowski proof |
+| Quantum | Shor applies (neutralized by UTC model) |
 
-**Why sequential hash chain?**
-
-1. **Post-quantum security:** SHAKE256 has no known quantum speedup beyond Grover (√T).
-2. **Simplicity:** No trusted setup, no complex group operations.
-3. **Empirical security:** No shortcut for iterated hashing found in 20+ years of cryptanalysis.
-
-**Honest acknowledgment:** If internal structure of SHAKE256 is discovered that allows computing H^T(x) faster than T sequential evaluations, the sequential property would be compromised. This is Type C (empirical) security, not Type A (proven) or Type B (reduction-based).
-
-Montana accepts this tradeoff. The construction derives its security from:
-- **Empirical bound:** No known iteration shortcut for SHAKE256
-- **Hash security (ATC L-0.3.3):** SHAKE256 collision resistance
-- **Verification (ATC L-1.D):** STARK proofs for O(log T) verification
-
-### 5.1 VDF Parameters
+### 5.2 VDF Parameters
 
 ```python
-VDF_HASH_FUNCTION: str = "SHAKE256"
-VDF_OUTPUT_BYTES: int = 32
-VDF_BASE_ITERATIONS: int = 16777216      # 2^24 (~2.5 seconds)
-VDF_MAX_ITERATIONS: int = 268435456      # 2^28 (~40 seconds)
-VDF_STARK_CHECKPOINT_INTERVAL: int = 1000  # Save state every N iterations for STARK proof
-VDF_SEED_PREFIX: bytes = b"MONTANA_VDF_V8_"
+# Class Group VDF (Wesolowski 2019)
+VDF_TYPE: str = "class_group"
+VDF_DISCRIMINANT_BITS: int = 2048       # Security parameter
+VDF_BASE_ITERATIONS: int = 16777216     # 2^24 sequential squarings
+VDF_MAX_ITERATIONS: int = 268435456     # 2^28
+VDF_PROOF_SIZE_BYTES: int = 2048        # Wesolowski proof ~2KB
+
+# Discriminant generation (deterministic from seed)
+VDF_SEED_PREFIX: bytes = b"MONTANA_VDF_V9_CLASS_GROUP_"
 ```
 
-### 5.2 VDF Structure
+### 5.3 VDF Structure
 
 ```python
 @dataclass
+class ClassGroupElement:
+    """Element of imaginary quadratic class group Cl(Δ)."""
+    a: int      # First coefficient
+    b: int      # Second coefficient
+    # Represents ideal class (a, b, c) where b² - 4ac = Δ
+
+@dataclass
 class VDFProof:
-    input_hash: bytes           # 32 bytes - Input to VDF
-    output_hash: bytes          # 32 bytes - VDF output
-    iterations: int             # u64 - Number of iterations
-    checkpoints: List[bytes]    # STARK proof checkpoints
-    proof: bytes                # STARK proof
+    """Class Group VDF proof (Wesolowski construction)."""
+    input_element: ClassGroupElement    # g ∈ Cl(Δ)
+    output_element: ClassGroupElement   # g^(2^T) ∈ Cl(Δ)
+    iterations: int                     # T = number of squarings
+    proof_element: ClassGroupElement    # π for Wesolowski verification
+    discriminant: int                   # Δ (negative, determines group)
 
     def serialize(self) -> bytes:
         writer = ByteWriter()
-        writer.write_raw(self.input_hash)
-        writer.write_raw(self.output_hash)
+        writer.write_class_group_element(self.input_element)
+        writer.write_class_group_element(self.output_element)
         writer.write_u64(self.iterations)
-        writer.write_u16(len(self.checkpoints))
-        for cp in self.checkpoints:
-            writer.write_raw(cp)
-        writer.write_var_bytes(self.proof)
+        writer.write_class_group_element(self.proof_element)
+        writer.write_big_int(self.discriminant)
         return writer.to_bytes()
 
 def compute_vdf(input_data: bytes, iterations: int) -> VDFProof:
     """
-    Compute VDF with SHAKE256.
+    Compute Class Group VDF.
 
-    Sequential: state[i+1] = SHAKE256(state[i])
+    Sequential: g^(2^T) via T squarings in Cl(Δ)
     """
-    state = VDF_SEED_PREFIX + input_data
-    checkpoints = []
+    # Generate deterministic discriminant from input
+    discriminant = generate_discriminant(input_data, VDF_DISCRIMINANT_BITS)
 
-    for i in range(iterations):
-        state = shake_256(state).digest(VDF_OUTPUT_BYTES)
-        if i % VDF_STARK_CHECKPOINT_INTERVAL == 0:
-            checkpoints.append(state)
+    # Map input to group element
+    g = hash_to_class_group(input_data, discriminant)
 
-    proof = generate_stark_proof(checkpoints)
+    # Sequential squaring
+    result = g
+    for _ in range(iterations):
+        result = class_group_square(result, discriminant)
+
+    # Generate Wesolowski proof
+    proof_element = generate_wesolowski_proof(g, result, iterations, discriminant)
 
     return VDFProof(
-        input_hash=sha3_256(input_data),
-        output_hash=state,
+        input_element=g,
+        output_element=result,
         iterations=iterations,
-        checkpoints=checkpoints,
-        proof=proof
+        proof_element=proof_element,
+        discriminant=discriminant
     )
 ```
 
-### 5.3 STARK Proof Specification
-
-VDF verification uses FRI-based STARK proofs for O(log T) verification complexity.
-
-**Implementation Status:** SPECIFICATION ONLY — implementation pending.
-
-**Construction Note:** Montana uses a sequential hash chain (H^T), not classical group-based VDFs (Wesolowski, Pietrzak). The sequentiality property is empirical (Type C security), not mathematically proven as in group-based constructions. The tradeoff: post-quantum security in exchange for O(log T) verification via STARK instead of O(1).
+### 5.4 Wesolowski Verification
 
 ```python
-# STARK proof parameters (targets — require benchmarking)
-STARK_SECURITY_BITS: int = 128          # Target security level
-STARK_HASH_FUNCTION: str = "SHAKE256"
+def verify_vdf(proof: VDFProof) -> bool:
+    """
+    Verify Class Group VDF using Wesolowski protocol.
 
-# Complexity bounds (theoretical)
-# Proof size: O(log² T) — exact size TBD after implementation
-# Verification: O(log T) hash operations
-# Prover time: O(T log T)
+    Verification complexity: O(log T) group operations
+    """
+    g = proof.input_element
+    y = proof.output_element
+    pi = proof.proof_element
+    T = proof.iterations
+    Δ = proof.discriminant
+
+    # Fiat-Shamir challenge
+    l = hash_to_prime(g, y, T)
+
+    # Compute r = 2^T mod l
+    r = pow(2, T, l)
+
+    # Verify: π^l · g^r == y
+    lhs = class_group_multiply(
+        class_group_exp(pi, l, Δ),
+        class_group_exp(g, r, Δ),
+        Δ
+    )
+
+    return class_group_equal(lhs, y)
 ```
+
+### 5.5 Security Properties
+
+**Type B Security Reduction:**
+
+```
+Theorem (Wesolowski 2019):
+  If an adversary can compute g^(2^T) faster than T sequential squarings,
+  then they can compute the order of the class group Cl(Δ).
+
+Class Group Order Problem:
+  Given discriminant Δ, compute |Cl(Δ)|
+
+Status:
+  - Best classical algorithms: subexponential L[1/2]
+  - Quantum: Shor's algorithm applies
+  - Practical security: 2048-bit discriminant provides 128-bit classical security
+```
+
+**UTC Model Security:**
+
+```
+Quantum break of VDF does not affect Montana security:
+  - VDF proves eligibility to participate in finality window
+  - Faster VDF computation = longer wait until UTC boundary
+  - 1 heartbeat per pubkey per 60-second window (UTC enforced)
+  - Physical time is the rate limiter, computational speed is irrelevant
+```
+
+### 5.6 Implementation References
+
+Montana uses Class Group VDF as implemented in:
+- **Chia VDF** (production, open source)
+- **chiavdf library** (C++ with Python bindings)
 
 ```python
-@dataclass
-class STARKProof:
-    """FRI-based STARK proof for VDF verification."""
-    commitments: List[bytes]        # Merkle roots per FRI layer
-    query_responses: List[bytes]    # FRI query paths
-    final_polynomial: bytes         # Low-degree polynomial
+# Integration with chiavdf
+from chiavdf import create_discriminant, prove, verify
 
-
-def generate_stark_proof(checkpoints: List[bytes]) -> STARKProof:
-    """
-    Generate FRI-based STARK proof for VDF computation.
-
-    STATUS: NOT IMPLEMENTED — specification only.
-
-    Proves: output = H^T(input) using checkpoint trace.
-    """
-    raise NotImplementedError("STARK proof generation pending implementation")
-
-
-def verify_stark_proof(
-    input_hash: bytes,
-    output_hash: bytes,
-    iterations: int,
-    proof: STARKProof
-) -> bool:
-    """
-    Verify STARK proof for VDF computation.
-
-    STATUS: NOT IMPLEMENTED — specification only.
-    """
-    raise NotImplementedError("STARK proof verification pending implementation")
+def compute_vdf_chia(challenge: bytes, iterations: int) -> VDFProof:
+    """Compute VDF using Chia's implementation."""
+    discriminant = create_discriminant(challenge, VDF_DISCRIMINANT_BITS)
+    result, proof = prove(challenge, discriminant, iterations)
+    return VDFProof(
+        input_element=challenge_to_element(challenge, discriminant),
+        output_element=result,
+        iterations=iterations,
+        proof_element=proof,
+        discriminant=discriminant
+    )
 ```
 
-**Design note:** T = 2²⁴ is fixed. Specialized hardware may provide constant-factor speedup (bounded by circuit physics), but not asymptotic improvement. The system degrades gracefully: 2x faster hardware halves attack cost, but attack cost remains non-zero wallclock time.
+**Design note:** T = 2²⁴ is fixed. Hardware provides constant-factor speedup only. UTC boundaries ensure all participants receive equal heartbeats regardless of computation speed.
 
 ---
 
@@ -586,7 +648,7 @@ Finality occurs at fixed UTC boundaries: every minute (XX:XX:00)
 
 ### 6.3 Security Properties
 
-**Attack cost:** Cannot advance UTC. Time is universal.
+**Attack cost:** Requires advancing UTC. Time is universal.
 
 ```python
 def get_finality_boundary(timestamp_ms: int) -> int:
@@ -602,10 +664,10 @@ def get_finality_level(block_timestamp_ms: int, current_time_ms: int) -> str:
     """
     Determine finality level based on UTC boundaries passed.
 
-    This is a PHYSICAL BOUND - cannot be accelerated by:
-    - Faster hardware (cannot advance UTC)
-    - More money (time cannot be purchased)
-    - Any optimization (physics constraint)
+    This is a PHYSICAL BOUND:
+    - Hardware speed bounded by UTC
+    - Time allocation is equal for all
+    - Physics constraint applies universally
     """
     block_boundary = get_finality_boundary(block_timestamp_ms)
     boundaries_passed = (current_time_ms - block_boundary) // (FINALITY_INTERVAL_SEC * 1000)
@@ -676,9 +738,11 @@ class FinalityCheckpoint:
     blocks_merkle_root: bytes       # 32 bytes - Merkle root of blocks in window
     vdf_proofs_root: bytes          # 32 bytes - Merkle root of VDF proofs
     participants_count: int         # u32 - Number of participating nodes
+    total_vdf_iterations: int       # u64 - Sum of all VDF iterations in window
+    aggregate_score: int            # u64 - Sum of participant scores (√heartbeats)
     previous_checkpoint: bytes      # 32 bytes - Hash of previous checkpoint
 
-    SIZE: int = 112  # bytes
+    SIZE: int = 128  # bytes (112 + 8 + 8)
 
     def serialize(self) -> bytes:
         writer = ByteWriter()
@@ -686,6 +750,8 @@ class FinalityCheckpoint:
         writer.write_raw(self.blocks_merkle_root)
         writer.write_raw(self.vdf_proofs_root)
         writer.write_u32(self.participants_count)
+        writer.write_u64(self.total_vdf_iterations)
+        writer.write_u64(self.aggregate_score)
         writer.write_raw(self.previous_checkpoint)
         return writer.to_bytes()
 
@@ -695,20 +761,26 @@ class FinalityCheckpoint:
 
 ### 6.7 Clock Security
 
-Montana relies on system UTC without external protocol-level synchronization. The ±5 second tolerance accommodates:
+**Each participant is responsible for their own time, just as they are responsible for their own private keys.**
 
-- Network propagation delay
-- Minor clock drift
-- NTP jitter
+Montana relies on system UTC. Each node uses its own clock.
 
-Nodes outside this window simply fail to participate in the current finality window.
+| Responsibility | Owner | Montana's Role |
+|----------------|-------|----------------|
+| Private key | Node operator | Verify signatures |
+| System clock | Node operator | Accept ±5 seconds |
+| Network connection | Node operator | Relay messages |
+
+**Self-Sovereign Time:**
+
+| Property | Guarantee |
+|----------|-----------|
+| Time source | Each node's own UTC |
+| Independence | Isolated from peer influence |
+| Tolerance | ±5 seconds for propagation, drift, jitter |
 
 ```python
-# Threat model
-CLOCK_ATTACK_NETWORK = "impossible"     # UTC is physical
-CLOCK_ATTACK_NODE = "requires OS compromise"  # Outside protocol scope
-
-# Tolerance breakdown
+# ±5 second tolerance breakdown
 TOLERANCE_BUDGET = {
     "network_propagation": 2.0,  # seconds
     "clock_drift": 1.0,          # seconds
@@ -717,22 +789,27 @@ TOLERANCE_BUDGET = {
     # Total: 5 seconds
 }
 
-def is_node_synchronized(local_utc_ms: int, network_median_ms: int) -> bool:
+def is_node_synchronized(local_utc_ms: int, reference_ms: int) -> bool:
     """
     Check if node is within acceptable time window.
 
-    Nodes outside ±5 seconds are not attacked — they are desynchronized.
+    Nodes within ±5 seconds participate in current finality window.
+    Nodes outside participate in subsequent windows.
     """
-    return abs(local_utc_ms - network_median_ms) <= TIME_TOLERANCE_SEC * 1000
+    return abs(local_utc_ms - reference_ms) <= TIME_TOLERANCE_SEC * 1000
 ```
 
-**Attack Analysis:**
+**Recommendations for Full Node Operators:**
 
-| Attack Vector | Target | Feasibility | Mitigation |
-|--------------|--------|-------------|------------|
-| Manipulate UTC globally | All nodes | Impossible | UTC is physical constant |
-| Compromise individual NTP | Single node | Requires OS access | Node operator responsibility |
-| Network delay manipulation | Single node | Covered by ±5s tolerance | Built into protocol |
+| Practice | Purpose |
+|----------|---------|
+| Multiple NTP sources (3+) | Resilience |
+| NTS (NTP over TLS) | Authenticated synchronization |
+| Hardware clock monitoring | Early drift detection |
+
+**Principle:**
+
+Clock security = private key security. Each operator controls their own system.
 
 ### 6.8 Fork Choice Rule
 
@@ -741,14 +818,18 @@ def select_best_chain(chains: List[Chain]) -> Chain:
     """
     Fork choice: chain with more finality checkpoints.
 
-    Ties broken by:
+    Cascade tiebreakers (each level has semantic meaning):
     1. More finality checkpoints (more UTC boundaries)
-    2. More participants in latest checkpoint
-    3. Lower checkpoint hash (deterministic tiebreaker)
+    2. More participants in latest checkpoint (larger active network)
+    3. Higher total VDF iterations (more proven time)
+    4. Higher aggregate participant score (more reliable participants)
+    5. Lower checkpoint hash (deterministic last resort)
     """
     return max(chains, key=lambda c: (
         c.finality_checkpoint_count,
         c.latest_checkpoint.participants_count,
+        c.latest_checkpoint.total_vdf_iterations,
+        c.latest_checkpoint.aggregate_score,
         -int.from_bytes(c.latest_checkpoint.checkpoint_hash(), 'big')
     ))
 ```
@@ -779,23 +860,36 @@ def resolve_checkpoint_conflict(
     """
     Resolve conflicting checkpoints at the same UTC boundary.
 
-    Fork choice rule:
-    1. More participants (heartbeats) wins
-    2. Tie: lower checkpoint hash (deterministic)
+    Cascade tiebreakers (each level has semantic meaning):
+    1. More participants (heartbeats) → larger active network
+    2. Higher total VDF iterations → more proven time
+    3. Higher aggregate score → more reliable participants
+    4. Lower checkpoint hash → deterministic last resort
+
+    Level 4 is reached only with perfect 50/50, identical participants,
+    identical VDF. Probability → 0.
 
     Returns canonical checkpoint.
     """
     # Must be same UTC boundary
     assert checkpoint_a.boundary_timestamp_ms == checkpoint_b.boundary_timestamp_ms
 
-    # Primary: more participants
-    if checkpoint_a.participants_count != checkpoint_b.participants_count:
-        return max(checkpoint_a, checkpoint_b,
-                   key=lambda c: c.participants_count)
+    cp_a, cp_b = checkpoint_a, checkpoint_b
 
-    # Tiebreaker: lexicographically smaller hash
-    return min(checkpoint_a, checkpoint_b,
-               key=lambda c: c.checkpoint_hash())
+    # 1. More participants → larger active network
+    if cp_a.participants_count != cp_b.participants_count:
+        return max(cp_a, cp_b, key=lambda c: c.participants_count)
+
+    # 2. More VDF iterations → more proven time
+    if cp_a.total_vdf_iterations != cp_b.total_vdf_iterations:
+        return max(cp_a, cp_b, key=lambda c: c.total_vdf_iterations)
+
+    # 3. Higher aggregate score → more reliable participants
+    if cp_a.aggregate_score != cp_b.aggregate_score:
+        return max(cp_a, cp_b, key=lambda c: c.aggregate_score)
+
+    # 4. Hash — only if ALL equal (astronomically rare)
+    return min(cp_a, cp_b, key=lambda c: c.checkpoint_hash())
 
 
 def merge_partition_chains(
@@ -806,8 +900,8 @@ def merge_partition_chains(
     Merge two checkpoint chains after network partition.
 
     Preserves canonical checkpoint at each boundary.
-    Transactions from non-canonical checkpoints are NOT lost -
-    they remain in DAG and can be included in next checkpoint.
+    Transactions from all checkpoints are preserved in DAG
+    and included in subsequent checkpoints.
     """
     merged = []
 
@@ -857,6 +951,199 @@ def merge_partition_chains(
 - **Safety:** No conflicting finalized transactions (fork choice is deterministic)
 - **Liveness:** Network recovers after partition heals (DAG merge)
 - **No transaction loss:** DAG blocks from minority partition are preserved
+
+### 6.10 Minimum Viable Network
+
+For UTC finality to provide meaningful security guarantees, the network must meet minimum participation thresholds.
+
+#### 6.10.1 Minimum Thresholds
+
+```python
+# Minimum viable network constants
+MIN_FINALITY_PARTICIPANTS = 7       # BFT threshold: n ≥ 3f+1, f=2 → n≥7
+MIN_GEOGRAPHIC_REGIONS = 2          # Avoid single-region failure
+MIN_AUTONOMOUS_SYSTEMS = 3          # Network path diversity
+MIN_FULL_NODES = 3                  # Minimum for checkpoint creation
+
+# Confidence levels based on participation
+CONFIDENCE_FULL = "full"            # ≥21 participants, ≥3 regions
+CONFIDENCE_HIGH = "high"            # ≥7 participants, ≥2 regions
+CONFIDENCE_LOW = "low"              # <7 participants OR <2 regions
+```
+
+#### 6.10.2 Participation Requirements
+
+| Confidence Level | Participants | Regions | Finality Meaning |
+|------------------|--------------|---------|------------------|
+| **FULL** | ≥21 | ≥3 | Production-grade BFT (f=6) |
+| **HIGH** | ≥7 | ≥2 | Meaningful BFT (f=2) |
+| **LOW** | <7 or <2 regions | Degraded | Finality works but trust limited |
+
+**Byzantine Fault Tolerance:**
+
+```python
+def get_bft_tolerance(participants: int) -> int:
+    """
+    Calculate Byzantine fault tolerance.
+
+    BFT threshold: n ≥ 3f + 1
+    Solving for f: f ≤ (n - 1) / 3
+    """
+    return (participants - 1) // 3
+
+# Examples:
+# 7 participants  → tolerates 2 Byzantine (f=2)
+# 21 participants → tolerates 6 Byzantine (f=6)
+# 100 participants → tolerates 33 Byzantine (f=33)
+```
+
+#### 6.10.3 Finality Confidence Calculation
+
+```python
+@dataclass
+class FinalityConfidence:
+    """Confidence assessment for a finality checkpoint."""
+    level: str                      # "full", "high", "low"
+    participants: int
+    regions: int
+    byzantine_tolerance: int
+    reason: str
+
+def assess_finality_confidence(checkpoint: FinalityCheckpoint) -> FinalityConfidence:
+    """
+    Assess confidence level for a finality checkpoint.
+
+    Confidence depends on:
+    1. Number of unique participants
+    2. Geographic distribution (inferred from node metadata)
+    3. Byzantine fault tolerance
+    """
+    participants = checkpoint.participants_count
+    regions = estimate_geographic_regions(checkpoint)  # From node metadata
+    f = (participants - 1) // 3
+
+    if participants >= 21 and regions >= 3:
+        return FinalityConfidence(
+            level="full",
+            participants=participants,
+            regions=regions,
+            byzantine_tolerance=f,
+            reason=f"Production BFT: tolerates {f} Byzantine nodes"
+        )
+    elif participants >= 7 and regions >= 2:
+        return FinalityConfidence(
+            level="high",
+            participants=participants,
+            regions=regions,
+            byzantine_tolerance=f,
+            reason=f"Meaningful BFT: tolerates {f} Byzantine nodes"
+        )
+    else:
+        return FinalityConfidence(
+            level="low",
+            participants=participants,
+            regions=regions,
+            byzantine_tolerance=f,
+            reason="Degraded: insufficient participation for strong BFT"
+        )
+```
+
+#### 6.10.4 Bootstrap Requirements
+
+```python
+# Minimum bootstrap network
+BOOTSTRAP_REQUIREMENTS = {
+    "full_nodes": 3,                # Minimum Full Nodes for genesis
+    "regions": 2,                   # Minimum geographic regions
+    "autonomous_systems": 3,        # Minimum AS diversity
+}
+
+# Bootstrap progression
+BOOTSTRAP_PHASES = [
+    # Phase 1: Genesis (3 Full Nodes, 2 regions)
+    {"full_nodes": 3, "confidence": "low", "label": "Genesis"},
+
+    # Phase 2: Early Network (7+ participants)
+    {"full_nodes": 7, "confidence": "high", "label": "Early"},
+
+    # Phase 3: Production (21+ participants, 3+ regions)
+    {"full_nodes": 21, "confidence": "full", "label": "Production"},
+]
+```
+
+#### 6.10.5 Degraded Mode Behavior
+
+When network falls below minimum thresholds:
+
+```python
+def handle_degraded_network(checkpoint: FinalityCheckpoint) -> None:
+    """
+    Handle finality checkpoint in degraded network conditions.
+
+    Degraded mode:
+    - Finality checkpoints still created (protocol continues)
+    - Checkpoints labeled with confidence level
+    - Clients warned about reduced security
+    - No protocol changes — only labeling
+    """
+    confidence = assess_finality_confidence(checkpoint)
+
+    if confidence.level == "low":
+        logger.warning(
+            f"Degraded finality: {confidence.participants} participants, "
+            f"{confidence.regions} regions. "
+            f"Byzantine tolerance: {confidence.byzantine_tolerance}"
+        )
+
+        # Checkpoint is still valid but marked
+        checkpoint.metadata["confidence"] = "low"
+        checkpoint.metadata["warning"] = (
+            "Finality confidence reduced. "
+            "Consider waiting for network recovery."
+        )
+```
+
+**Degraded Mode Guarantees:**
+
+| Property | Degraded Mode | Notes |
+|----------|---------------|-------|
+| Checkpoint creation | ✓ Continues | Protocol does not halt |
+| Fork choice | ✓ Deterministic | Same algorithm applies |
+| Transaction processing | ✓ Continues | DAG accepts blocks |
+| Finality confidence | ⚠ Reduced | Labeled in checkpoint |
+| Client warnings | ✓ Enabled | Applications notified |
+
+#### 6.10.6 Network Health Metrics
+
+```python
+@dataclass
+class NetworkHealth:
+    """Real-time network health assessment."""
+    total_participants: int
+    full_nodes: int
+    light_nodes: int
+    geographic_regions: int
+    autonomous_systems: int
+    confidence_level: str
+    byzantine_tolerance: int
+
+    @property
+    def is_healthy(self) -> bool:
+        return self.confidence_level in ("full", "high")
+
+    @property
+    def is_production_ready(self) -> bool:
+        return self.confidence_level == "full"
+
+def get_network_health() -> NetworkHealth:
+    """
+    Calculate current network health metrics.
+
+    Called every finality window to assess network state.
+    """
+    # Implementation aggregates data from all known peers
+    ...
+```
 
 ---
 
@@ -1762,7 +2049,7 @@ BOOTSTRAP_NODES = [
 ]
 
 # Service flags
-SERVICE_FULL_NODE: int = 0x01      # Full blockchain history
+SERVICE_FULL_NODE: int = 0x01      # Full timechain history
 SERVICE_LIGHT_NODE: int = 0x02     # Light node
 SERVICE_VDF: int = 0x04            # Computes VDF proofs
 SERVICE_RELAY: int = 0x10          # Relays transactions
@@ -2940,11 +3227,12 @@ TIER_3_WEIGHT = 0.10            # 10% → TG Community users
 # Tier 3 (TG Users):   10%
 
 # ==============================================================================
-# LAYER 0-1: VDF (SEQUENTIAL COMPUTATION)
+# LAYER 0-1: VDF (CLASS GROUP, WESOLOWSKI 2019)
 # ==============================================================================
-VDF_HASH_FUNCTION = "SHAKE256"
-VDF_BASE_ITERATIONS = 16777216
-VDF_STARK_CHECKPOINT_INTERVAL = 1000
+VDF_TYPE = "class_group"              # Wesolowski construction
+VDF_DISCRIMINANT_BITS = 2048          # Security parameter for Δ
+VDF_BASE_ITERATIONS = 16777216        # 2^24 sequential squarings
+VDF_CHALLENGE_BITS = 128              # Wesolowski challenge size
 
 # ==============================================================================
 # LAYER 2: ACCUMULATED FINALITY
@@ -3018,7 +3306,7 @@ ACTIVATION_WINDOW_BLOCKS = 2016
 ```python
 # Node information
 getinfo() -> dict
-getblockchaininfo() -> dict
+gettimechaininfo() -> dict
 getnetworkinfo() -> dict
 
 # Blocks
@@ -3907,19 +4195,18 @@ TIER_3_WEIGHT = 0.10            # 10% → TG Community users
 # Tier 3 (TG Users):   10%
 
 # ==============================================================================
-# LAYER 0-1: VDF (SEQUENTIAL COMPUTATION)
+# LAYER 0-1: VDF (CLASS GROUP, WESOLOWSKI 2019)
 # ==============================================================================
-VDF_HASH_FUNCTION = "SHAKE256"
-VDF_OUTPUT_BYTES = 32
-VDF_BASE_ITERATIONS = 16777216
-VDF_MAX_ITERATIONS = 268435456
-VDF_STARK_CHECKPOINT_INTERVAL = 1000
+VDF_TYPE = "class_group"              # Wesolowski construction
+VDF_DISCRIMINANT_BITS = 2048          # Security parameter for Δ
+VDF_BASE_ITERATIONS = 16777216        # 2^24 sequential squarings
+VDF_MAX_ITERATIONS = 268435456        # 2^28
+VDF_CHALLENGE_BITS = 128              # Wesolowski challenge size
 
-# STARK proof parameters (TARGETS — implementation pending)
-STARK_SECURITY_BITS = 128              # Target security level
-STARK_HASH_FUNCTION = "SHAKE256"
-# NOTE: Proof size and verification time TBD after implementation
-# Expected: O(log² T) proof size, O(log T) verification
+# Wesolowski proof parameters
+WESOLOWSKI_HASH_TO_PRIME_ATTEMPTS = 1000
+WESOLOWSKI_PROOF_SECURITY_BITS = 128
+# Verification: O(log T), proof size: ~256 bytes
 
 # ==============================================================================
 # LAYER 2: ACCUMULATED FINALITY

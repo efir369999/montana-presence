@@ -87,7 +87,7 @@ class PeerSyncState:
 
 class SyncManager:
     """
-    Manages blockchain synchronization.
+    Manages timechain synchronization.
 
     Handles:
     - Initial Block Download (IBD)

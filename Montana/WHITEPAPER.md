@@ -1,6 +1,6 @@
-# Ɉ Montana
+# Ɉ Montana: Temporal Time Unit
 
-**Version:** 3.5
+**Version:** 3.6
 **Date:** January 2026
 **Ticker:** $MONT
 **Architecture:** Timechain
@@ -9,13 +9,17 @@
 
 > *"Time is the only resource distributed equally to all humans."*
 
+**Ɉ** (inverted t) is a Temporal Time Unit. **Montana** is the Timechain that produces it.
+
+```
+lim(evidence → ∞) 1 Ɉ → 1 second
+```
+
 ---
 
 ## Abstract
 
-**Ɉ Montana** is a mechanism for asymptotic trust in the value of time.
-
-**Ɉ** is a **Temporal Time Unit** (TTU) — a unit that asymptotically approaches the definition:
+**Ɉ** (inverted t) is a Temporal Time Unit. **Montana** is the Timechain that produces it.
 
 ```
 lim(evidence → ∞) 1 Ɉ → 1 second
@@ -24,17 +28,14 @@ lim(evidence → ∞) 1 Ɉ → 1 second
 
 Montana builds trust in time value through the **Asymptotic Trust Consensus** (ATC) architecture — physical constraints, computational hardness, protocol primitives, and consensus mechanisms.
 
-**Montana is a Timechain** — not a blockchain. Where blockchain chains blocks and secures them through economic incentives (work, stake), Timechain chains time and secures it through physics. The fundamental unit is not a block, but a second.
+**Montana is a Timechain.** Timechain chains time, bounded by physics. The fundamental unit is a second.
 
 ```
-Blockchain:  chain of blocks, secured by work or stake
-Timechain:   chain of time, secured by physics
-
-Blockchain:  "Who computed first is right"
-Timechain:   "Time passed — this is fact"
+Timechain:   chain of time, bounded by physics
+             "Time passed — this is fact"
 ```
 
-**Montana v3.5** is fully self-sovereign: no external blockchain dependencies, no external time sources. Finality is determined by UTC boundaries — time itself becomes the consensus mechanism.
+**Montana v3.6** is fully self-sovereign. Finality is determined by UTC boundaries — time itself becomes the consensus mechanism.
 
 The more evidence accumulates, the closer Ɉ approaches its definition. We never claim to arrive; we asymptotically approach.
 
@@ -68,7 +69,7 @@ Time is unique among all quantities:
 | **Measurement** | 10⁻¹⁹ precision (atomic) | Varies |
 | **Universality** | Absolute | Relative |
 
-**Time cannot be counterfeited.** Every second is physically verified by thermodynamics (irreversibility) and atomic physics (clock precision).
+**Time is physically verified.** Every second is confirmed by thermodynamics (irreversibility) and atomic physics (clock precision).
 
 ### 1.3 Purpose
 
@@ -100,14 +101,14 @@ These are not assumptions. These are **the most precisely tested facts in scienc
 
 ### 2.2 Physical Guarantees
 
-An adversary operating within known physics **cannot**:
-- Reverse time (thermodynamics)
-- Create time (conservation)
-- Signal faster than light (relativity)
-- Compute without energy (Landauer)
-- **Advance UTC** (time is universal)
+An adversary operating within known physics is **bound by**:
+- Time flows forward (thermodynamics)
+- Time is conserved (conservation)
+- Information travels at light speed maximum (relativity)
+- Computation requires energy (Landauer)
+- **UTC is universal** (time passes equally for all)
 
-The TTU's integrity degrades only if physics requires revision at protocol-relevant scales.
+TTU integrity rests on physics — the most precisely tested constraints in science.
 
 ### 2.3 Self-Sovereign Finality
 
@@ -116,11 +117,11 @@ Montana achieves finality through **UTC time boundaries** — deterministic poin
 | Property | Guarantee |
 |----------|-----------|
 | Security basis | Physical (UTC is universal) |
-| Attack cost | Cannot advance time |
-| Dependencies | None (physics only) |
+| Attack cost | Requires advancing UTC (physically bound) |
+| Dependencies | Physics only |
 | Trust model | Physics |
 
-**No hardware advantage can advance UTC. Time passes equally for all.**
+**Time passes equally for all. Hardware advantage is bounded by UTC.**
 
 ---
 
@@ -171,30 +172,53 @@ Node C (too slow):        VDF ready at 00:01:02 → misses F1 → participates i
 
 | Scenario | Old Model (VDF depth) | UTC Model |
 |----------|----------------------|-----------|
-| ASIC vs CPU | 40x advantage | No advantage |
+| ASIC vs CPU | 40× advantage | Equal (bounded by UTC) |
 | Finality time | Variable (hardware-dependent) | Fixed (1 min UTC) |
-| Attack vector | Faster VDF = more depth | None (cannot advance UTC) |
+| Attack vector | Faster VDF = more depth | Bounded by UTC (physical) |
 
 ### 3.5 Clock Security
 
-Montana relies on system UTC without external protocol-level synchronization. The ±5 second tolerance accommodates:
+**Each participant is responsible for their own time, just as they are responsible for their own private keys.**
 
-- Network propagation delay
-- Minor clock drift
-- NTP jitter
+Montana relies on system UTC. Each node uses its own clock.
 
-Nodes outside this window are not rejected by protocol — they simply fail to participate in the current finality window.
+| Responsibility | Owner | Montana's Role |
+|----------------|-------|----------------|
+| Private key | Node operator | Verify signatures |
+| System clock | Node operator | Accept ±5 seconds |
+| Network connection | Node operator | Relay messages |
 
-**Threat Model:**
+**Self-Sovereign Time:**
 
-| Attack | Target | Feasibility |
-|--------|--------|-------------|
-| Attack network time | All nodes | Impossible (UTC is physical) |
-| Attack individual node | Single node | Requires OS compromise |
+| Property | Guarantee |
+|----------|-----------|
+| Time source | Each node's own UTC |
+| Independence | Isolated from peer influence |
+| Tolerance | ±5 seconds for propagation, drift, jitter |
 
-Clock manipulation attacks require compromising the victim's operating system time source. This is outside Montana's threat model, which assumes nodes maintain basic system integrity.
+Nodes within ±5 seconds participate in the current finality window. Nodes outside this window participate in subsequent windows.
 
-For high-value nodes, hardware security modules (HSM) with independent time sources provide additional protection.
+**±5 Second Budget:**
+
+| Factor | Allocation |
+|--------|------------|
+| Network propagation | ~2 seconds |
+| Clock drift | ~1 second |
+| NTP jitter | ~1 second |
+| Safety margin | ~1 second |
+
+**Recommendations for Full Node Operators:**
+
+| Practice | Purpose |
+|----------|---------|
+| Multiple NTP sources (3+) | Resilience |
+| NTS (NTP over TLS) | Authenticated synchronization |
+| Hardware clock monitoring | Early drift detection |
+| Isolated time source (HSM) | High-value nodes |
+
+**Principle:**
+
+Clock security = private key security. Each operator controls their own system.
 
 ---
 
@@ -204,7 +228,7 @@ For high-value nodes, hardware security modules (HSM) with independent time sour
 ┌─────────────────────────────────────────────────────────────────┐
 │  HARD FINALITY (3 minutes)                                      │
 │  3 UTC boundaries passed                                        │
-│  Attack cost: Cannot reverse UTC                                │
+│  Attack cost: Requires reversing UTC (physical)                 │
 └─────────────────────────────────────────────────────────────────┘
                               ↑
 ┌─────────────────────────────────────────────────────────────────┐
@@ -245,8 +269,8 @@ Transactions are near-instant. Finalization is deterministic.
 | Property | UTC Finality |
 |----------|--------------|
 | Security | Physical (UTC is universal) |
-| Attack cost | Impossible (cannot advance time) |
-| Dependencies | None |
+| Attack cost | Requires advancing time (physical) |
+| Dependencies | Physics only |
 | Latency | Deterministic (1/2/3 minutes) |
 
 ### 4.3 Finality Checkpoint Structure
@@ -278,30 +302,54 @@ Partition A (60% nodes)     Partition B (40% nodes)
                Fork choice
 ```
 
-**Fork Choice Rule:** Heaviest checkpoint wins.
+**Fork Choice Rule:** Cascade tiebreakers — each level has semantic meaning.
 
 ```python
 def resolve_checkpoint_conflict(cp_a, cp_b):
-    # Same UTC boundary
     assert cp_a.utc_timestamp == cp_b.utc_timestamp
 
-    # Weight = number of valid heartbeats
+    # 1. More participants → larger active network
     if len(cp_a.heartbeats) != len(cp_b.heartbeats):
         return max(cp_a, cp_b, key=lambda c: len(c.heartbeats))
 
-    # Tiebreaker: lexicographically smaller hash
+    # 2. More VDF iterations → more proven time
+    vdf_a = sum(h.vdf_iterations for h in cp_a.heartbeats)
+    vdf_b = sum(h.vdf_iterations for h in cp_b.heartbeats)
+    if vdf_a != vdf_b:
+        return cp_a if vdf_a > vdf_b else cp_b
+
+    # 3. Higher aggregate score → more reliable participants
+    score_a = sum(h.participant_score for h in cp_a.heartbeats)
+    score_b = sum(h.participant_score for h in cp_b.heartbeats)
+    if score_a != score_b:
+        return cp_a if score_a > score_b else cp_b
+
+    # 4. Hash — only if ALL equal (astronomically rare)
     return min(cp_a, cp_b, key=lambda c: c.hash)
 ```
 
+**Cascade Logic:**
+
+| Level | Criterion | Semantic |
+|-------|-----------|----------|
+| 1 | Heartbeats count | Active network size |
+| 2 | Σ VDF iterations | Total proven time |
+| 3 | Σ participant scores | Participant reliability (√heartbeats history) |
+| 4 | Hash | Deterministic last resort |
+
+Level 4 is reached only with perfect 50/50, identical participants, identical VDF. Probability → 0.
+
 **Consequences:**
-- Transactions in smaller partition are NOT lost (DAG merge preserves blocks)
+- Transactions in smaller partition are preserved (DAG merge includes all blocks)
 - Finality in smaller partition rolls back to reconnection point
 - Heartbeats count after merge
 
 | Scenario | Outcome |
 |----------|---------|
-| 60/40 split | Majority checkpoint canonical |
-| 50/50 split | Smaller hash wins (deterministic) |
+| 60/40 split | Majority checkpoint canonical (Level 1) |
+| 50/50 different VDF | Higher total VDF wins (Level 2) |
+| 50/50 same VDF | Higher aggregate score wins (Level 3) |
+| Perfect tie | Smaller hash wins (Level 4, astronomically rare) |
 | Brief partition | Minimal impact (few checkpoints affected) |
 
 ---
@@ -334,7 +382,7 @@ FOUNDER_UNITS = 0
 RESERVED_UNITS = 0
 ```
 
-All TTUs distributed through participation. No one starts with an advantage.
+All TTUs distributed through participation. Everyone starts equal.
 
 ---
 
@@ -344,7 +392,7 @@ All TTUs distributed through participation. No one starts with an advantage.
 
 | Node Type | Storage | Tier |
 |-----------|---------|------|
-| **Full Node** | Full blockchain history (downloads all) | Tier 1 |
+| **Full Node** | Full timechain history (downloads all) | Tier 1 |
 | **Light Node** | From connection moment only (mandatory) | Tier 2 |
 
 ### 6.2 Participation Tiers (3 only)
@@ -362,7 +410,7 @@ All TTUs distributed through participation. No one starts with an advantage.
 
 ### 6.3 Light Clients and Mass Adoption
 
-Tier 2 and Tier 3 provide **barrier-free access** to time unit distribution through lightweight clients. Montana does not depend on any specific platform — it uses existing messaging and app platforms as distribution channels.
+Tier 2 and Tier 3 provide **barrier-free access** to time unit distribution through lightweight clients. Montana uses any platform — existing messaging and app platforms serve as distribution channels.
 
 **Supported Light Client Platforms:**
 
@@ -383,7 +431,7 @@ Tier 2 and Tier 3 provide **barrier-free access** to time unit distribution thro
 
 3. **Safe Scaling:** Tier 2+3 receive only 30% of lottery weight combined. This allows millions of participants without risk of network influence.
 
-4. **No Sybil Advantage:** Creating multiple identities does not create more time. Each participant receives the same seconds per day regardless of account count.
+4. **Sybil Resistance:** Multiple identities share the same time allocation. Each participant receives equal seconds per day regardless of account count.
 
 ```
 Why 70/20/10 distribution?
@@ -403,12 +451,56 @@ Billionaire with 1000 accounts:  24 hours/day
 Student with 1 account:          24 hours/day
 Server farm with 10000 bots:     24 hours/day
 
-No one can purchase more time.
-No one can accelerate time.
-Competition is healthy — the arbiter is physics.
+Time is equal for all.
+Time flows at one speed.
+Competition is fair — the arbiter is physics.
 ```
 
-### 6.4 Heartbeat
+### 6.4 Light Client Security
+
+**Authenticity verification:** Protocol verifies cryptography. Source is irrelevant.
+
+```python
+# Every heartbeat contains:
+@dataclass
+class LightHeartbeat:
+    pubkey: PublicKey           # SPHINCS+ public key (user owns private key)
+    timestamp_ms: int           # Within ±5 seconds of UTC
+    signature: Signature        # SPHINCS+ signature (17,088 bytes)
+
+# Verification:
+def verify_heartbeat(hb: LightHeartbeat) -> bool:
+    return sphincs_verify(hb.pubkey, hb.timestamp_ms, hb.signature)
+```
+
+**Sybil resistance through tier weights:**
+
+| Scenario | Lottery allocation |
+|----------|-------------------|
+| 1,000,000 Telegram accounts | Share 10% total weight |
+| Each account | 0.00001% chance |
+| 1 Full Node | 7% chance (700,000× more) |
+
+**Private key ownership guarantees authenticity:**
+
+```
+User owns private key → user signs heartbeat
+Bot operator receives signed messages only
+Heartbeat authenticity = valid SPHINCS+ signature
+```
+
+**Security model:**
+
+| Layer | Guarantee |
+|-------|-----------|
+| Tier weights (70/20/10) | Light Client influence capped at 30% |
+| SPHINCS+ signatures | Cryptographic authenticity |
+| One heartbeat per key per minute | Rate limiting |
+| Private key ownership | Owner exclusivity |
+
+Protocol is source-agnostic. Telegram, Discord, direct TCP — all equivalent. Valid signature = valid heartbeat.
+
+### 6.5 Heartbeat
 
 A **heartbeat** proves temporal presence within a finality window:
 
@@ -422,7 +514,7 @@ Full Heartbeat (Tier 1):       Light Heartbeat (Tier 2/3):
 
 Heartbeats must arrive before UTC boundary to be included in finality checkpoint.
 
-### 6.5 Score
+### 6.6 Score
 
 ```
 Score = √(heartbeats)
@@ -434,49 +526,84 @@ Square root provides diminishing returns and Sybil resistance.
 
 ## 7. Technical
 
-### 7.1 Post-Quantum Cryptography
+### 7.1 Cryptography
 
-| Function | Primitive | Standard |
-|----------|-----------|----------|
-| Signatures | SPHINCS+-SHAKE-128f | NIST FIPS 205 |
-| Key Exchange | ML-KEM-768 | NIST FIPS 203 |
-| Hashing | SHA3-256, SHAKE256 | NIST FIPS 202 |
+| Function | Primitive | Standard | Security Type |
+|----------|-----------|----------|---------------|
+| Signatures | SPHINCS+-SHAKE-128f | NIST FIPS 205 | Post-quantum |
+| Key Exchange | ML-KEM-768 | NIST FIPS 203 | Post-quantum |
+| Hashing | SHA3-256 | NIST FIPS 202 | Post-quantum |
+| VDF | Class Group | Wesolowski 2019 | Type B |
 
-### 7.2 Sequential Hash Chain
+### 7.2 Verifiable Delay Function
 
-Montana uses a **sequential hash chain** for temporal proof:
+Montana uses **Class Group VDF** for temporal proof — Type B security with mathematical guarantees.
 
 ```
-H^T(input) = SHAKE256(SHAKE256(...SHAKE256(input)...))
-                                      ^ T iterations
+VDF: G × T → G × π
 
-T = 2²⁴ iterations
-Purpose: Proof of participation (not speed competition)
-Verification: STARK proofs (O(log T))
+Input:  g ∈ Class Group of imaginary quadratic field
+Output: g^(2^T), proof π
+T = 2²⁴ sequential squarings
+
+Verification: O(log T) using Wesolowski proof
 ```
 
-**Terminology Note:** This is not a classical VDF in the Boneh et al. (2018) sense. Classical VDFs use algebraic structures (RSA groups, class groups) that provide mathematical sequentiality guarantees through group-theoretic properties.
+**Class Group VDF Properties:**
 
-Montana's construction is a sequential hash chain:
+| Property | Guarantee |
+|----------|-----------|
+| Sequentiality | Mathematical (group structure requires sequential computation) |
+| Security | Type B (reduction to class group order problem) |
+| Trusted setup | None required (class groups are parameter-free) |
+| Verification | O(log T) — efficient for any verifier |
 
-| Property | Classical VDF (RSA/Class Groups) | Montana (SHAKE256 Chain) |
-|----------|----------------------------------|--------------------------|
-| Sequentiality basis | Mathematical (group structure) | Empirical (no shortcut known) |
-| Security type | Type B (reduction to group problem) | Type C (empirical, 10+ years) |
-| Shortcut | Provably requires group computation | Unknown but theoretically possible |
-| Quantum status | Vulnerable (Shor's algorithm) | Resistant (Grover only) |
+**UTC Model and Quantum Computers:**
 
-**Why sequential hash chain?**
+Class Group VDF is vulnerable to Shor's algorithm on quantum computers. Montana's UTC finality model makes this irrelevant:
 
-1. **Post-quantum:** SHAKE256 has no known quantum speedup beyond Grover (√T).
-2. **Simplicity:** No trusted setup, no complex group operations.
-3. **Empirical security:** No shortcut for iterated hashing found in 20+ years.
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                UTC BOUNDARY = PHYSICAL EQUALIZER                 │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Classical node:     VDF in 30 sec → wait 30 sec → 1 heartbeat  │
+│  Quantum attacker:   VDF in 0.001 sec → wait 59.999 sec → 1 heartbeat
+│                                                                  │
+│  Result: Both receive exactly ONE heartbeat per finality window │
+│                                                                  │
+│  Quantum speedup on VDF = longer waiting time                   │
+│  UTC boundary is the rate limiter, VDF speed is irrelevant      │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-**Honest acknowledgment:** If internal structure of SHAKE256 is discovered that allows computing H^T(x) faster than T sequential evaluations, the sequential property would be compromised. This is Type C (empirical) security, not Type A (proven) or Type B (reduction-based).
+**Security Analysis:**
 
-Montana accepts this tradeoff for post-quantum security and simplicity. The construction remains secure as long as SHAKE256 admits no iteration shortcut — an empirically verified property.
+| Attacker | VDF Computation | Heartbeats per Minute | Advantage |
+|----------|-----------------|----------------------|-----------|
+| Classical CPU | 30 seconds | 1 | Baseline |
+| ASIC | 5 seconds | 1 | None (waits for UTC) |
+| Quantum computer | 0.001 seconds | 1 | None (waits for UTC) |
 
-Hash chain must complete before UTC boundary. Hardware that completes faster simply waits.
+VDF proves participation eligibility within a finality window. The physical constraint is time itself — UTC boundaries pass at the same rate for all computers.
+
+**Type B Security:**
+
+```
+Security reduction:
+  "VDF shortcut exists" → "Class group order can be computed efficiently"
+
+Class group order problem:
+  Given discriminant Δ, compute |Cl(Δ)|
+
+Status: Hard problem for 40+ years
+  - Related to factoring
+  - Best algorithms: subexponential
+  - Quantum: Shor applies, but UTC neutralizes
+```
+
+VDF computation must complete before UTC boundary. Faster hardware simply waits longer.
 
 ### 7.3 DAG Structure
 
@@ -550,7 +677,7 @@ Every claim is typed. This is epistemic honesty.
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Montana v3.5 — Timechain:** Fully self-sovereign. No external dependencies.
+**Montana v3.6 — Timechain:** Fully self-sovereign. No external dependencies.
 
 ---
 
@@ -583,7 +710,9 @@ Like SI units define physical quantities through fundamental constants:
 - Marshall et al. (2025) — Atomic clocks 5.5×10⁻¹⁹
 - NIST FIPS 203/204/205 (2024) — Post-quantum cryptography
 - Sompolinsky, Zohar (2018) — PHANTOM
-- Boneh et al. (2018) — VDF
+- Boneh et al. (2018) — Verifiable Delay Functions
+- Wesolowski (2019) — Efficient VDF from Class Groups
+- Buchmann, Williams (1988) — Class Group Computation
 - ATC v10 — Layers -1, 0, 1, 2
 
 ---
@@ -611,8 +740,10 @@ TIER_3_WEIGHT = 0.10         # TG Community users → 10%
 TIME_TOLERANCE_SEC = 5       # ±5 seconds UTC tolerance
 FINALITY_INTERVAL_SEC = 60   # 1 minute
 
-# VDF (proof of participation)
-VDF_ITERATIONS = 16_777_216  # 2^24
+# VDF (Class Group, Type B security)
+VDF_TYPE = "class_group"     # Wesolowski 2019
+VDF_ITERATIONS = 16_777_216  # 2^24 sequential squarings
+VDF_DISCRIMINANT_BITS = 2048 # Security parameter
 
 # Finality (UTC boundaries)
 FINALITY_SOFT = 1            # 1 boundary (1 minute)

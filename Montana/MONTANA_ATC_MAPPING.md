@@ -1,6 +1,6 @@
-# Ɉ Montana ↔ ATC Layer Mapping
+# Ɉ Montana: Temporal Time Unit ↔ ATC Layer Mapping
 
-**Ɉ Montana Version:** 3.5
+**Ɉ Montana Version:** 3.6
 **Ticker:** $MONT
 **Architecture:** Timechain
 **ATC Version:** 10.0 (L-1 v2.1, L0 v1.0, L1 v1.1, L2 v1.0)
@@ -9,13 +9,15 @@
 
 ## Overview
 
-**Ɉ Montana** is a mechanism for asymptotic trust in the value of time.
+**Ɉ** (inverted t) is a Temporal Time Unit. **Montana** is the Timechain that produces it.
 
-**Ɉ** is a Temporal Time Unit (TTU): lim(evidence → ∞) 1 Ɉ → 1 second
+```
+lim(evidence → ∞) 1 Ɉ → 1 second
+```
 
-**Montana is a Timechain** — not a blockchain. Chains time, secured by physics.
+**Timechain:** chain of time, bounded by physics.
 
-**v3.5:** Timechain architecture, UTC finality, ±5s tolerance, platform-independent light clients.
+**v3.6:** Timechain architecture, UTC finality, ±5s tolerance, platform-independent light clients.
 
 This document maps Ɉ Montana components to their foundational ATC layers, showing exactly which constraints and primitives the mechanism relies upon.
 
@@ -36,14 +38,14 @@ Montana relies on these L-1 physical constraints:
 
 ```python
 # Montana core assumption
-# SHAKE256 iteration is sequential - no algorithm computes
-# H^T(x) faster than T sequential evaluations
+# Class Group squaring is sequential - no algorithm computes
+# g^(2^T) faster than T sequential squarings
 
 # Maps to L-1: Physical constraint that time is sequential
 # Computation must happen step-by-step
 ```
 
-**Type:** Physical (Type P) + Empirical (Type C)
+**Type:** Physical (Type P) + Mathematical (Type B)
 
 ---
 
@@ -53,11 +55,12 @@ Montana relies on these L0 computational primitives:
 
 | L0 Primitive | Montana Usage | Type |
 |--------------|---------------|------|
-| **L-0.3.3** SHA-3 | sha3_256 for hashing, SHAKE256 for VDF | Type C |
+| **L-0.3.3** SHA-3 | sha3_256 for hashing | Type C |
 | **L-0.4.2** ML-KEM-768 | Key encapsulation | Type B |
 | **L-0.4.4** SPHINCS+-SHAKE-128f | Transaction/heartbeat signatures | Type C |
 | **L-0.3.2** HMAC (PRF) | Key derivation | Type B |
 | **L-0.2.1** Birthday Bound | Ring signature security | Type A |
+| **Class Groups** | VDF sequential computation | Type B |
 
 ### Montana Cryptography → L0
 
@@ -66,7 +69,7 @@ Montana relies on these L0 computational primitives:
 SIGNATURE_SCHEME = "SPHINCS+-SHAKE-128f"  # L-0.4.4
 KEY_ENCAPSULATION = "ML-KEM-768"          # L-0.4.2
 HASH_FUNCTION = "SHA3-256"                # L-0.3.3
-VDF_HASH = "SHAKE256"                     # L-0.3.3
+VDF_TYPE = "class_group"                  # Wesolowski 2019
 ```
 
 **Post-Quantum Status:** Montana is post-quantum secure from day one, using NIST FIPS 203/204/205 standards.
@@ -79,34 +82,43 @@ Montana uses these L1 primitives:
 
 | L1 Primitive | Montana Implementation | Section |
 |--------------|------------------------|---------|
-| **L-1.1** VDF | SHAKE256 hash chain, T = 2²⁴ base | §5 |
+| **L-1.1** VDF | Class Group VDF (Wesolowski 2019), T = 2²⁴ base | §5 |
 | **L-1.2** VRF | ECVRF for eligibility | §10 |
 | **L-1.3** Commitment | Pedersen (privacy), Hash (general) | §14 |
 | **L-1.4** Timestamp | Linked timestamps with VDF chain | §7 |
 | **L-1.5** Ordering | DAG-PHANTOM | §10 |
 
-### Montana Sequential Hash Chain → L-1.1
+### Montana Class Group VDF → L-1.1
 
-**TERMINOLOGY NOTE:** Montana does NOT use a classical VDF in the Boneh et al. (2018) sense. Classical VDFs use algebraic structures (RSA groups, class groups) with mathematical sequentiality guarantees. Montana uses a sequential hash chain with empirical (Type C) sequentiality.
+Montana uses Class Group VDF with Wesolowski proofs (Wesolowski 2019).
 
-| Property | Classical VDF (RSA/Class Groups) | Montana (SHAKE256 Chain) |
-|----------|----------------------------------|--------------------------|
-| Sequentiality basis | Mathematical (group structure) | Empirical (no shortcut known) |
-| Security type | Type B (reduction to group problem) | Type C (empirical, 10+ years) |
-| Shortcut | Provably requires group computation | Unknown but theoretically possible |
-| Quantum status | Vulnerable (Shor's algorithm) | Resistant (Grover √T only) |
+| Property | Montana (Class Group VDF) |
+|----------|---------------------------|
+| Construction | Wesolowski 2019 |
+| Sequentiality basis | Mathematical (group structure) |
+| Security type | Type B (reduction to class group order problem) |
+| Proof size | ~256 bytes |
+| Verification | O(log T) |
+| Trusted setup | None required |
+
+**UTC Quantum Neutralization:**
+- Class Group VDF is vulnerable to Shor's algorithm
+- Montana's UTC finality model makes quantum speedup irrelevant
+- Quantum attacker computes VDF in 0.001 sec → waits 59.999 sec → 1 heartbeat
+- Classical node computes VDF in 30 sec → waits 30 sec → 1 heartbeat
+- UTC boundary is the rate limiter, VDF speed provides no advantage
 
 ```python
-# Montana sequential hash chain parameters
-HASH_CHAIN_FUNCTION = "SHAKE256"
-HASH_CHAIN_BASE_ITERATIONS = 16777216  # 2²⁴ (~2.5 seconds)
-HASH_CHAIN_STARK_CHECKPOINT_INTERVAL = 1000
+# Montana Class Group VDF parameters
+VDF_TYPE = "class_group"                  # Wesolowski construction
+VDF_BASE_ITERATIONS = 16777216            # 2²⁴ sequential squarings
+VDF_DISCRIMINANT_BITS = 2048              # Security parameter for Δ
+VDF_CHALLENGE_BITS = 128                  # Wesolowski challenge size
 
-# Maps to L-1.1.4: SHAKE256 Hash Chain
-# Security: Type C (empirical) — NOT Type B (reduction-based)
-# Property: Sequential computation (empirical, no shortcut known)
-# Honest acknowledgment: Shortcuts theoretically possible if
-# SHAKE256 internal structure is discovered
+# Maps to L-1.1: Class Group VDF
+# Security: Type B (mathematical reduction to class group order problem)
+# Verification: O(log T) via Wesolowski proof
+# Proof: ~256 bytes, no trusted setup
 ```
 
 ### Montana VRF → L-1.2
@@ -174,8 +186,8 @@ Montana UTC Finality (Self-Sovereign):
    └─ Maps to L-2.6.3: Time-based finality
    └─ Type: P (physical)
 
-Attack cost: Cannot advance UTC. Time is physical.
-Hardware provides NO advantage — fast nodes wait for boundary.
+Attack cost: Requires advancing UTC. Time is physical.
+Hardware advantage bounded by UTC — fast nodes wait for boundary.
 Time tolerance: ±5 seconds (covers propagation, drift, jitter).
 ```
 
@@ -217,8 +229,8 @@ Montana uses these L-2.7 composition patterns:
 
 | Montana Component | Primary Type | Notes |
 |-------------------|--------------|-------|
-| VDF sequentiality | Type P + C | Physical + empirical |
-| VDF computation | Type P + C | Physical + empirical |
+| VDF sequentiality | Type P + B | Physical + mathematical |
+| VDF computation | Type P + B | Physical + mathematical |
 | Accumulated finality | Type P | Physical (sequential time) |
 | ECVRF eligibility | Type C | Pre-quantum empirical |
 | SPHINCS+ signatures | Type C (L0) | 10+ years empirical |
@@ -265,12 +277,13 @@ To verify Montana compliance with ATC:
    ✓ No FTL assumptions
 
 2. Computational constraints (L0):
-   ✓ SHA-3/SHAKE256 for hashing
+   ✓ SHA-3 for hashing
    ✓ SPHINCS+ for signatures
    ✓ ML-KEM for encryption
+   ✓ Class Group VDF (Type B security)
 
 3. Primitive security (L1):
-   ✓ VDF sequentiality preserved
+   ✓ VDF sequentiality preserved (Class Group, Type B)
    ⚠ VRF uniqueness (ECVRF) — quantum-vulnerable, upgrade path defined
    ✓ Commitment binding (hash-based: PQ-safe; Pedersen: hiding only)
 
@@ -279,18 +292,18 @@ To verify Montana compliance with ATC:
    ✓ Liveness: After GST
    ✓ Finality: Accumulated VDF (self-sovereign)
 
-→ Montana v3.5 COMPLIES with ATC v10
-→ Montana v3.5 is a TIMECHAIN (not blockchain)
-→ Montana v3.5 is SELF-SOVEREIGN (no external dependencies)
-→ Montana v3.5 uses UTC finality with ±5 second tolerance
-→ Montana v3.5 platform-independent light clients
+→ Montana v3.6 COMPLIES with ATC v10
+→ Montana v3.6 is a TIMECHAIN
+→ Montana v3.6 is SELF-SOVEREIGN
+→ Montana v3.6 uses UTC finality with ±5 second tolerance
+→ Montana v3.6 platform-independent light clients
 ```
 
 ---
 
 ## References
 
-- Montana Technical Specification v3.5
+- Montana Technical Specification v3.6
 - ATC Layer -1 v2.1
 - ATC Layer 0 v1.0
 - ATC Layer 1 v1.1
@@ -300,4 +313,4 @@ To verify Montana compliance with ATC:
 
 *This mapping enables verification that Montana correctly inherits ATC layer guarantees and does not assume stronger properties than lower layers provide.*
 
-*Montana v3.5: Timechain — self-sovereign UTC finality through physics.*
+*Montana v3.6: Timechain — self-sovereign UTC finality through physics.*

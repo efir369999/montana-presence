@@ -1,5 +1,5 @@
 """
-Ɉ Montana v3.1 — Mechanism for asymptotic trust in the value of time.
+Ɉ Montana v3.6 — Mechanism for asymptotic trust in the value of time.
 
 lim(evidence → ∞) 1 Ɉ → 1 second
 
@@ -8,8 +8,8 @@ Built on ATC Layer 3+.
 Bootstrap server: 176.124.208.93:19656
 """
 
-__version__ = "0.1.0"
-__protocol_version__ = 8
+__version__ = "3.6.0"
+__protocol_version__ = 9
 
 from montana.constants import (
     PROJECT,

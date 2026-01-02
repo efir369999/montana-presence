@@ -59,7 +59,7 @@ class FullNode:
     Full Node (Type 1) implementation.
 
     Capabilities:
-    - Full blockchain history
+    - Full timechain history
     - VDF computation and verification
     - Block production
     - Heartbeat generation

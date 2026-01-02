@@ -51,9 +51,8 @@ class LightNode:
     - SPV verification
 
     From §1.3.1:
-    "Light Nodes connect to existing Full Nodes and do not maintain
-    full blockchain history. They can participate through heartbeats
-    but at a lower tier."
+    "Light Nodes connect to existing Full Nodes, storing history from
+    connection point only. They participate through heartbeats at Tier 2."
     """
 
     def __init__(

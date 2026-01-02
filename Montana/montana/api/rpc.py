@@ -67,7 +67,7 @@ class RPCServer:
 
     Provides API endpoints for:
     - Node status
-    - Blockchain queries
+    - Timechain queries
     - Transaction submission
     - Account information
     """

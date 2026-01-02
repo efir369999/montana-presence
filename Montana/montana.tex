@@ -26,7 +26,7 @@ x.com/tojesatoshi
 
 \vspace{12pt}
 
-\textbf{Abstract.}  A purely self-sovereign finality mechanism would allow distributed systems to achieve irreversible consensus without economic security or honest majority assumptions.  Verifiable Delay Functions provide part of the solution, but the main benefits are lost if finality still depends on accumulated computation depth, which favors specialized hardware.  We propose a solution to the finality problem using UTC time boundaries.  The result is a \textbf{Timechain}---not a blockchain.  Where blockchain chains blocks and secures them through economic incentives, Timechain chains time and secures it through physics.  The fundamental unit is not a block, but a second.  The system achieves deterministic finality at fixed intervals by treating UTC boundaries as consensus points.  VDF computation proves participation within a time window, not computation speed.  As long as nodes maintain reasonable clock accuracy, finality occurs every minute regardless of hardware capabilities.  The system requires minimal structure and no external dependencies beyond physics itself.
+\textbf{Abstract.}  A purely self-sovereign finality mechanism would allow distributed systems to achieve irreversible consensus without economic security or honest majority assumptions.  Verifiable Delay Functions provide part of the solution, but the main benefits are lost if finality still depends on accumulated computation depth, which favors specialized hardware.  We propose a solution to the finality problem using UTC time boundaries.  The result is a \textbf{Timechain}---a chain of time, bounded by physics.  The fundamental unit is a second.  The system achieves deterministic finality at fixed intervals by treating UTC boundaries as consensus points.  VDF computation proves participation within a time window, not computation speed.  As long as nodes maintain reasonable clock accuracy, finality occurs every minute regardless of hardware capabilities.  The system requires minimal structure and no external dependencies beyond physics itself.
 
 \section{Introduction}
 
@@ -36,17 +36,17 @@ The problem of course is that all these mechanisms require trust in collective b
 
 What is needed is a finality mechanism based on physical constraints instead of trust, allowing any node to verify finality independently without relying on external parties.  Time boundaries that are physically impossible to advance would protect against manipulation, and the cost of attack would be time itself.
 
-In this paper, we propose a solution using UTC time boundaries as consensus points.  Each minute boundary serves as a finality checkpoint.  Nodes prove participation through VDF computation, but hardware speed provides no advantage---fast hardware simply waits for the boundary like everyone else.  The result is a Timechain: a chain of time, secured by physics.
+In this paper, we propose a solution using UTC time boundaries as consensus points.  Each minute boundary serves as a finality checkpoint.  Nodes prove participation through VDF computation, but hardware speed provides no advantage---fast hardware simply waits for the boundary like everyone else.  The result is a Timechain: a chain of time, bounded by physics.
 
 \begin{center}
 \begin{tabular}{|l|l|}
 \hline
-\textbf{Blockchain} & \textbf{Timechain} \\
+\textbf{Property} & \textbf{Timechain} \\
 \hline
-Chain of blocks & Chain of time \\
-Secured by work or stake & Secured by physics \\
-``Who computed first is right'' & ``Time passed---this is fact'' \\
-Unit: block & Unit: second \\
+Structure & Chain of time \\
+Security & Bounded by physics \\
+Principle & ``Time passed---this is fact'' \\
+Unit & Second \\
 \hline
 \end{tabular}
 \end{center}
@@ -72,9 +72,9 @@ Protocol sync & None required \\
 
 Nodes accept blocks and heartbeats within $\pm$5 seconds of their local UTC.  This tolerance accommodates network propagation, minor drift, and NTP variance without requiring external synchronization.
 
-\section{Sequential Hash Chain}
+\section{Verifiable Delay Function}
 
-Montana uses a sequential hash chain as proof of participation in a time window---not computation speed:
+Montana uses Class Group VDF (Wesolowski 2019) as proof of participation in a time window---not computation speed:
 
 \begin{verbatim}
 Node A (fast hardware):  ready at 00:00:25 -> waits -> F1
@@ -84,15 +84,15 @@ Node C (too slow):       ready at 00:01:02 -> misses F1 -> F2
 
 Hardware advantage eliminated.  Fast hardware waits for UTC boundary like everyone else.
 
-The construction uses iterated hashing:
+The construction uses repeated squaring in class groups of imaginary quadratic fields:
 
-$$H^T(\text{input}) = \text{SHAKE256}(\text{SHAKE256}(...\text{SHAKE256}(\text{input})...))$$
+$$g^{2^T} \mod \Delta$$
 
-where $T = 2^{24}$ iterations.  Verification uses STARK proofs for $O(\log T)$ validation without recomputing $T$ iterations.
+where $T = 2^{24}$ sequential squarings and $\Delta$ is a 2048-bit discriminant.  Verification uses Wesolowski proofs for $O(\log T)$ validation without recomputing $T$ squarings.
 
-\textbf{Terminology note.}  This is not a classical VDF in the Boneh et al. sense.  Classical VDFs use algebraic structures (RSA groups, class groups) with mathematical sequentiality guarantees.  Montana's construction is a sequential hash chain with empirical (Type C) security: no shortcut for iterated SHAKE256 is known, but one is theoretically possible if internal structure is discovered.
+\textbf{Security.}  Type B (mathematical reduction to class group order problem).  Sequentiality is guaranteed by the algebraic structure of the group---computing $g^{2^T}$ requires $T$ sequential squarings.
 
-Montana accepts this tradeoff for post-quantum security.  SHAKE256 has no known quantum speedup beyond Grover's $\sqrt{T}$, while RSA-based VDFs are broken by Shor's algorithm.
+\textbf{UTC Quantum Neutralization.}  Class Group VDF is vulnerable to Shor's algorithm.  Montana's UTC finality model makes this irrelevant: quantum attacker computes VDF in 0.001 seconds, waits 59.999 seconds for UTC boundary, receives 1 heartbeat.  Classical node computes VDF in 30 seconds, waits 30 seconds, receives 1 heartbeat.  UTC boundary is the rate limiter.
 
 \section{Finality Levels}
 
@@ -191,7 +191,7 @@ Pre-allocation: 0.
 
 Two node types:
 \begin{itemize}
-\item \textbf{Full Node}: Full blockchain history, VDF computation (Tier 1)
+\item \textbf{Full Node}: Full timechain history, VDF computation (Tier 1)
 \item \textbf{Light Node}: History from connection time only (Tier 2)
 \end{itemize}
 
@@ -261,17 +261,18 @@ T3 & Full privacy & 10x \\
 
 \section{Conclusion}
 
-We have proposed a Timechain---a system where time itself is the chain, secured by physics rather than economics.  The fundamental unit is not a block, but a second.
+We have proposed a Timechain---a system where time itself is the chain, bounded by physics rather than economics.  The fundamental unit is a second.
 
 The system achieves deterministic finality at fixed intervals, eliminating hardware advantages that plague other approaches.  VDF computation proves participation within a time window, not speed.  Fast hardware provides no benefit---it simply waits for the boundary.
 
 The key insight is that no adversary can advance UTC.  Time passes equally for all participants regardless of computational resources.  This transforms finality from an economic or computational race into a physical certainty.
 
-Montana requires minimal assumptions: that nodes maintain reasonable clock accuracy (within $\pm$5 seconds), and that the hash function admits no iteration shortcut.  Both are empirically verified properties of existing systems.
+Montana requires minimal assumptions: that nodes maintain reasonable clock accuracy (within $\pm$5 seconds), and that computing $g^{2^T}$ in class groups requires $T$ sequential squarings (Type B security, reduction to class group order problem).
 
 \section*{References}
 
 \begin{enumerate}
+\item B. Wesolowski, "Efficient Verifiable Delay Functions," 2019.
 \item D. Boneh, J. Bonneau, B. B\"unz, B. Fisch, "Verifiable Delay Functions," 2018.
 \item NIST FIPS 202, "SHA-3 Standard," 2015.
 \item NIST FIPS 203, "Module-Lattice-Based Key-Encapsulation Mechanism," 2024.

@@ -18,9 +18,8 @@ ARCHITECTURE: str = "Timechain"
 DEFINITION: str = "lim(evidence → ∞) 1 Ɉ → 1 second"
 TYPE: str = "Temporal Time Unit"
 
-# Timechain vs Blockchain
-# Blockchain: chain of blocks, secured by work or stake
-# Timechain:  chain of time, secured by physics
+# Montana is a Timechain
+# Timechain:  chain of time, bounded by physics
 
 # ==============================================================================
 # SUPPLY
@@ -79,13 +78,22 @@ TIER_WEIGHTS: Dict[int, float] = {
 }
 
 # ==============================================================================
-# LAYER 0-1: VDF (Verifiable Delay Function)
+# LAYER 0-1: VDF (Class Group, Wesolowski 2019)
 # ==============================================================================
-VDF_HASH_FUNCTION: str = "SHAKE256"
-VDF_BASE_ITERATIONS: int = 16_777_216       # 2^24 (~2.5 seconds)
+# Type B security: reduction to class group order problem
+VDF_TYPE: str = "class_group"               # Wesolowski construction
+VDF_BASE_ITERATIONS: int = 16_777_216       # 2^24 sequential squarings
 VDF_MAX_ITERATIONS: int = 268_435_456       # 2^28
 VDF_MIN_ITERATIONS: int = 1_048_576         # 2^20
-VDF_STARK_CHECKPOINT_INTERVAL: int = 1000   # STARK proof every 1000 iterations
+
+# Class Group parameters
+VDF_DISCRIMINANT_BITS: int = 2048           # Security parameter for Δ
+VDF_DISCRIMINANT_PRIMALITY_TESTS: int = 64  # Miller-Rabin rounds
+VDF_CHALLENGE_BITS: int = 128               # Wesolowski challenge size
+
+# Wesolowski proof parameters
+WESOLOWSKI_HASH_TO_PRIME_ATTEMPTS: int = 1000  # Max attempts for hash-to-prime
+WESOLOWSKI_PROOF_SECURITY_BITS: int = 128      # Security level
 
 # ==============================================================================
 # LAYER 2: UTC FINALITY (v3.4)
@@ -103,6 +111,26 @@ FINALITY_HARD_BOUNDARIES: int = 3            # 3 minutes (3 boundaries)
 FINALITY_SOFT_CHECKPOINTS: int = FINALITY_SOFT_BOUNDARIES
 FINALITY_MEDIUM_CHECKPOINTS: int = FINALITY_MEDIUM_BOUNDARIES
 FINALITY_HARD_CHECKPOINTS: int = FINALITY_HARD_BOUNDARIES
+
+# ==============================================================================
+# MINIMUM VIABLE NETWORK (v3.5)
+# ==============================================================================
+# BFT threshold: n ≥ 3f+1, f=2 → n≥7 for meaningful Byzantine tolerance
+MIN_FINALITY_PARTICIPANTS: int = 7          # Minimum for meaningful BFT (f=2)
+MIN_GEOGRAPHIC_REGIONS: int = 2             # Avoid single-region failure
+MIN_AUTONOMOUS_SYSTEMS: int = 3             # Network path diversity
+MIN_FULL_NODES: int = 3                     # Minimum for checkpoint creation
+
+# Confidence thresholds
+CONFIDENCE_FULL_PARTICIPANTS: int = 21      # Production BFT (f=6)
+CONFIDENCE_FULL_REGIONS: int = 3            # Multi-region production
+CONFIDENCE_HIGH_PARTICIPANTS: int = 7       # Meaningful BFT (f=2)
+CONFIDENCE_HIGH_REGIONS: int = 2            # Multi-region minimum
+
+# Confidence level labels
+CONFIDENCE_FULL: str = "full"               # ≥21 participants, ≥3 regions
+CONFIDENCE_HIGH: str = "high"               # ≥7 participants, ≥2 regions
+CONFIDENCE_LOW: str = "low"                 # <7 participants OR <2 regions
 
 # ==============================================================================
 # SCORE SYSTEM
@@ -330,6 +358,7 @@ MAX_BLOCKS_PER_REQUEST: int = 500
 # VDF proves participation in finality window (not speed competition)
 # Hardware that completes faster simply waits for UTC boundary
 VDF_CHECKPOINT_INTERVAL_SEC: float = 60.0    # 1 minute (aligned with finality)
+VDF_CHECKPOINT_TIME_SEC: float = VDF_CHECKPOINT_INTERVAL_SEC  # Alias for compatibility
 HEARTBEAT_INTERVAL_MS: int = 60000           # 1 minute
 
 # ==============================================================================

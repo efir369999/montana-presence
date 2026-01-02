@@ -332,7 +332,7 @@ class BlockStore:
         return True
 
     async def get_height(self) -> int:
-        """Get current blockchain height."""
+        """Get current timechain height."""
         row = await self.db.fetchone("SELECT MAX(height) as height FROM blocks")
         return row["height"] if row and row["height"] is not None else -1
 

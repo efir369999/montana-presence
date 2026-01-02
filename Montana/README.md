@@ -1,8 +1,6 @@
-# Ɉ Montana
+# Ɉ Montana: Temporal Time Unit
 
-> *Mechanism for asymptotic trust in the value of time*
-
-**Version:** 3.5
+**Version:** 3.6
 **Ticker:** $MONT
 **Architecture:** Timechain
 
@@ -10,20 +8,13 @@
 
 ## What Is Ɉ Montana?
 
-**Ɉ Montana** is a mechanism for asymptotic trust in the value of time.
-
-**Ɉ** is a **Temporal Time Unit** (TTU) — a unit that asymptotically approaches:
+**Ɉ** (inverted t) is a Temporal Time Unit. **Montana** is the Timechain that produces it.
 
 ```
 lim(evidence → ∞) 1 Ɉ → 1 second
 ```
 
-**Montana is a Timechain** — not a blockchain.
-
-```
-Blockchain:  chain of blocks, secured by work or stake
-Timechain:   chain of time, secured by physics
-```
+**Timechain:** chain of time, bounded by physics. "Time passed — this is fact."
 
 Montana builds trust through **Asymptotic Trust Consensus** (ATC):
 - Physical constraints (thermodynamics, sequentiality)
@@ -31,7 +22,7 @@ Montana builds trust through **Asymptotic Trust Consensus** (ATC):
 - Protocol primitives (VDF, VRF)
 - Consensus mechanisms (DAG, UTC finality)
 
-**v3.5:** Timechain architecture, UTC finality, ±5s tolerance, platform-independent light clients.
+**v3.6:** Timechain architecture, UTC finality, ±5s tolerance, platform-independent light clients.
 
 ---
 
@@ -52,7 +43,7 @@ Total: 1,260,000,000 Ɉ ≈ 21 million minutes
 
 | Layer | Method | Guarantee |
 |-------|--------|-----------|
-| **VDF** | Sequential computation | Cannot accelerate |
+| **VDF** | Sequential computation | Bounded by physics |
 | **Finality** | Accumulated VDF depth | Physics-based (self-sovereign) |
 
 ---
@@ -67,7 +58,7 @@ Medium Finality (2 min)  → 2 UTC boundaries passed
 Soft Finality (1 min)    → 1 UTC boundary passed
 ```
 
-**Attack cost:** Cannot advance UTC. Time is physical.
+**Attack cost:** Requires advancing UTC. Time is physical.
 
 Finality at UTC boundaries (00:00, 00:01, ...). No hardware advantage.
 
@@ -78,7 +69,7 @@ Finality at UTC boundaries (00:00, 00:01, ...). No hardware advantage.
 **Node Types:**
 | Type | Storage | Tier |
 |------|---------|------|
-| **Full Node** | Full blockchain history | Tier 1 |
+| **Full Node** | Full timechain history | Tier 1 |
 | **Light Node** | From connection only | Tier 2 |
 
 **Tiers:**
