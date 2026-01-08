@@ -81,7 +81,7 @@ Traditional Cryptography:          ATC Architecture:
 ┌─────────────────────────────────────────────────────────────────┐
 │  Layer 1: Protocol Primitives                        v1.1      │
 │  ─────────────────────────────────────────────────────────────  │
-│  What is BUILDABLE: VDF, VRF, Commitment, Timestamp, Ordering  │
+│  What is BUILDABLE: Commitment, Timestamp, Ordering, Lottery   │
 │  Types: A/B/C/P (inherited) + S (composition) + I (impl)       │
 └─────────────────────────────────────────────────────────────────┘
                               ↑ builds on
@@ -164,11 +164,10 @@ An adversary unconstrained by physics could:
 
 | Primitive | Description | PQ Status |
 |-----------|-------------|-----------|
-| VDF | Verifiable Delay Functions | Hash-based: Secure |
-| VRF | Verifiable Random Functions | Lattice: Secure |
 | Commitment | Hide-then-reveal schemes | Hash-based: Secure |
 | Timestamp | Temporal existence proofs | Hash-based: Secure |
 | Ordering | Event sequencing (Lamport, DAG) | Math only (no crypto) |
+| Lottery | Deterministic hash-based selection | Hash-based: Secure |
 
 **Types:** A/B/C/P (inherited) + S (composition) + I (implementation)
 
@@ -345,9 +344,8 @@ C O N S E N S U S
 - Regev (2005) — Lattice cryptography
 
 **Protocol Primitives (Layer 1):**
-- Boneh et al. (2018) — Verifiable Delay Functions
-- Micali et al. (1999) — Verifiable Random Functions
 - Lamport (1978) — Time, Clocks, and Ordering
+- Pedersen (1991) — Commitment schemes
 
 **Consensus Protocols (Layer 2):**
 - Lamport, Shostak, Pease (1982) — Byzantine Generals
