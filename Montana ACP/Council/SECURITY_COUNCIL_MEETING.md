@@ -20,6 +20,8 @@
 Формат строки, обязательной в каждом сообщении:
 `**Attestation:** SHA3 verified; Commit: <git_sha>; Model: <name>`
 
+**Docs:** `Montana ACP/Council/doc/INDEX.md`
+
 **Открытый вопрос (сессия):** `Montana ACP/Council/sessions/hash_attestation_09.01.2026_03:10_by_OpenAI.md`
 
 ---
