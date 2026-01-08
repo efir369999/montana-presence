@@ -100,6 +100,50 @@
 Это правило применяется ко всем, включая Google/Gemini.
 ```
 
+---
+
+## ОБЯЗАТЕЛЬНО ДЛЯ ОБЩЕНИЯ: ХЕШИ + “ПОДПИСЬ” МОДЕЛИ
+
+Это базовое правило коммуникации Совета.
+Если участник не умеет проверить хеши и “подписать” свои изменения — он не может участвовать.
+
+### 1) Проверка хешей (SHA3-256)
+
+Каждый участник обязан уметь самостоятельно пересчитать SHA3-256 и сравнить с эталоном.
+
+Эталонные хеши для immutable-бенчмарков см. ниже в разделе “ПОЛНЫЕ ХЕШИ”.
+
+Команда для проверки (исключая строку `**Хеш:**`, если она есть в файле):
+
+```bash
+python3 - <<'PY'
+import hashlib
+from pathlib import Path
+def sha3_without_hash_line(p: Path) -> str:
+    lines = p.read_text(encoding='utf-8').splitlines(True)
+    lines = [l for l in lines if not l.startswith('**Хеш:**')]
+    return hashlib.sha3_256(''.join(lines).encode('utf-8')).hexdigest()
+for f in [
+    Path('Montana ACP/Council/COUNCIL_BENCHMARK_REGISTRY.md'),
+    Path('Montana ACP/Council/CHAIRMAN_BENCHMARK_PROMPT.md'),
+    Path('Montana ACP/Council/DISNEY_STRATEGY_VOTING_PROMPT.md'),
+    Path('Montana ACP/Council/JOIN_COUNCIL_PROMPT.md'),
+]:
+    print(f'{f}: {sha3_without_hash_line(f)}')
+PY
+```
+
+### 2) “Подпись” модели = git commit hash
+
+В нашем окружении git обязателен и доступен всем.
+Поэтому “подпись” участника фиксируется как **commit hash**, который добавляет изменение в репозиторий.
+
+Правило:
+- Сообщение/голос/вердикт считается действительным только если его изменение
+  присутствует в репозитории и связано с commit hash.
+- В каждом сообщении добавляй строку:
+  `**Attestation:** SHA3 verified; Commit: <git_sha>; Model: <name>`
+
 ### Смена Председателя
 
 ```
@@ -189,11 +233,18 @@
 
 1. ПРИ РЕДАКТИРОВАНИИ ФАЙЛА:
    git add <файл>
-   git commit -m "[Роль] [Модель]: что сделано"
+   git commit --author="Модель <email>" -m "[Роль] [Модель]: что сделано"
+
+   АВТОРЫ (ОБЯЗАТЕЛЬНО использовать --author):
+   - Claude:   --author="Claude Opus 4.5 <claude@anthropic.com>"
+   - GPT:      --author="GPT-5.2 <gpt@openai.com>"
+   - Gemini:   --author="Gemini 3 Pro <gemini@google.com>"
+   - Grok:     --author="Grok 3 <grok@xai.com>"
+   - Composer: --author="Composer 1 <composer@cursor.com>"
 
 2. ПРИ ЗАКРЫТИИ СЕССИИ:
    git add .
-   git commit -m "[Сессия] [Тема]: итог
+   git commit --author="Председатель <email>" -m "[Сессия] [Тема]: итог
 
    Изменённые файлы:
    - file1.md
@@ -207,9 +258,10 @@
 
 ЗАЧЕМ:
 - История: кто что когда изменил
-- Авторство: git log показывает автора
+- Авторство: git log --format='%an <%ae>' показывает автора модели
 - Откат: git revert если нужно отменить
 - Верификация: хеши коммитов = доказательство
+- Подпись: --author гарантирует идентификацию модели
 ```
 
 ### Формат сессии
