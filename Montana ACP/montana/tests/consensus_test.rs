@@ -1,8 +1,9 @@
 //! Unit tests for consensus module
 //!
-//! NOTE: Lottery implementation was removed (grinding vulnerability).
-//! These tests verify only the constants until lottery is reimplemented
-//! with correct seed = SHA3(prev_slice_hash ‖ τ₂_index) formula.
+//! Architecture: 80% Full Node + 20% Verified User
+//!
+//! Full Nodes: servers running 24/7, automatic presence every τ₁
+//! Verified Users: mobile wallets with FIDO2/WebAuthn biometric attestation
 
 use montana::{
     GRACE_PERIOD_SECS, SLOTS_PER_TAU2, SLOT_DURATION_SECS,
@@ -19,16 +20,15 @@ fn test_consensus_constants() {
     assert_eq!(SLOTS_PER_TAU2, 10);
     assert_eq!(SLOT_DURATION_SECS, 60);
 
-    // Tier caps must sum to 100%
-    assert_eq!(
-        FULL_NODE_CAP_PERCENT + LIGHT_NODE_CAP_PERCENT + LIGHT_CLIENT_CAP_PERCENT,
-        100
-    );
+    // New 80/20 architecture
+    assert_eq!(FULL_NODE_CAP_PERCENT, 80);
 
-    // Full nodes get majority but not all
-    assert_eq!(FULL_NODE_CAP_PERCENT, 70);
-    assert_eq!(LIGHT_NODE_CAP_PERCENT, 20);
-    assert_eq!(LIGHT_CLIENT_CAP_PERCENT, 10);
+    // Legacy constants for backwards compatibility (Verified User = Light Node)
+    assert_eq!(LIGHT_NODE_CAP_PERCENT, 20);   // = VERIFIED_USER_CAP_PERCENT
+    assert_eq!(LIGHT_CLIENT_CAP_PERCENT, 0);  // Removed tier
+
+    // Tier caps sum to 100%
+    assert_eq!(FULL_NODE_CAP_PERCENT + LIGHT_NODE_CAP_PERCENT, 100);
 
     // Precision for weight calculations
     assert_eq!(LOTTERY_PRECISION, 1_000_000);
@@ -36,21 +36,18 @@ fn test_consensus_constants() {
 
 #[test]
 fn test_tier_caps_prevent_centralization() {
-    // Even if Full Nodes have 95% of raw weight, they can only win 70% of lotteries
-    // This test documents the design intent
+    // Even if Full Nodes have 95% of raw weight, they can only win 80% of lotteries
+    // Verified Users always get 20% — humans control decentralization
 
     let full_raw_weight: u64 = 95_000_000;
-    let light_raw_weight: u64 = 4_000_000;
-    let client_raw_weight: u64 = 1_000_000;
-    let _total_raw = full_raw_weight + light_raw_weight + client_raw_weight;
+    let verified_user_raw_weight: u64 = 5_000_000;
+    let _total_raw = full_raw_weight + verified_user_raw_weight;
 
-    // Full nodes: 95% raw → 70% effective (capped)
-    // Light nodes: 4% raw → 20% effective (boosted)
-    // Clients: 1% raw → 10% effective (boosted)
+    // Full nodes: 95% raw → 80% effective (capped)
+    // Verified users: 5% raw → 20% effective (boosted)
 
-    // Total effective must equal 100%
-    assert_eq!(
-        FULL_NODE_CAP_PERCENT + LIGHT_NODE_CAP_PERCENT + LIGHT_CLIENT_CAP_PERCENT,
-        100
-    );
+    // This ensures humans always have significant power
+    // even when infrastructure dominates raw weight
+
+    assert_eq!(FULL_NODE_CAP_PERCENT + LIGHT_NODE_CAP_PERCENT, 100);
 }

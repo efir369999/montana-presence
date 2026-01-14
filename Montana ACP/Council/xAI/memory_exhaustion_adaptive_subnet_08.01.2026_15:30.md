@@ -287,3 +287,4 @@ pub fn add(&mut self, addr: NetAddress, source: Option<SocketAddr>) -> bool {
 [ ] SECURE — уязвимостей не найдено
 
 Memory exhaustion в AdaptiveSubnetLimiter позволяет атакующему с IPv6 ботнетом вызвать OOM на full nodes, нарушая доступность сети. Orphan pool и late signature buffer уязвимы к DoS через memory exhaustion. AddrMan poisoning может привести к eclipse атакам. Эти уязвимости требуют срочного исправления для обеспечения сетевой безопасности Montana.
+

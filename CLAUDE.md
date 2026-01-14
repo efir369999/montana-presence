@@ -5,6 +5,17 @@
 
 ---
 
+## КООРДИНАТЫ (ЧИТАТЬ ПЕРВЫМ)
+
+```
+/Users/kh./Python/ACP_1/Montana ACP/Council/thoughts/COORDINATOR_THOUGHTS.md
+/Users/kh./Python/ACP_1/Montana ACP/prompts/ASSEMBLY_ORDER.md
+```
+
+**Перед любой работой над кодом — прочитай координацию.**
+
+---
+
 > *"Время — единственный ресурс, распределённый одинаково между всеми людьми."*
 
 ---
@@ -21,6 +32,8 @@
 | **Слой 1 (Примитивы)** | `./Montana ACP/layer_1.md` |
 | **Слой 2 (Консенсус)** | `./Montana ACP/layer_2.md` |
 | **Код** | `./Montana ACP/montana/` |
+| **КООРДИНАЦИЯ** | `./Montana ACP/Council/thoughts/COORDINATOR_THOUGHTS.md` |
+| **Порядок сборки** | `./Montana ACP/prompts/ASSEMBLY_ORDER.md` |
 
 **Перед ответом на любой технический вопрос:**
 1. Прочитать соответствующую документацию

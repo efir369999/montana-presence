@@ -6,7 +6,6 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::RwLock;
 use tokio::time::sleep;
 
 // Re-export from montana lib
@@ -50,6 +49,8 @@ fn create_signed_slice(
         presence_root,
         tx_root,
         signature,
+        presences: vec![],
+        transactions: vec![],
     }
 }
 

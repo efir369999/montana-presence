@@ -1,0 +1,15 @@
+# Montana Bot Requirements
+
+# Telegram
+python-telegram-bot==20.7
+
+# Cryptography
+mnemonic==0.21          # BIP-39 mnemonic generation
+# pqcrypto==0.1.6       # ML-DSA-65 (Dilithium) — TODO: когда stable
+
+# Network
+aiohttp==3.9.1
+requests==2.31.0
+
+# Utilities
+python-dotenv==1.0.0

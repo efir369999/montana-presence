@@ -191,7 +191,18 @@ impl Storage {
     }
 
     // Genesis
+    /// Initialize genesis slice (slice_index = 0)
+    /// 
+    /// ПРАВИЛО: Один ключ, одна подпись, один раз.
+    /// Genesis может быть создан только один раз.
+    /// Если genesis уже существует, возвращает существующий.
     pub fn init_genesis(&self) -> Result<Slice, DbError> {
+        // Проверить, существует ли уже genesis (slice_index = 0)
+        if self.get_slice(0).is_ok() {
+            // Genesis уже существует — возвращаем его
+            return self.get_slice(0);
+        }
+
         use crate::crypto::sha3;
 
         let genesis = Slice {
@@ -207,7 +218,9 @@ impl Storage {
             },
             presence_root: sha3(b"montana genesis presence"),
             tx_root: sha3(b"montana genesis tx"),
-            signature: vec![],
+            signature: vec![],  // ПРАВИЛО: Одна подпись генезиса
+            presences: vec![],
+            transactions: vec![],
         };
 
         self.put_slice(&genesis)?;

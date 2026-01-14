@@ -1,0 +1,228 @@
+#cloud-config
+# Montana Full Node Cloud-Init Configuration
+# Автоматическое развёртывание узла Montana ACP
+# Версия: 1.0
+
+# Обновление и установка пакетов
+package_update: true
+package_upgrade: true
+packages:
+  - curl
+  - wget
+  - git
+  - build-essential
+  - pkg-config
+  - libssl-dev
+  - ufw
+  - fail2ban
+  - htop
+  - ntp
+  - chrony
+
+# Настройка пользователя montana
+users:
+  - name: montana
+    groups: sudo
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPlaceholder montana@node
+
+# Настройка firewall (UFW)
+runcmd:
+  # ===============================
+  # Firewall Configuration
+  # ===============================
+  - ufw --force enable
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow 22/tcp comment 'SSH'
+  - ufw allow 19333/tcp comment 'Montana P2P'
+  - ufw allow 123/udp comment 'NTP'
+
+  # ===============================
+  # System Time Synchronization
+  # ===============================
+  - systemctl enable chronyd
+  - systemctl start chronyd
+  - timedatectl set-ntp true
+
+  # ===============================
+  # Install Rust (stable)
+  # ===============================
+  - su - montana -c "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable"
+  - su - montana -c "echo 'source $HOME/.cargo/env' >> ~/.bashrc"
+
+  # ===============================
+  # Clone Montana Repository
+  # ===============================
+  - su - montana -c "git clone https://github.com/afgrouptime/montana.git /home/montana/montana"
+
+  # ===============================
+  # Build Montana (Release)
+  # ===============================
+  - su - montana -c "cd /home/montana/montana/Montana\\ ACP/montana && source $HOME/.cargo/env && cargo build --release"
+
+  # ===============================
+  # Create Data Directory
+  # ===============================
+  - mkdir -p /var/lib/montana
+  - chown -R montana:montana /var/lib/montana
+
+  # ===============================
+  # Install Montana Binary
+  # ===============================
+  - cp /home/montana/montana/Montana\\ ACP/montana/target/release/montana /usr/local/bin/montana
+  - chmod +x /usr/local/bin/montana
+
+  # ===============================
+  # Create Systemd Service
+  # ===============================
+  - |
+    cat > /etc/systemd/system/montana.service <<'EOF'
+    [Unit]
+    Description=Montana ACP Full Node
+    After=network-online.target
+    Wants=network-online.target
+
+    [Service]
+    Type=simple
+    User=montana
+    Group=montana
+    WorkingDirectory=/var/lib/montana
+
+    # Restart policy
+    Restart=always
+    RestartSec=10
+
+    # Resource limits
+    LimitNOFILE=65536
+
+    # Environment
+    Environment="RUST_LOG=montana=info"
+    Environment="RUST_BACKTRACE=1"
+
+    # Command
+    ExecStart=/usr/local/bin/montana \
+        --node-type full \
+        --port 19333 \
+        --data-dir /var/lib/montana
+
+    # Security hardening
+    ProtectSystem=strict
+    ProtectHome=yes
+    ReadWritePaths=/var/lib/montana
+    NoNewPrivileges=true
+    PrivateTmp=true
+
+    [Install]
+    WantedBy=multi-user.target
+    EOF
+
+  # ===============================
+  # Enable and Start Montana Service
+  # ===============================
+  - systemctl daemon-reload
+  - systemctl enable montana
+  - systemctl start montana
+
+  # ===============================
+  # Setup Monitoring Script
+  # ===============================
+  - |
+    cat > /usr/local/bin/montana-status <<'EOF'
+    #!/bin/bash
+    # Montana Node Status Monitor
+
+    echo "====================================="
+    echo "  Montana Node Status"
+    echo "====================================="
+    echo ""
+
+    # Service status
+    echo "[Service Status]"
+    systemctl status montana --no-pager | head -5
+    echo ""
+
+    # Network connections
+    echo "[Network Connections]"
+    netstat -an | grep 19333 | wc -l | xargs echo "Active connections:"
+    echo ""
+
+    # Resource usage
+    echo "[Resource Usage]"
+    ps aux | grep montana | grep -v grep | awk '{print "CPU: "$3"% | MEM: "$4"% | RSS: "$6" KB"}'
+    echo ""
+
+    # Disk usage
+    echo "[Disk Usage]"
+    du -sh /var/lib/montana
+    echo ""
+
+    # Recent logs
+    echo "[Recent Logs (last 10 lines)]"
+    journalctl -u montana -n 10 --no-pager
+    EOF
+
+  - chmod +x /usr/local/bin/montana-status
+
+  # ===============================
+  # Setup Log Rotation
+  # ===============================
+  - |
+    cat > /etc/logrotate.d/montana <<'EOF'
+    /var/lib/montana/*.log {
+        daily
+        rotate 7
+        compress
+        delaycompress
+        missingok
+        notifempty
+        copytruncate
+    }
+    EOF
+
+# Записать информацию о развёртывании
+write_files:
+  - path: /etc/montana-node-info.txt
+    content: |
+      Montana ACP Full Node
+      =====================
+      Deployed: $(date)
+      Location: Saint Petersburg (Timeweb)
+      Type: Full Node
+      P2P Port: 19333
+
+      Commands:
+        Start:   systemctl start montana
+        Stop:    systemctl stop montana
+        Status:  montana-status
+        Logs:    journalctl -u montana -f
+
+      Network:
+        Protocol: ACP (Atemporal Coordinate Presence)
+        Bootstrap: 100 peers (25+ subnets)
+        Authentication: ML-DSA-65
+
+      Resources:
+        Data: /var/lib/montana
+        Binary: /usr/local/bin/montana
+        Config: /etc/systemd/system/montana.service
+
+# Финальное сообщение
+final_message: |
+  ===================================
+  Montana ACP Node Deployed
+  ===================================
+
+  Node Type: Full Node
+  P2P Port: 19333
+  Status: Running
+
+  Check status: montana-status
+  View logs: journalctl -u montana -f
+
+  Bootstrap will complete automatically.
+  Network requires 100 peers from 25+ subnets.
+
+  lim(evidence → ∞) 1 Ɉ → 1 секунда

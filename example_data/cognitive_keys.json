@@ -1,0 +1,10 @@
+{
+  "111222333": {
+    "user_id": 111222333,
+    "telegram_username": "test_user",
+    "marker": "#TestGenesis",
+    "genesis_timestamp": 1767922105,
+    "genesis_hash": "0209cc1f04192941e70202c5f1699d8cf14e1e147959ad7b99da4ec03d262846",
+    "public_key": "d24331494f95ca04fd8dd05618ded5b4e88e34acd8050796b96e983837c029b5"
+  }
+}

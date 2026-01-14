@@ -23,6 +23,10 @@ path = "src/bin/attacker.rs"
 name = "keygen"
 path = "src/bin/keygen.rs"
 
+[[bin]]
+name = "genesis_sign"
+path = "src/bin/genesis_sign.rs"
+
 [dependencies]
 # Crypto (post-quantum)
 pqcrypto-dilithium = "0.5"
@@ -60,7 +64,7 @@ siphasher = "1.0"
 [[test]]
 name = "net_test"
 path = "tests/net_test.rs"
-harness = false
+harness = true
 
 [profile.release]
 lto = true

@@ -2,13 +2,12 @@
 
 use crate::db::Storage;
 use crate::types::Slice;
-use super::bootstrap::{BootstrapError, PeerChainInfo, PeerSource, min_hardcoded_responses};
+use super::bootstrap::BootstrapError;
 use super::dns::{get_all_hardcoded_addrs_mainnet, get_all_hardcoded_addrs_testnet};
 use super::verification::{VerificationClient, VerificationError};
-use std::net::SocketAddr;
 use std::sync::Arc;
 use thiserror::Error;
-use tracing::{info, warn, error};
+use tracing::{info, warn};
 
 /// Constant kept for API compatibility (unused — always full bootstrap)
 #[deprecated(note = "Montana always uses full_bootstrap")]

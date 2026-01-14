@@ -1,0 +1,20 @@
+# Secrets
+.env
+*.env
+
+# Data (private)
+data/
+parsed/
+logs/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Temp
+*.ogg
+*.mp3
+*.wav

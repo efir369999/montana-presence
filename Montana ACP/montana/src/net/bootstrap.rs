@@ -938,6 +938,8 @@ mod tests {
             presence_root: sha3(b"montana genesis presence"),
             tx_root: sha3(b"montana genesis tx"),
             signature: vec![],
+            presences: vec![],
+            transactions: vec![],
         }
     }
 
@@ -1118,6 +1120,8 @@ mod tests {
             presence_root: sha3(b"slice1 presence"),
             tx_root: sha3(b"slice1 tx"),
             signature: vec![],
+            presences: vec![],
+            transactions: vec![],
         };
         slices.push(slice1.clone());
 
@@ -1135,6 +1139,8 @@ mod tests {
             presence_root: sha3(b"slice2 presence"),
             tx_root: sha3(b"slice2 tx"),
             signature: vec![],
+            presences: vec![],
+            transactions: vec![],
         };
         slices.push(slice2);
 

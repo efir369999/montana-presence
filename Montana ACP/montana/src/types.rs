@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
+use crate::merkle::{MerkleTree, MerkleProof};
 
 pub const GENESIS_TIMESTAMP: u64 = 1735862400;  // 2026-01-03 00:00:00 UTC
 
@@ -205,6 +206,12 @@ impl PresenceProof {
     pub fn in_cooldown(&self) -> bool {
         self.cooldown_until > self.tau2_index
     }
+
+    pub fn hash(&self) -> Hash {
+        use sha3::{Digest, Sha3_256};
+        let data = bincode::serialize(self).unwrap();
+        Sha3_256::digest(&data).into()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -226,12 +233,26 @@ pub struct SliceHeader {
     pub subnet_reputation_root: Hash,
 }
 
+impl SliceHeader {
+    pub fn hash(&self) -> Hash {
+        use sha3::{Digest, Sha3_256};
+        let data = bincode::serialize(self).unwrap();
+        Sha3_256::digest(&data).into()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Slice {
     pub header: SliceHeader,
     pub presence_root: Hash,
     pub tx_root: Hash,
     pub signature: Signature,
+    /// Presences included in this slice
+    #[serde(default)] // For backward compatibility if needed, though we are changing the protocol
+    pub presences: Vec<PresenceProof>,
+    /// Transactions included in this slice
+    #[serde(default)]
+    pub transactions: Vec<Transaction>,
 }
 
 impl Slice {
@@ -243,6 +264,34 @@ impl Slice {
         hasher.update(self.presence_root);
         hasher.update(self.tx_root);
         hasher.finalize().into()
+    }
+
+    /// Get Merkle proof for presence
+    pub fn presence_proof(&self, pubkey: &[u8; 32]) -> Option<MerkleProof> {
+        // Collect all presence hashes
+        let leaves: Vec<[u8; 32]> = self.presences
+            .iter()
+            .map(|p| p.hash())
+            .collect();
+
+        let tree = MerkleTree::new(leaves);
+        // Find index of pubkey
+        let leaf_hash = self.presences.iter().find(|p| {
+             p.pubkey.as_slice() == pubkey.as_slice()
+        })?.hash();
+
+        tree.proof_by_hash(&leaf_hash)
+    }
+
+    /// Get Merkle proof for transaction
+    pub fn tx_proof(&self, tx_hash: &[u8; 32]) -> Option<MerkleProof> {
+        let leaves: Vec<[u8; 32]> = self.transactions
+            .iter()
+            .map(|tx| tx.hash())
+            .collect();
+        
+        let tree = MerkleTree::new(leaves);
+        tree.proof_by_hash(tx_hash)
     }
 }
 

@@ -1,7 +1,6 @@
 //! ML-DSA-65 identity verification for hardcoded nodes
 
-use crate::crypto::mldsa::{verify_mldsa65, MlDsa65PublicKey, MlDsa65Signature, MLDSA65_PUBKEY_SIZE};
-use std::collections::HashMap;
+use crate::crypto::mldsa::{verify_mldsa65, MlDsa65PublicKey, MlDsa65Signature};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::LazyLock;
 

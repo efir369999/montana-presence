@@ -951,7 +951,7 @@ impl Network {
                 peer.handshake_complete();
                 just_connected = true;
 
-                /// After handshake to prevent TRIED table poisoning
+                // After handshake to prevent TRIED table poisoning
                 addresses.write().await.mark_connected(&peer.addr);
 
                 info!(
@@ -1290,7 +1290,7 @@ impl Network {
         reader.read_exact(&mut len_bytes).await?;
         let len = u32::from_le_bytes(len_bytes) as usize;
 
-        /// Early size check prevents memory exhaustion
+        // Early size check prevents memory exhaustion
         if len > MAX_TX_SIZE {
             return Err(NetError::MessageTooLarge(len, MAX_TX_SIZE));
         }

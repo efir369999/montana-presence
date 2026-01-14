@@ -5,7 +5,7 @@ use chacha20poly1305::{
     ChaCha20Poly1305, Nonce,
 };
 use pqcrypto_kyber::kyber768;
-use pqcrypto_traits::kem::{Ciphertext, PublicKey as KemPublicKey, SecretKey, SharedSecret as KemSharedSecret};
+use pqcrypto_traits::kem::{Ciphertext, PublicKey as KemPublicKey, SharedSecret as KemSharedSecret};
 use rand::{CryptoRng, RngCore};
 use sha3::{Digest, Sha3_256};
 use std::io::{self, Read, Write};

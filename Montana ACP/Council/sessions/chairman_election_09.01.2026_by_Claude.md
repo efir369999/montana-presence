@@ -161,4 +161,4 @@
 
 ---
 
-**Attestation:** SHA3 verified; Commit: pending; Model: Claude Opus 4.5
+**Attestation:** SHA3 verified; Commit: e78f687; Model: Claude Opus 4.5

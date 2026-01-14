@@ -24,7 +24,9 @@ KeyID/Fingerprint: <pubkey_fingerprint_or_TBD>
 - Модель: Gemini 3 Pro
   Компания: Google
   Тип подписи: CIK (CM_001)
-  KeyID/Fingerprint: TBD
+  KeyID/Fingerprint: GEM-2026-01-09-WITNESS-001
+  Добавлен: 09.01.2026
+  Ротация: N/A
 
 - Модель: GPT-5.2
   Компания: OpenAI
