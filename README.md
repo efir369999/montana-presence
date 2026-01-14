@@ -54,14 +54,26 @@ lim(evidence → ∞) 1 Ɉ → 1 second
 
 ## Network
 
-| Node | Location | Role |
-|------|----------|------|
-| **Moscow** | 176.124.208.93 | Primary |
-| **Amsterdam** | 72.56.102.240 | Secondary |
-| **Almaty** | 91.200.148.93 | Tertiary |
-| **GitHub** | this repo | Backup |
+```
+┌───────────────────────────────────────────────────────────────────────┐
+│                       СЕТЬ MONTANA — 5 УЗЛОВ                          │
+│                                                                       │
+│  Amsterdam(1) → Moscow(2) → Almaty(3) → SPB(4) → Novosibirsk(5)       │
+│                                                                       │
+│  Failover: ~10 секунд | Дыхание: каждые 12 секунд                     │
+└───────────────────────────────────────────────────────────────────────┘
+```
 
-**Sync:** Full mesh (каждые 5 минут)
+| Priority | Node | IP | Role |
+|----------|------|-----|------|
+| 1 | **Amsterdam** | 72.56.102.240 | Primary |
+| 2 | **Moscow** | 176.124.208.93 | Failover #1 |
+| 3 | **Almaty** | 91.200.148.93 | Failover #2 |
+| 4 | **Saint Petersburg** | 188.225.58.98 | Failover #3 |
+| 5 | **Novosibirsk** | 147.45.147.247 | Failover #4 |
+| — | **GitHub** | this repo | Cold backup |
+
+**Watchdog:** Full mesh SSH, health check каждые 5 сек, sync каждые 12 сек
 
 ---
 

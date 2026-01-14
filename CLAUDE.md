@@ -847,69 +847,82 @@ Alejandro Montana
 
 ## Инфраструктура
 
-| Узел | Адрес | SSH | Репо |
-|------|-------|-----|------|
-| **Москва (Timeweb)** | `176.124.208.93` | `ssh my-timeweb` | `/root/ACP_1` |
-| **Амстердам** | `72.56.102.240` | `ssh montana-ams` | `/root/ACP_1` |
-| **GitHub** | `github.com/efir369999/junomontanaagibot` | — | origin |
+| Priority | Узел | Адрес | Репо |
+|----------|------|-------|------|
+| 1 | **Амстердам** | `72.56.102.240` | `/root/ACP_1` |
+| 2 | **Москва** | `176.124.208.93` | `/root/ACP_1` |
+| 3 | **Алматы** | `91.200.148.93` | `/root/ACP_1` |
+| 4 | **Санкт-Петербург** | `188.225.58.98` | `/root/ACP_1` |
+| 5 | **Новосибирск** | `147.45.147.247` | `/root/ACP_1` |
+| — | **GitHub** | `github.com/efir369999/junomontanaagibot` | origin |
 
 ### SSH публичные ключи узлов
 
 ```
-# Москва (Timeweb)
+# Амстердам (PRIMARY)
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFNvJWx19Rwrzy/Xow5Vnn6Um80Gg9PfU1WGvzrkBV6/ root@ams-1-vm-usln
+
+# Москва
 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ7eMoD9WibaEt69EKv1+81etijGFDT6Wez4YyjUO1pt root@5264781-cy33234
 
-# Амстердам
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFNvJWx19Rwrzy/Xow5Vnn6Um80Gg9PfU1WGvzrkBV6/ root@ams-1-vm-usln
+# Алматы
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPdDhxbgMYyoy2Ly/uVss0xAWL7D7/w6cRhsyn+pRYXR root@ala-1-vm-drew
+
+# Санкт-Петербург
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOKBlKS5fOrnPkgzu5BGDPsCWp8SIk2gZMf3hJ1JGKyL root@spb-3-vm-v6lz
+
+# Новосибирск
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH8BRZ+oObDLH6efba54Wzzc4SCEXwFFijziqJ8k9q6m root@nsk-1-vm-s37n
 ```
 
 ---
 
 ## Git и синхронизация (ОБЯЗАТЕЛЬНО)
 
-> *"Сеть — это Москва и Амстердам. Остальное — бэкапы."*
+> *"Сеть дышит. Вдох — pull, Выдох — push. Каждые 12 секунд."*
 
-### Архитектура сети
+### Архитектура сети (5 узлов)
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    СЕТЬ MONTANA                         │
-│                                                         │
-│     Москва ←──────── P2P ────────→ Амстердам           │
-│  176.124.208.93                   72.56.102.240         │
-│                                                         │
-├─────────────────────────────────────────────────────────┤
-│                      БЭКАПЫ                             │
-│                                                         │
-│         GitHub              Mac (local)                 │
-│      (cold backup)        (dev backup)                  │
-└─────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────┐
+│                       СЕТЬ MONTANA — 5 УЗЛОВ                          │
+│                                                                       │
+│   Amsterdam(1) → Moscow(2) → Almaty(3) → SPB(4) → Novosibirsk(5)      │
+│   72.56.102.240  176.124.208.93  91.200.148.93  188.225.58.98  147.45.147.247│
+│                                                                       │
+│   ┌─────────────────────────────────────────────────────────────┐     │
+│   │ Watchdog: health check 5s | breathing sync 12s | failover 10s│     │
+│   └─────────────────────────────────────────────────────────────┘     │
+│                                                                       │
+├───────────────────────────────────────────────────────────────────────┤
+│                              БЭКАПЫ                                   │
+│              GitHub (cold backup) | Mac (dev backup)                  │
+└───────────────────────────────────────────────────────────────────────┘
 ```
 
-**Приоритет синхронизации:**
-1. **P2P** — прямая синхронизация Москва ↔ Амстердам (~3 сек)
-2. **Бэкап** — GitHub + локальный Mac (опционально)
+**Приоритет failover:** Amsterdam → Moscow → Almaty → SPB → Novosibirsk
+**Дыхание:** git pull (вдох) + git push (выдох) каждые 12 сек
 
-### Протокол синхронизации сети (ОСНОВНОЙ)
+### Watchdog (автоматический)
+
+Watchdog работает на каждом узле как systemd сервис:
+- Проверяет здоровье ВСЕХ вышестоящих узлов каждые 5 сек
+- Если все вышестоящие мертвы → берёт на себя бот
+- Синхронизирует файлы каждые 12 сек (дыхание)
 
 ```bash
-# Прямая P2P синхронизация между узлами сети
-# Москва → Амстердам
-ssh root@176.124.208.93 "cd /root/ACP_1 && git push amsterdam main"
-
-# Амстердам → Москва
-ssh root@72.56.102.240 "cd /root/ACP_1 && git push moscow main"
+# Проверить статус всех узлов
+for srv in 72.56.102.240 176.124.208.93 91.200.148.93 188.225.58.98 147.45.147.247; do
+  ssh root@$srv "journalctl -u watchdog -n 1 --no-pager -o cat" &
+done; wait
 ```
 
-### Протокол бэкапа (ВТОРИЧНЫЙ)
+### Ручная синхронизация (если нужно)
 
 ```bash
-# Бэкап в GitHub (cold storage)
-git push origin main
-
-# Синхронизация бэкапов с сети
-for srv in 176.124.208.93 72.56.102.240; do
-  ssh root@$srv "cd /root/ACP_1 && git push origin main" &
+# Обновить все 5 узлов
+for srv in 72.56.102.240 176.124.208.93 91.200.148.93 188.225.58.98 147.45.147.247; do
+  ssh root@$srv "cd /root/ACP_1 && git pull origin main && systemctl restart watchdog" &
 done; wait
 ```
 
