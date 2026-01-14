@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Juno Montana</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold: #D4AF37;
+            --gold-light: #F4E4BC;
+            --gold-dark: #8B7355;
+            --black: #0A0A0A;
+            --black-light: #1A1A1A;
+            --black-card: #141414;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--black);
+            color: var(--gold-light);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 420px;
+            margin: 0 auto;
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 1px solid var(--gold-dark);
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            font-family: 'Cinzel', serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--gold);
+            letter-spacing: 4px;
+            text-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+        }
+
+        .logo-sub {
+            font-size: 12px;
+            color: var(--gold-dark);
+            letter-spacing: 6px;
+            margin-top: 8px;
+            text-transform: uppercase;
+        }
+
+        /* Price Display */
+        .price-section {
+            background: linear-gradient(135deg, var(--black-card), var(--black-light));
+            border: 1px solid var(--gold-dark);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .price-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+        }
+
+        .price-label {
+            font-size: 11px;
+            color: var(--gold-dark);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .price-value {
+            font-family: 'Cinzel', serif;
+            font-size: 42px;
+            font-weight: 700;
+            color: var(--gold);
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .price-currency {
+            font-size: 18px;
+            color: var(--gold-dark);
+        }
+
+        .price-unit {
+            font-size: 14px;
+            color: var(--gold-dark);
+            font-family: 'Inter', sans-serif;
+            font-weight: 400;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--black-card);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-family: 'Cinzel', serif;
+            font-size: 20px;
+            color: var(--gold);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: var(--gold-dark);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Currencies */
+        .currencies-section {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-family: 'Cinzel', serif;
+            font-size: 14px;
+            color: var(--gold);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--gold-dark);
+        }
+
+        .currency-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .currency-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--black-card);
+            border: 1px solid rgba(212, 175, 55, 0.1);
+            border-radius: 8px;
+            padding: 12px 16px;
+            transition: all 0.3s;
+        }
+
+        .currency-item:hover {
+            border-color: var(--gold);
+            background: var(--black-light);
+        }
+
+        .currency-name {
+            font-size: 13px;
+            color: var(--gold-light);
+        }
+
+        .currency-code {
+            font-size: 11px;
+            color: var(--gold-dark);
+            margin-left: 8px;
+        }
+
+        .currency-value {
+            font-family: 'Cinzel', serif;
+            font-size: 14px;
+            color: var(--gold);
+        }
+
+        /* Network Status */
+        .network-section {
+            background: var(--black-card);
+            border: 1px solid var(--gold-dark);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .node-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+        }
+
+        .node-item:last-child {
+            border-bottom: none;
+        }
+
+        .node-name {
+            font-size: 13px;
+            color: var(--gold-light);
+        }
+
+        .node-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4CAF50;
+            box-shadow: 0 0 8px #4CAF50;
+        }
+
+        .status-dot.offline {
+            background: #f44336;
+            box-shadow: 0 0 8px #f44336;
+        }
+
+        .status-text {
+            font-size: 11px;
+            color: var(--gold-dark);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            border-top: 1px solid var(--gold-dark);
+        }
+
+        .footer-text {
+            font-size: 10px;
+            color: var(--gold-dark);
+            letter-spacing: 2px;
+        }
+
+        .clan-badge {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 8px 20px;
+            border: 1px solid var(--gold);
+            border-radius: 20px;
+            font-family: 'Cinzel', serif;
+            font-size: 12px;
+            color: var(--gold);
+            letter-spacing: 3px;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        /* Telegram Theme */
+        body.tg-theme-dark {
+            --gold-light: #F4E4BC;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">JUNO</div>
+            <div class="logo-sub">Montana</div>
+        </header>
+
+        <section class="price-section">
+            <div class="price-label">Цена Секунды</div>
+            <div class="price-value">
+                <span class="price-currency">$</span>
+                <span id="price">0.1605</span>
+                <span class="price-unit">/сек</span>
+            </div>
+        </section>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="day">2</div>
+                <div class="stat-label">День</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">₽12.09</div>
+                <div class="stat-label">Рубль/сек</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">40</div>
+                <div class="stat-label">T4 мин</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">1%</div>
+                <div class="stat-label">Эмиссия</div>
+            </div>
+        </div>
+
+        <section class="currencies-section">
+            <div class="section-title">Священные Валюты</div>
+            <div class="currency-list" id="currencies">
+                <div class="currency-item">
+                    <span class="currency-name">Доллар США <span class="currency-code">USD</span></span>
+                    <span class="currency-value">$0.16</span>
+                </div>
+                <div class="currency-item">
+                    <span class="currency-name">Евро <span class="currency-code">EUR</span></span>
+                    <span class="currency-value">€0.14</span>
+                </div>
+                <div class="currency-item">
+                    <span class="currency-name">Рубль <span class="currency-code">RUB</span></span>
+                    <span class="currency-value">₽12.09</span>
+                </div>
+                <div class="currency-item">
+                    <span class="currency-name">Юань <span class="currency-code">CNY</span></span>
+                    <span class="currency-value">¥1.05</span>
+                </div>
+                <div class="currency-item">
+                    <span class="currency-name">Биткоин <span class="currency-code">BTC</span></span>
+                    <span class="currency-value">₿0.00000278</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="network-section">
+            <div class="section-title">Сеть Montana</div>
+            <div class="node-item">
+                <span class="node-name">Moscow</span>
+                <div class="node-status">
+                    <span class="status-dot pulse"></span>
+                    <span class="status-text">Online</span>
+                </div>
+            </div>
+            <div class="node-item">
+                <span class="node-name">Amsterdam</span>
+                <div class="node-status">
+                    <span class="status-dot pulse"></span>
+                    <span class="status-text">Online</span>
+                </div>
+            </div>
+            <div class="node-item">
+                <span class="node-name">GitHub</span>
+                <div class="node-status">
+                    <span class="status-dot pulse"></span>
+                    <span class="status-text">Synced</span>
+                </div>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <div class="footer-text">GENESIS 2026-01-12</div>
+            <div class="clan-badge">CLAN MONTANA</div>
+        </footer>
+    </div>
+
+    <script>
+        // Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        // Apply Telegram theme
+        if (tg.colorScheme === 'dark') {
+            document.body.classList.add('tg-theme-dark');
+        }
+
+        // Calculate current day
+        const genesis = new Date('2026-01-12T00:00:00Z');
+        const now = new Date();
+        const dayNumber = Math.floor((now - genesis) / (1000 * 60 * 60 * 24)) + 1;
+        document.getElementById('day').textContent = dayNumber;
+
+        // Main button
+        tg.MainButton.setText('Ɉ ПРИСОЕДИНИТЬСЯ К КЛАНУ');
+        tg.MainButton.show();
+        tg.MainButton.onClick(() => {
+            tg.sendData(JSON.stringify({ action: 'join_clan' }));
+        });
+    </script>
+</body>
+</html>
