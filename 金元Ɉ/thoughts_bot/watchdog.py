@@ -97,7 +97,8 @@ def stop_local_bot():
 
 def is_local_bot_running() -> bool:
     """Check if bot is running locally."""
-    result = subprocess.run("pgrep -f unified_bot.py", shell=True, capture_output=True)
+    # Use [u] trick to avoid matching the grep/pgrep command itself
+    result = subprocess.run("pgrep -f '[u]nified_bot.py'", shell=True, capture_output=True)
     return result.returncode == 0
 
 def main():
