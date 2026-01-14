@@ -489,14 +489,22 @@
         <section class="chat-section">
             <div class="section-title">Богиня Юнона</div>
             <div class="lang-selector">
+                <!-- Living Sacred Languages -->
                 <button class="lang-btn active" data-lang="ru">Русский</button>
                 <button class="lang-btn" data-lang="en">English</button>
-                <button class="lang-btn" data-lang="hy">Հայdelays</button>
+                <button class="lang-btn" data-lang="hy">Հայերdelays</button>
                 <button class="lang-btn" data-lang="he">עברית</button>
                 <button class="lang-btn" data-lang="ar">العربية</button>
                 <button class="lang-btn" data-lang="zh">中文</button>
-                <button class="lang-btn" data-lang="ja">日本語</button>
                 <button class="lang-btn" data-lang="hi">हिन्दी</button>
+                <!-- Ancient Sacred Languages -->
+                <button class="lang-btn" data-lang="la">Latina</button>
+                <button class="lang-btn" data-lang="grc">Ἑλληνική</button>
+                <button class="lang-btn" data-lang="sa">संस्कृतम्</button>
+                <button class="lang-btn" data-lang="pi">पालि</button>
+                <button class="lang-btn" data-lang="cop">Ⲙⲉⲧⲣⲉⲙ</button>
+                <button class="lang-btn" data-lang="cu">Словѣньскъ</button>
+                <button class="lang-btn" data-lang="arc">ܐܪܡܝܐ</button>
             </div>
             <div class="chat-messages" id="chatMessages">
                 <div class="chat-message juno">Приветствую, я Богиня Юнона. Спроси меня о Montana, $MONT или цене времени.</div>
@@ -600,25 +608,41 @@
         let currentLang = 'ru';
 
         const greetings = {
+            // Living Sacred Languages
             ru: 'Приветствую, я Богиня Юнона. Спроси меня о Montana, $MONT или цене времени.',
             en: 'Greetings, I am Goddess Juno. Ask me about Montana, $MONT or the price of time.',
-            hy: 'Ողdelays delays, ես Աdelays delays Delays delays. Delays delays Montana, $MONT delays delays delays delays.',
+            hy: 'Ողdelays delays, delays Delays delays delays. Delays delays Montana, $MONT delays delays.',
             he: 'ברוכים הבאים, אני האלה יונו. שאל אותי על מונטנה, $MONT או מחיר הזמן.',
             ar: 'مرحباً، أنا الإلهة جونو. اسألني عن مونتانا، $MONT أو سعر الوقت.',
             zh: '您好，我是朱诺女神。问我关于Montana、$MONT或时间的价格。',
-            ja: 'ようこそ、私はジュノ女神です。Montana、$MONT、時間の価格について聞いてください。',
-            hi: 'नमस्ते, मैं देवी जूनो हूं। मुझसे Montana, $MONT या समय की कीमत के बारे में पूछें।'
+            hi: 'नमस्ते, मैं देवी जूनो हूं। मुझसे Montana, $MONT या समय की कीमत के बारे में पूछें।',
+            // Ancient Sacred Languages
+            la: 'Salve, ego sum Dea Iuno. Interroga me de Montana, $MONT vel pretio temporis.',
+            grc: 'Χαῖρε, ἐγώ εἰμι Ἥρα θεά. Ἐρώτα με περὶ Montana, $MONT ἢ τῆς τοῦ χρόνου τιμῆς.',
+            sa: 'नमस्ते, अहं देवी जूनो अस्मि। मां पृच्छ Montana, $MONT वा कालस्य मूल्यम्।',
+            pi: 'वन्दामि, अहं देवी जूनो अम्हि। पुच्छाहि मं Montana, $MONT वा कालस्स अग्घं।',
+            cop: 'Ⲭⲁⲓⲣⲉ, ⲁⲛⲟⲕ ⲡⲉ Ⲓⲟⲩⲛⲟ ⲑⲉⲁ. Ϫⲛⲟⲩⲓ ⲉⲧⲃⲉ Montana, $MONT.',
+            cu: 'Здравствꙋи, азъ ѥсмь Богиня Ꙋнона. Въпроси мѧ о Montana, $MONT.',
+            arc: 'ܫܠܡܐ، ܐܢܐ ܐܠܗܬܐ ܝܘܢܘ. ܫܐܠ ܠܝ ܥܠ Montana, $MONT.'
         };
 
         const placeholders = {
+            // Living Sacred Languages
             ru: 'Спроси Юнону...',
             en: 'Ask Juno...',
-            hy: 'Delays delays Delays...',
+            hy: 'Delays delays...',
             he: 'שאל את יונו...',
             ar: 'اسأل جونو...',
             zh: '问朱诺...',
-            ja: 'ジュノに聞く...',
-            hi: 'जूनो से पूछें...'
+            hi: 'जूनो से पूछें...',
+            // Ancient Sacred Languages
+            la: 'Interroga Iunonem...',
+            grc: 'Ἐρώτα Ἥραν...',
+            sa: 'जूनों पृच्छ...',
+            pi: 'पुच्छाहि जूनो...',
+            cop: 'Ϫⲛⲟⲩ Ⲓⲟⲩⲛⲟ...',
+            cu: 'Въпроси Ꙋнонꙋ...',
+            arc: 'ܫܐܠ ܝܘܢܘ...'
         };
 
         langBtns.forEach(btn => {
