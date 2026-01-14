@@ -1,12 +1,14 @@
 //! Montana ACP Node
 //!
-//! ФАЗА 1: Минимальный stub для тестирования сети
-//! ФАЗА 2: Полная интеграция с ConsensusEngine
+//! ФАЗА 2: Event-driven architecture with ConsensusEngine
 
 use clap::Parser;
-use montana::{Network, NetConfig, NodeType, NODE_FULL, NODE_PRESENCE};
+use montana::{
+    ConsensusEngine, EngineConfig, Network, NetConfig, NetEvent,
+    NodeType, NODE_FULL, NODE_PRESENCE,
+};
 use std::path::PathBuf;
-use tracing::{info, error};
+use tracing::{info, warn, error, debug};
 
 #[derive(Parser)]
 #[command(name = "montana", version, about = "Montana ACP Node")]
@@ -57,13 +59,20 @@ async fn main() {
     };
 
     // Initialize network
-    let (network, mut _event_rx) = match Network::new(net_config).await {
+    let (network, mut event_rx) = match Network::new(net_config).await {
         Ok(res) => res,
         Err(e) => {
             error!("Failed to initialize network: {}", e);
             return;
         }
     };
+
+    // Initialize consensus engine
+    let engine_config = EngineConfig {
+        node_type,
+        genesis_hash: [0u8; 32], // TODO: Load from config
+    };
+    let engine = ConsensusEngine::new(engine_config);
 
     // Start network
     if let Err(e) = network.start().await {
@@ -72,12 +81,46 @@ async fn main() {
     }
 
     info!("Network started on port {}", args.port);
-    info!("Node running (Phase 1 stub - no consensus engine yet)");
+    info!("Consensus engine initialized");
     info!("Press Ctrl+C to stop.");
 
-    // Wait for shutdown signal
-    if let Err(e) = tokio::signal::ctrl_c().await {
-        error!("Failed to listen for Ctrl+C: {}", e);
+    // Event loop: Network → Engine
+    let network_ref = &network;
+    let engine_ref = &engine;
+
+    tokio::select! {
+        _ = async {
+            while let Some(event) = event_rx.recv().await {
+                match &event {
+                    NetEvent::Tau1Tick { tau1_index, .. } => {
+                        debug!("τ₁ tick: {}", tau1_index);
+                    }
+                    NetEvent::Tau2Ended { tau2_index, .. } => {
+                        info!("τ₂ ended: {}", tau2_index);
+                    }
+                    NetEvent::PeerConnected(addr) => {
+                        debug!("Peer connected: {}", addr);
+                    }
+                    NetEvent::PeerDisconnected(addr) => {
+                        debug!("Peer disconnected: {}", addr);
+                    }
+                    _ => {}
+                }
+
+                match engine_ref.handle_event(event, network_ref).await {
+                    Ok(Some(action)) => {
+                        debug!("Engine action: {:?}", action);
+                    }
+                    Ok(None) => {}
+                    Err(e) => {
+                        warn!("Engine error: {:?}", e);
+                    }
+                }
+            }
+        } => {}
+        _ = tokio::signal::ctrl_c() => {
+            info!("Received Ctrl+C, shutting down...");
+        }
     }
 
     info!("Shutting down...");

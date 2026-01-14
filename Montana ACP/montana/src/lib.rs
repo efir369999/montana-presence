@@ -2,7 +2,7 @@ pub mod consensus;
 pub mod cooldown;
 pub mod crypto;
 pub mod db;
-// pub mod engine;  // ФАЗА 2
+pub mod engine;
 pub mod finality;
 pub mod fork_choice;
 pub mod merkle;
@@ -26,5 +26,5 @@ pub use finality::{FinalityTracker, FinalityStatus, FinalityCheckpoint, SAFE_DEP
 pub use fork_choice::{ForkChoice, ChainHead, ChainComparison, MAX_REORG_DEPTH};
 pub use merkle::{MerkleTree, MerkleProof, ProofRequest, ProofResponse, ProofType};
 
-// PHASE 2: Uncomment after Phase 1 completion
-// pub use engine::{MontanaNode, ConsensusEngine, Config as EngineConfig, NodeState, ConsensusEvent, ConsensusListener, MontanaError};
+// Phase 2: Engine
+pub use engine::{ConsensusEngine, Config as EngineConfig, EngineAction, EngineError};

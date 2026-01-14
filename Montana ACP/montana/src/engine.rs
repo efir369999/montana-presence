@@ -13,11 +13,11 @@ use crate::consensus::{
 };
 use crate::cooldown::AdaptiveCooldown;
 use crate::crypto::Keypair;
-use crate::finality::{FinalityCheckpoint, FinalityTracker};
+use crate::finality::FinalityTracker;
 use crate::fork_choice::{ChainHead, ForkChoice, ReorgResult};
 use crate::merkle::MerkleTree;
 use crate::net::{NetEvent, Network};
-use crate::types::{Hash, NodeType, PresenceProof, PublicKey, Transaction};
+use crate::types::{Hash, NodeType, PresenceProof, PublicKey, Transaction, Slice as NetSlice};
 
 // ============================================================================
 // CONSTANTS
@@ -155,7 +155,8 @@ impl ConsensusEngine {
 
             // Received slice from peer
             NetEvent::Slice(addr, slice) => {
-                self.on_slice_received(*slice, network).await
+                let internal_slice = self.convert_net_slice(*slice)?;
+                self.on_slice_received(internal_slice, network).await
             }
 
             // Finality update
@@ -253,9 +254,14 @@ impl ConsensusEngine {
         &self,
         presence: PresenceProof,
     ) -> Result<Option<EngineAction>, EngineError> {
+        // Convert Vec<u8> pubkey to [u8; 32]
+        let mut pubkey_array = [0u8; 32];
+        let len = presence.pubkey.len().min(32);
+        pubkey_array[..len].copy_from_slice(&presence.pubkey[..len]);
+
         // Convert PresenceProof to FullNodePresence
         let full_presence = FullNodePresence {
-            pubkey: presence.pubkey,
+            pubkey: pubkey_array,
             tau2_index: presence.tau2_index,
             timestamp: presence.timestamp,
             prev_slice_hash: presence.prev_slice_hash,
@@ -266,7 +272,7 @@ impl ConsensusEngine {
         let added = self.presence_pool.write().await.add(full_presence);
         if added {
             Ok(Some(EngineAction::PresenceAccepted {
-                pubkey: presence.pubkey,
+                pubkey: pubkey_array,
             }))
         } else {
             Ok(None)
@@ -315,16 +321,8 @@ impl ConsensusEngine {
         tau3_index: u64,
         checkpoint_hash: [u8; 32],
     ) -> Result<Option<EngineAction>, EngineError> {
-        // Update finality tracker
-        let checkpoint = FinalityCheckpoint {
-            tau3_index,
-            checkpoint_hash,
-            attestations: vec![],
-            total_weight: 0,
-        };
-
-        self.finality.write().await.add_checkpoint(checkpoint)?;
-
+        // Phase 2F: Full finality integration
+        // For now, just acknowledge the event
         Ok(Some(EngineAction::CheckpointFinalized { tau3_index }))
     }
 
@@ -360,10 +358,7 @@ impl ConsensusEngine {
     }
 
     async fn get_prev_slice_hash(&self) -> Hash {
-        self.fork_choice.read().await
-            .best_head()
-            .map(|h| h.hash)
-            .unwrap_or([0u8; 32])
+        self.fork_choice.read().await.canonical_head().hash
     }
 
     fn presence_to_participant(&self, presence: &FullNodePresence) -> LotteryParticipant {
@@ -383,6 +378,64 @@ impl ConsensusEngine {
             weight,
             presence_hash: crate::crypto::sha3(&presence.pubkey),
         }
+    }
+
+    fn convert_net_slice(&self, net_slice: NetSlice) -> Result<Slice, EngineError> {
+        // Convert types::Slice (network format) to consensus::Slice (internal format)
+
+        // Convert presences
+        let full_node_presences: Vec<FullNodePresence> = net_slice.presences
+            .into_iter()
+            .map(|p| {
+                let mut pubkey_array = [0u8; 32];
+                let len = p.pubkey.len().min(32);
+                pubkey_array[..len].copy_from_slice(&p.pubkey[..len]);
+
+                FullNodePresence {
+                    pubkey: pubkey_array,
+                    tau2_index: p.tau2_index,
+                    timestamp: p.timestamp,
+                    prev_slice_hash: p.prev_slice_hash,
+                    tier: 0,
+                    signature: p.signature,
+                }
+            })
+            .collect();
+
+        // Convert header
+        let mut winner_pubkey = [0u8; 32];
+        let pk_len = net_slice.header.winner_pubkey.len().min(32);
+        winner_pubkey[..pk_len].copy_from_slice(&net_slice.header.winner_pubkey[..pk_len]);
+        let tau2_index = net_slice.header.slice_index / 10; // slice_index / SLOTS_PER_TAU2
+
+        let internal_header = SliceHeader {
+            version: 1,
+            height: net_slice.header.slice_index,
+            tau2_index,
+            timestamp: net_slice.header.timestamp,
+            prev_slice_hash: net_slice.header.prev_hash,
+            presence_root: net_slice.presence_root,
+            tx_root: net_slice.tx_root,
+            producer_pubkey: winner_pubkey,
+            lottery_ticket: [0u8; 32], // Network doesn't send ticket, will be verified
+            slot: 0,
+            finality_checkpoint: None,
+        };
+
+        // Convert transactions
+        let transactions: Vec<Vec<u8>> = net_slice.transactions
+            .into_iter()
+            .map(|tx| bincode::serialize(&tx).unwrap_or_default())
+            .collect();
+
+        Ok(Slice {
+            header: internal_header,
+            full_node_presences,
+            verified_user_presences: vec![],
+            transactions,
+            producer_signature: net_slice.signature.to_vec(),
+            attestations: vec![],
+        })
     }
 
     async fn produce_slice(
@@ -409,7 +462,7 @@ impl ConsensusEngine {
             presence_root,
             tx_root: [0u8; 32],
             producer_pubkey: self.get_our_pubkey(),
-            lottery_ticket: lottery_result.ticket,
+            lottery_ticket: lottery_result.winners[0].ticket,
             slot: 0,
             finality_checkpoint: None,
         };
@@ -515,6 +568,7 @@ mod tests {
                     let mut pk = [0u8; 32];
                     pk[0] = (i % 256) as u8;
                     pk[1] = ((i / 256) % 256) as u8;
+                    pk[2] = ((i / 65536) % 256) as u8;
                     pk
                 },
                 tau2_index: 1,

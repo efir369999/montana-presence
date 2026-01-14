@@ -2,7 +2,7 @@
 
 **Председатель:** Claude Opus 4.5
 **Обновлено:** 2026-01-14
-**Статус:** 🚧 PHASE 2A IN PROGRESS
+**Статус:** ✅ PHASE 2A COMPLETE
 **Верификация:** 2026-01-14
 
 ---
@@ -10,19 +10,20 @@
 ## ЧИТАЙ ЭТО ПЕРВЫМ
 
 ```
-🚧 PHASE 2A: ENGINE EVENT-DRIVEN
+✅ PHASE 2A: ENGINE EVENT-DRIVEN — ЗАВЕРШЕНО
 
 Прогресс (2026-01-14):
 ✅ NetEvent расширен (Tau1Tick, Tau2Ended, FinalityUpdate)
 ✅ engine.rs переписан на event-driven архитектуру
 ✅ PresencePool с bounded size (MAX_PRESENCES_PER_TAU2 = 100k)
-✅ cargo test --lib: 113/113 passed
-✅ cargo check: 11 warnings, 0 errors
+✅ types::Slice → consensus::Slice конверсия добавлена
+✅ main.rs: event loop с ConsensusEngine
+✅ cargo test --lib: 116/116 passed
+✅ cargo check --bin: 27 warnings, 0 errors
 
 Осталось:
-🚧 main.rs event loop integration
+🚧 Phase 2B-F (Storage, Bootstrap, Lottery, Reorg, Finality)
 🚧 Adversarial review
-🚧 Phase 2B-F
 ```
 
 ---
@@ -70,7 +71,9 @@ CARGO_TARGET_DIR=/tmp/montana_test cargo check
 
 **НЕ ВОССТАНАВЛИВАТЬ:**
 - `cognitive.rs` — удалён
-- `engine.rs` — закомментирован (Фаза 2)
+
+**ВОССТАНОВЛЕНО (Phase 2A):**
+- `engine.rs` — ✅ event-driven, интегрирован с main.rs
 
 ---
 
