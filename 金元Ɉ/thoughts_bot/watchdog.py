@@ -19,9 +19,10 @@ sys.stdout.reconfigure(line_buffering=True)
 
 # Node configuration (sorted by priority)
 NODES = {
-    "amsterdam": {"host": "72.56.102.240", "priority": 1},
-    "moscow":    {"host": "176.124.208.93", "priority": 2},
-    "almaty":    {"host": "91.200.148.93",  "priority": 3},
+    "amsterdam":  {"host": "72.56.102.240",  "priority": 1},
+    "moscow":     {"host": "176.124.208.93", "priority": 2},
+    "almaty":     {"host": "91.200.148.93",  "priority": 3},
+    "spb":        {"host": "188.225.58.98",  "priority": 4},
 }
 
 BOT_TOKEN = os.getenv("THOUGHTS_BOT_TOKEN", "")
