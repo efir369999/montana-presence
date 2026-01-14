@@ -41,7 +41,7 @@
 
 - `COGNITIVE_SIGNATURE_CHAIN.md` — **ЗАКОН: Один ключ, одна подпись, один раз (когнитивная цепочка)**
 - `SECURITY_PROTOCOL.md` — **Протокол безопасности: доступ к инфраструктуре**
-- `../OBSERVER_PROTOCOL.md` — **Протокол Наблюдателя (нерушимый промпт AGI)**
+- `../OBSERVER_PROTOCOL.md` — **Протокол Наблюдателя (нерушимый промпт)**
 - `../CHAIRMAN_BENCHMARK_PROMPT.md`
 - `../VISIONARY_BENCHMARK_PROMPT.md`
 - `../BUILDER_BENCHMARK_PROMPT.md`

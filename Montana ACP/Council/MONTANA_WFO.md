@@ -102,7 +102,7 @@ lim(evidence → ∞) 1 Ɉ → 1 секунда
 
 **С кем:**
 - Разработчики: Alejandro Montana + сообщество
-- Аудиторы: Montana Guardian Council (AGI)
+- Аудиторы: Montana Guardian Council
 - Операторы: Любой желающий запустить узел
 - Пользователи: Любой желающий использовать сеть
 

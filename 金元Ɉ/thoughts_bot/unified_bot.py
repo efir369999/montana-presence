@@ -1708,7 +1708,7 @@ async def cmd_settings(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "⚙️ <b>Настройки / Settings</b>\n\n"
 
-        "<b>🤖 Совет AGI:</b>\n"
+        "<b>🤖 Совет ИИ:</b>\n"
         f"  🟣 Claude: {'✅ ON' if claude_on else '⬜ OFF'}\n"
         f"  🟢 GPT-4o: {'✅ ON' if gpt_on else '⬜ OFF'}\n\n"
 
@@ -1848,7 +1848,7 @@ async def handle_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # Show status with models being queried
     models_str = " + ".join([f"{model_icons.get(m, '⚪')}{m.upper()}" for m in enabled_models])
     status = await msg.reply_text(
-        f"🏛 <b>Совет AGI</b>\n"
+        f"🏛 <b>Совет ИИ</b>\n"
         f"├─ ⏳ Запрос: {models_str}",
         parse_mode="HTML"
     )
@@ -1858,7 +1858,7 @@ async def handle_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     if not responses:
         await status.edit_text(
-            f"🏛 <b>Совет AGI</b>\n"
+            f"🏛 <b>Совет ИИ</b>\n"
             f"└─ ✗ <i>Все модели недоступны</i>",
             parse_mode="HTML"
         )
@@ -2144,7 +2144,7 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.message.edit_text(
             "⚙️ <b>Настройки / Settings</b>\n\n"
 
-            "<b>🤖 Совет AGI:</b>\n"
+            "<b>🤖 Совет ИИ:</b>\n"
             f"  🟣 Claude: {'✅ ON' if claude_on else '⬜ OFF'}\n"
             f"  🟢 GPT-4o: {'✅ ON' if gpt_on else '⬜ OFF'}\n\n"
 
@@ -2198,7 +2198,7 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.message.edit_text(
             "⚙️ <b>Настройки / Settings</b>\n\n"
 
-            "<b>🤖 Совет AGI:</b>\n"
+            "<b>🤖 Совет ИИ:</b>\n"
             f"  🟣 Claude: {'✅ ON' if claude_on else '⬜ OFF'}\n"
             f"  🟢 GPT-4o: {'✅ ON' if gpt_on else '⬜ OFF'}\n\n"
 
