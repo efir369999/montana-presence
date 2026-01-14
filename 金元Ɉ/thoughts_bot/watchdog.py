@@ -118,9 +118,9 @@ def start_bot_on(ip: str):
             clear_flag_on(other_ip)
             stop_bot_on(other_ip)
 
-    # Set flag and start
+    # Set flag and start (only if not already running)
     set_flag_on(ip)
-    cmd = f"ssh root@{ip} 'pkill -9 -f unified_bot.py 2>/dev/null; sleep 2; cd {BOT_DIR} && nohup python3 -u unified_bot.py > /var/log/juno_bot.log 2>&1 &'"
+    cmd = f"ssh root@{ip} 'pgrep -f unified_bot.py || (cd {BOT_DIR} && nohup python3 -u unified_bot.py > /var/log/juno_bot.log 2>&1 &)'"
     subprocess.run(cmd, shell=True, capture_output=True)
 
 def stop_bot_on(ip: str):
@@ -234,9 +234,10 @@ def main():
                             stop_bot_on(ip)
 
                     # Start bot on best node
-                    if not is_bot_running_on(best_ip):
+                    if not current_bot_node:  # No bot running anywhere
                         print(f"[BRAIN] Starting bot on {best_name}")
                         start_bot_on(best_ip)
+                        time.sleep(10)  # Wait for bot to start
 
             else:
                 # ═══ STANDBY MODE ═══
