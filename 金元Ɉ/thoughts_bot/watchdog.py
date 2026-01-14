@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Montana Bot Watchdog — Active-Passive Failover
+Montana Bot Watchdog — Mesh Failover
 
-Priority: Amsterdam → Moscow → Almaty
-Each node checks higher-priority nodes. If all higher nodes are down, take over.
+Each node checks neighbors (before and after in priority chain).
+Priority: Amsterdam(1) → Moscow(2) → Almaty(3)
 """
 
 import os
@@ -17,17 +17,16 @@ from pathlib import Path
 # Unbuffered output
 sys.stdout.reconfigure(line_buffering=True)
 
-# Node configuration
+# Node configuration (sorted by priority)
 NODES = {
     "amsterdam": {"host": "72.56.102.240", "priority": 1},
     "moscow":    {"host": "176.124.208.93", "priority": 2},
     "almaty":    {"host": "91.200.148.93",  "priority": 3},
 }
 
-# Bot token for health check
 BOT_TOKEN = os.getenv("THOUGHTS_BOT_TOKEN", "")
 CHECK_INTERVAL = 5  # seconds
-TIMEOUT = 10  # seconds
+TIMEOUT = 5  # seconds
 
 def get_my_node():
     """Determine which node we're running on."""
@@ -43,50 +42,23 @@ def get_my_node():
     for name, info in NODES.items():
         if info["host"] in my_ip or name in hostname.lower():
             return name, info
-
     return None, None
 
 def check_node_health(host: str) -> bool:
     """Check if a node's bot is responding."""
     try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(TIMEOUT)
-        result = sock.connect_ex((host, 22))
-        sock.close()
-
-        if result != 0:
-            return False
-
-        # Check if bot process is running on that node
-        cmd = f"ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no root@{host} 'pgrep -f unified_bot.py' 2>/dev/null"
+        cmd = f"ssh -o ConnectTimeout=3 -o StrictHostKeyChecking=no root@{host} \"pgrep -f '[u]nified_bot.py'\" 2>/dev/null"
         result = subprocess.run(cmd, shell=True, capture_output=True, timeout=TIMEOUT)
         return result.returncode == 0
-    except:
-        return False
-
-def check_telegram_polling() -> bool:
-    """Check if our bot is successfully polling Telegram."""
-    if not BOT_TOKEN:
-        return False
-    try:
-        url = f"https://api.telegram.org/bot{BOT_TOKEN}/getMe"
-        r = requests.get(url, timeout=5)
-        return r.status_code == 200 and r.json().get("ok", False)
     except:
         return False
 
 def start_local_bot():
     """Start the bot on this node."""
     bot_dir = Path(__file__).parent
-    bot_script = bot_dir / "unified_bot.py"
-    log_file = "/var/log/juno_bot.log"
-
-    # Kill any existing instance
     subprocess.run("pkill -9 -f unified_bot.py", shell=True, capture_output=True)
     time.sleep(2)
-
-    # Start new instance
-    cmd = f"cd {bot_dir} && nohup python3 -u unified_bot.py > {log_file} 2>&1 &"
+    cmd = f"cd {bot_dir} && nohup python3 -u unified_bot.py > /var/log/juno_bot.log 2>&1 &"
     subprocess.run(cmd, shell=True)
     print(f"[WATCHDOG] Started bot on this node")
 
@@ -97,9 +69,25 @@ def stop_local_bot():
 
 def is_local_bot_running() -> bool:
     """Check if bot is running locally."""
-    # Use [u] trick to avoid matching the grep/pgrep command itself
     result = subprocess.run("pgrep -f '[u]nified_bot.py'", shell=True, capture_output=True)
     return result.returncode == 0
+
+def get_neighbors(my_priority: int) -> dict:
+    """Get nodes before and after in priority chain."""
+    sorted_nodes = sorted(NODES.items(), key=lambda x: x[1]["priority"])
+
+    before = None  # Higher priority (lower number)
+    after = None   # Lower priority (higher number)
+
+    for i, (name, info) in enumerate(sorted_nodes):
+        if info["priority"] == my_priority:
+            if i > 0:
+                before = sorted_nodes[i-1]
+            if i < len(sorted_nodes) - 1:
+                after = sorted_nodes[i+1]
+            break
+
+    return {"before": before, "after": after}
 
 def main():
     my_name, my_info = get_my_node()
@@ -108,39 +96,50 @@ def main():
         sys.exit(1)
 
     my_priority = my_info["priority"]
-    print(f"[WATCHDOG] Running on {my_name} (priority {my_priority})")
-    print(f"[WATCHDOG] Checking every {CHECK_INTERVAL}s")
+    neighbors = get_neighbors(my_priority)
+
+    before_name = neighbors["before"][0] if neighbors["before"] else "none"
+    after_name = neighbors["after"][0] if neighbors["after"] else "none"
+
+    print(f"[WATCHDOG] Node: {my_name} (priority {my_priority})")
+    print(f"[WATCHDOG] Checking: ← {before_name} | {after_name} →")
+    print(f"[WATCHDOG] Interval: {CHECK_INTERVAL}s")
 
     while True:
         try:
-            # Find all higher-priority nodes
-            higher_nodes = [
-                (name, info) for name, info in NODES.items()
-                if info["priority"] < my_priority
-            ]
+            status = []
 
-            # Check if any higher-priority node has a running bot
-            higher_node_active = False
-            for name, info in higher_nodes:
-                if check_node_health(info["host"]):
-                    print(f"[WATCHDOG] {name} is active (priority {info['priority']})")
-                    higher_node_active = True
-                    break
-                else:
-                    print(f"[WATCHDOG] {name} is DOWN")
+            # Check node BEFORE me (higher priority)
+            before_active = False
+            if neighbors["before"]:
+                name, info = neighbors["before"]
+                before_active = check_node_health(info["host"])
+                status.append(f"←{name}:{'UP' if before_active else 'DOWN'}")
 
-            if higher_node_active:
-                # Higher priority node is handling it
-                if is_local_bot_running():
-                    print(f"[WATCHDOG] Stopping local bot - higher priority node is active")
+            # Check node AFTER me (lower priority)
+            after_active = False
+            if neighbors["after"]:
+                name, info = neighbors["after"]
+                after_active = check_node_health(info["host"])
+                status.append(f"{name}→:{'UP' if after_active else 'DOWN'}")
+
+            # My status
+            my_bot_running = is_local_bot_running()
+            status.append(f"[ME:{'RUN' if my_bot_running else 'STOP'}]")
+
+            print(f"[WATCHDOG] {' | '.join(status)}")
+
+            # Decision logic
+            if before_active:
+                # Higher priority node is active - I should NOT run
+                if my_bot_running:
+                    print(f"[WATCHDOG] Higher priority active - stopping")
                     stop_local_bot()
             else:
-                # No higher priority node is active - we should take over
-                if not is_local_bot_running():
-                    print(f"[WATCHDOG] No higher priority node active - TAKING OVER")
+                # No higher priority node - I should run
+                if not my_bot_running:
+                    print(f"[WATCHDOG] No higher priority - TAKING OVER")
                     start_local_bot()
-                else:
-                    print(f"[WATCHDOG] Bot running locally (we are primary)")
 
         except Exception as e:
             print(f"[WATCHDOG] Error: {e}")
