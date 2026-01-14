@@ -96,28 +96,33 @@ def main():
         sys.exit(1)
 
     my_priority = my_info["priority"]
-    neighbors = get_neighbors(my_priority)
 
-    before_name = neighbors["before"][0] if neighbors["before"] else "none"
+    # Get ALL higher priority nodes
+    higher_nodes = [(n, i) for n, i in NODES.items() if i["priority"] < my_priority]
+    higher_nodes.sort(key=lambda x: x[1]["priority"])
+
+    # Get neighbor after me
+    neighbors = get_neighbors(my_priority)
     after_name = neighbors["after"][0] if neighbors["after"] else "none"
 
+    higher_names = [n for n, _ in higher_nodes] if higher_nodes else ["none"]
     print(f"[WATCHDOG] Node: {my_name} (priority {my_priority})")
-    print(f"[WATCHDOG] Checking: ← {before_name} | {after_name} →")
+    print(f"[WATCHDOG] Checking higher: {higher_names} | after: {after_name}")
     print(f"[WATCHDOG] Interval: {CHECK_INTERVAL}s")
 
     while True:
         try:
             status = []
 
-            # Check node BEFORE me (higher priority)
-            before_active = False
-            if neighbors["before"]:
-                name, info = neighbors["before"]
-                before_active = check_node_health(info["host"])
-                status.append(f"←{name}:{'UP' if before_active else 'DOWN'}")
+            # Check ALL higher priority nodes
+            any_higher_active = False
+            for name, info in higher_nodes:
+                is_active = check_node_health(info["host"])
+                status.append(f"←{name}:{'UP' if is_active else 'DOWN'}")
+                if is_active:
+                    any_higher_active = True
 
-            # Check node AFTER me (lower priority)
-            after_active = False
+            # Check node AFTER me (lower priority) - just for monitoring
             if neighbors["after"]:
                 name, info = neighbors["after"]
                 after_active = check_node_health(info["host"])
@@ -130,8 +135,8 @@ def main():
             print(f"[WATCHDOG] {' | '.join(status)}")
 
             # Decision logic
-            if before_active:
-                # Higher priority node is active - I should NOT run
+            if any_higher_active:
+                # ANY higher priority node is active - I should NOT run
                 if my_bot_running:
                     print(f"[WATCHDOG] Higher priority active - stopping")
                     stop_local_bot()
