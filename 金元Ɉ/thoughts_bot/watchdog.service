@@ -1,0 +1,15 @@
+[Unit]
+Description=Montana Bot Watchdog
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/ACP_1/金元Ɉ/thoughts_bot
+ExecStart=/usr/bin/python3 /root/ACP_1/金元Ɉ/thoughts_bot/watchdog.py
+Restart=always
+RestartSec=10
+EnvironmentFile=/root/ACP_1/金元Ɉ/thoughts_bot/.env
+
+[Install]
+WantedBy=multi-user.target
