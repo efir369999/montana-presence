@@ -840,6 +840,16 @@ COMMAND_DESCRIPTIONS = {
         "ru": "🤖 Архив Claude",
         "zh": "🤖 Claude档案",
     },
+    "raw": {
+        "en": "📜 Raw dialogues",
+        "ru": "📜 Сырые диалоги",
+        "zh": "📜 原始对话",
+    },
+    "summaries": {
+        "en": "📋 Summaries",
+        "ru": "📋 Резюме",
+        "zh": "📋 摘要",
+    },
     "thoughts": {
         "en": "📜 Raw thought stream",
         "ru": "📜 Сырой поток мыслей",
@@ -1818,16 +1828,15 @@ async def cmd_innovations(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     )
 
 
-def get_claude_files() -> list:
-    """Dynamically get all files from data/claude/ folder."""
-    claude_dir = DATA_DIR / "claude"
+def get_claude_files(subdir: str = "raw") -> list:
+    """Dynamically get all files from data/claude/{subdir}/ folder."""
+    claude_dir = DATA_DIR / "claude" / subdir
     if not claude_dir.exists():
         return []
 
     files = []
     for f in sorted(claude_dir.iterdir()):
         if f.is_file() and f.suffix in ['.md', '.pdf'] and not f.name.startswith('000_'):
-            # Extract number and title from filename
             name = f.stem
             files.append({
                 "path": f,
@@ -1839,31 +1848,78 @@ def get_claude_files() -> list:
 
 
 async def cmd_claude(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Show Claude archive menu - dynamically lists all files from data/claude/."""
-    files = get_claude_files()
+    """Show Claude archive menu with raw and summaries options."""
+    raw_count = len(get_claude_files("raw"))
+    sum_count = len(get_claude_files("summaries"))
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton(f"📜 Сырые диалоги ({raw_count})", callback_data="claude_raw")],
+        [InlineKeyboardButton(f"📋 Резюме ({sum_count})", callback_data="claude_summaries")],
+    ])
+
+    await update.message.reply_text(
+        "🤖 <b>Claude Archive</b>\n\n"
+        "Диалоги с Claude, размышления, поток сознания.\n\n"
+        "━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"📜 <b>Сырые:</b> {raw_count} файлов (оригиналы)\n"
+        f"📋 <b>Резюме:</b> {sum_count} файлов (обработанные)\n\n"
+        "<b>Выбери раздел:</b>",
+        reply_markup=keyboard,
+        parse_mode="HTML"
+    )
+
+
+async def cmd_raw(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Show raw Claude dialogues."""
+    files = get_claude_files("raw")
 
     if not files:
-        await update.message.reply_text("📂 Архив пуст.")
+        await update.message.reply_text("📂 Сырые диалоги пусты.")
         return
 
-    # Create buttons dynamically (max 20 files shown)
     buttons = []
     for i, f in enumerate(files[:30]):
         icon = "📄" if f["is_pdf"] else "📝"
-        # Use index as callback data
         buttons.append([InlineKeyboardButton(
             f"{icon} {f['display']}",
-            callback_data=f"cfile_{i}"
+            callback_data=f"raw_{i}"
         )])
 
     keyboard = InlineKeyboardMarkup(buttons)
 
     await update.message.reply_text(
-        f"🤖 <b>Claude Archive</b>\n\n"
-        f"Диалоги, размышления, поток сознания.\n"
+        f"📜 <b>Сырые диалоги</b>\n\n"
+        f"Оригинальные диалоги с Claude.\n"
         f"<i>{len(files)} файлов</i>\n\n"
-        "━━━━━━━━━━━━━━━━━━━━\n\n"
-        "<b>Выбери документ для скачивания:</b>",
+        "<b>Выбери для скачивания:</b>",
+        reply_markup=keyboard,
+        parse_mode="HTML"
+    )
+
+
+async def cmd_summaries(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Show Claude summaries."""
+    files = get_claude_files("summaries")
+
+    if not files:
+        await update.message.reply_text("📂 Резюме пока нет. Используй /raw для сырых диалогов.")
+        return
+
+    buttons = []
+    for i, f in enumerate(files[:30]):
+        icon = "📄" if f["is_pdf"] else "📝"
+        buttons.append([InlineKeyboardButton(
+            f"{icon} {f['display']}",
+            callback_data=f"sum_{i}"
+        )])
+
+    keyboard = InlineKeyboardMarkup(buttons)
+
+    await update.message.reply_text(
+        f"📋 <b>Резюме диалогов</b>\n\n"
+        f"Обработанные Claude резюме по категориям.\n"
+        f"<i>{len(files)} файлов</i>\n\n"
+        "<b>Выбери для скачивания:</b>",
         reply_markup=keyboard,
         parse_mode="HTML"
     )
@@ -2562,26 +2618,93 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # CLAUDE ARCHIVE (dynamic file handling)
     # ─────────────────────────────────────────────────────────────────────────
 
-    if data.startswith("cfile_"):
-        try:
-            file_idx = int(data[6:])
-            files = get_claude_files()
+    # Show raw files list
+    if data == "claude_raw":
+        files = get_claude_files("raw")
+        if not files:
+            await q.message.edit_text("📂 Сырые диалоги пусты.")
+            return
 
+        buttons = []
+        for i, f in enumerate(files[:30]):
+            icon = "📄" if f["is_pdf"] else "📝"
+            buttons.append([InlineKeyboardButton(f"{icon} {f['display']}", callback_data=f"raw_{i}")])
+        buttons.append([InlineKeyboardButton("◀️ Назад", callback_data="claude_back")])
+
+        await q.message.edit_text(
+            f"📜 <b>Сырые диалоги</b>\n\n<i>{len(files)} файлов</i>",
+            reply_markup=InlineKeyboardMarkup(buttons),
+            parse_mode="HTML"
+        )
+        return
+
+    # Show summaries list
+    if data == "claude_summaries":
+        files = get_claude_files("summaries")
+        if not files:
+            await q.message.edit_text("📂 Резюме пока нет.", reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("◀️ Назад", callback_data="claude_back")]
+            ]))
+            return
+
+        buttons = []
+        for i, f in enumerate(files[:30]):
+            icon = "📄" if f["is_pdf"] else "📝"
+            buttons.append([InlineKeyboardButton(f"{icon} {f['display']}", callback_data=f"sum_{i}")])
+        buttons.append([InlineKeyboardButton("◀️ Назад", callback_data="claude_back")])
+
+        await q.message.edit_text(
+            f"📋 <b>Резюме</b>\n\n<i>{len(files)} файлов</i>",
+            reply_markup=InlineKeyboardMarkup(buttons),
+            parse_mode="HTML"
+        )
+        return
+
+    # Back to claude menu
+    if data == "claude_back":
+        raw_count = len(get_claude_files("raw"))
+        sum_count = len(get_claude_files("summaries"))
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton(f"📜 Сырые диалоги ({raw_count})", callback_data="claude_raw")],
+            [InlineKeyboardButton(f"📋 Резюме ({sum_count})", callback_data="claude_summaries")],
+        ])
+        await q.message.edit_text(
+            f"🤖 <b>Claude Archive</b>\n\n📜 Сырые: {raw_count}\n📋 Резюме: {sum_count}",
+            reply_markup=keyboard,
+            parse_mode="HTML"
+        )
+        return
+
+    # Download raw file
+    if data.startswith("raw_"):
+        try:
+            file_idx = int(data[4:])
+            files = get_claude_files("raw")
             if 0 <= file_idx < len(files):
                 f = files[file_idx]
-                doc_path = f["path"]
+                await q.message.reply_document(
+                    document=open(f["path"], "rb"),
+                    filename=f["name"],
+                    caption=f"📜 <b>{f['display']}</b>\n\nСырой диалог — Claude Archive",
+                    parse_mode="HTML"
+                )
+        except Exception as e:
+            await q.message.reply_text(f"❌ Error: {str(e)}")
+        return
 
-                if doc_path.exists():
-                    await q.message.reply_document(
-                        document=open(doc_path, "rb"),
-                        filename=f["name"],
-                        caption=f"🤖 <b>{f['display']}</b>\n\nClaude Archive — Montana Protocol",
-                        parse_mode="HTML"
-                    )
-                else:
-                    await q.message.reply_text(f"❌ File not found")
-            else:
-                await q.message.reply_text("❌ Invalid file index")
+    # Download summary file
+    if data.startswith("sum_"):
+        try:
+            file_idx = int(data[4:])
+            files = get_claude_files("summaries")
+            if 0 <= file_idx < len(files):
+                f = files[file_idx]
+                await q.message.reply_document(
+                    document=open(f["path"], "rb"),
+                    filename=f["name"],
+                    caption=f"📋 <b>{f['display']}</b>\n\nРезюме — Claude Archive",
+                    parse_mode="HTML"
+                )
         except Exception as e:
             await q.message.reply_text(f"❌ Error: {str(e)}")
         return
@@ -3204,6 +3327,8 @@ def main():
     app.add_handler(CommandHandler("whitepaper", cmd_whitepaper))
     app.add_handler(CommandHandler("innovations", cmd_innovations))
     app.add_handler(CommandHandler("claude", cmd_claude))
+    app.add_handler(CommandHandler("raw", cmd_raw))
+    app.add_handler(CommandHandler("summaries", cmd_summaries))
     app.add_handler(CommandHandler("thoughts", cmd_thoughts))
 
     # ═══ SETTINGS ═══
