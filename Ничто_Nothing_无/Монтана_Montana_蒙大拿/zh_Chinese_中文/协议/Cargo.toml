@@ -11,4 +11,4 @@ license = "MIT"
 
 [dependencies]
 # 必须依赖中文crypto模块
-montana_crypto = { path = "../crypto" }
+montana_crypto = { path = "../加密" }

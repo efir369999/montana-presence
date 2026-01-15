@@ -11,10 +11,10 @@ license = "MIT"
 
 [dependencies]
 # Зависимость от китайского модуля криптографии
-montana_crypto = { path = "../../zh_Chinese_中文/crypto" }
+montana_crypto = { path = "../../zh_Chinese_中文/加密" }
 
 # Зависимость от китайского модуля ACP
-montana_acp = { path = "../../zh_Chinese_中文/acp" }
+montana_acp = { path = "../../zh_Chinese_中文/协议" }
 
 # Зависимость от английского модуля философии
 montana_philosophy = { path = "../../en_English_英语/philosophy" }
@@ -23,4 +23,4 @@ montana_philosophy = { path = "../../en_English_英语/philosophy" }
 montana_cognitive = { path = "../../en_English_英语/cognitive" }
 
 # Зависимость от русского модуля сети
-montana_network = { path = "../network" }
+montana_network = { path = "../сеть" }

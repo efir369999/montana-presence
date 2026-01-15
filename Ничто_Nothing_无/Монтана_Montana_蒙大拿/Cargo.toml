@@ -22,8 +22,8 @@ members = [
     # │ Protocol & Cryptography                                                 │
     # │ Протокол и криптография                                                 │
     # └─────────────────────────────────────────────────────────────────────────┘
-    "zh_Chinese_中文/crypto",    # 后量子密码学 - Post-quantum cryptography
-    "zh_Chinese_中文/acp",       # 非时间坐标存在 - ACP consensus
+    "zh_Chinese_中文/加密",       # 后量子密码学 - Post-quantum cryptography
+    "zh_Chinese_中文/协议",       # 非时间坐标存在 - ACP consensus
 
     # ┌─────────────────────────────────────────────────────────────────────────┐
     # │ English - Philosophy & Cognitive                                        │
@@ -38,8 +38,8 @@ members = [
     # │ Network & Economics                                                     │
     # │ 网络与经济                                                               │
     # └─────────────────────────────────────────────────────────────────────────┘
-    "ru_Russian_俄语/network",    # P2P сеть - P2P network
-    "ru_Russian_俄语/economics",  # 金元Ɉ экономика - Time economics
+    "ru_Russian_俄语/сеть",       # P2P сеть - P2P network
+    "ru_Russian_俄语/экономика",  # 金元Ɉ экономика - Time economics
 ]
 
 # ═══════════════════════════════════════════════════════════════════════════════

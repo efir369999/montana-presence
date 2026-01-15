@@ -11,10 +11,10 @@ license = "MIT"
 
 [dependencies]
 # Зависимость от китайского модуля криптографии
-montana_crypto = { path = "../../zh_Chinese_中文/crypto" }
+montana_crypto = { path = "../../zh_Chinese_中文/加密" }
 
 # Зависимость от китайского модуля ACP
-montana_acp = { path = "../../zh_Chinese_中文/acp" }
+montana_acp = { path = "../../zh_Chinese_中文/协议" }
 
 # Генератор случайных чисел для выбора пиров
 rand = "0.8"
