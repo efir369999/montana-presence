@@ -274,6 +274,5 @@ Bitcoin ограничен вычислениями → майнинг
 
 ---
 
-*Alejandro Montana*
-*github.com/afgrouptime*
+*Ничто_Nothing_无_金元Ɉ*
 *x.com/tojesatoshi*

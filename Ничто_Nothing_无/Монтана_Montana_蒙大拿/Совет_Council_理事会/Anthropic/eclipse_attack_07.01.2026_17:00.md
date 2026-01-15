@@ -298,5 +298,4 @@ if let Some(existing_idx) = self.tried_table[idx] {
 
 ---
 
-*Alejandro Montana*
-*github.com/afgrouptime*
+*Ничто_Nothing_无_金元Ɉ*

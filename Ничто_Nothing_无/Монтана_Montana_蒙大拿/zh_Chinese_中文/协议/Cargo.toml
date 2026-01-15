@@ -3,7 +3,7 @@ name = "montana_acp"
 version = "1.0.0"
 edition = "2021"
 description = "非时间坐标存在协议 - Montana共识核心"
-authors = ["Alejandro Montana <montana@montana.network>"]
+authors = ["Ничто_Nothing_无_金元Ɉ"]
 license = "MIT"
 
 # 中文注释: ACP共识协议

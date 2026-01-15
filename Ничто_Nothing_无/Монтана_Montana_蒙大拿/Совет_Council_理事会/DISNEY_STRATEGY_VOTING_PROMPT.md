@@ -4,7 +4,7 @@
 **Статус:** IMMUTABLE PROTOCOL
 **Хеш:** `02f2adf8ae8b8a2ffaa1e885b0c21b2311d17a00948b4de300bb7d1fcf6fd978`
 **Дата:** 08.01.2026
-**Создатель:** Alejandro Montana
+**Создатель:** Ничто_Nothing_无_金元Ɉ
 
 ---
 

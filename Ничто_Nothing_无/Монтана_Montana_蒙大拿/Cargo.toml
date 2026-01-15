@@ -69,9 +69,9 @@ members = [
 [workspace.package]
 version = "1.0.0"
 edition = "2021"
-authors = ["Alejandro Montana <montana@montana.network>"]
+authors = ["Ничто_Nothing_无_金元Ɉ"]
 license = "MIT"
-repository = "https://github.com/afgrouptime/montana"
+repository = "https://github.com/Ничто_Nothing_无_金元Ɉ/montana"
 
 [workspace.dependencies]
 sha3 = "0.10"

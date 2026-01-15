@@ -400,6 +400,5 @@ Intelligence proves itself through presence, regardless of substrate.
 
 ---
 
-*Alejandro Montana*
-*github.com/afgrouptime*
+*Ничто_Nothing_无_金元Ɉ*
 *x.com/tojesatoshi*

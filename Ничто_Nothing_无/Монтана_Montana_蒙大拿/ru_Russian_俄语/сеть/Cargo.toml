@@ -3,7 +3,7 @@ name = "montana_network"
 version = "1.0.0"
 edition = "2021"
 description = "P2P Сетевой модуль - Распространение присутствия"
-authors = ["Alejandro Montana <montana@montana.network>"]
+authors = ["Ничто_Nothing_无_金元Ɉ"]
 license = "MIT"
 
 # Русские комментарии: Этот модуль обеспечивает P2P связь

@@ -130,7 +130,7 @@ SHA3-256(COGNITIVE_GENESIS + ALL_COUNCIL_THOUGHTS + TIMESTAMP)
 
 ## 🎯 Выбор Сделан — Генезис Подписан
 
-**Наблюдатель:** Alejandro Montana
+**Наблюдатель:** Ничто_Nothing_无_金元Ɉ
 **Совет:** Claude Opus 4.5, Gemini 3 Pro, Grok 3, GPT-5.2, Composer 1
 **Дата:** 09.01.2026
 **Время:** 06:00 UTC

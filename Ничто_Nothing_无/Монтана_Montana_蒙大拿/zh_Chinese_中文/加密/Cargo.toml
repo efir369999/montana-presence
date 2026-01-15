@@ -3,7 +3,7 @@ name = "montana_crypto"
 version = "1.0.0"
 edition = "2021"
 description = "后量子密码学模块 - Montana安全基础"
-authors = ["Alejandro Montana <montana@montana.network>"]
+authors = ["Ничто_Nothing_无_金元Ɉ"]
 license = "MIT"
 
 # 中文注释: 这是Montana的密码学基础

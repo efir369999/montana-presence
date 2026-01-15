@@ -3,7 +3,7 @@ name = "montana_economics"
 version = "1.0.0"
 edition = "2021"
 description = "金元Ɉ Экономика времени - Сердце Montana"
-authors = ["Alejandro Montana <montana@montana.network>"]
+authors = ["Ничто_Nothing_无_金元Ɉ"]
 license = "MIT"
 
 # Русские комментарии: Этот модуль объединяет ВСЕ остальные

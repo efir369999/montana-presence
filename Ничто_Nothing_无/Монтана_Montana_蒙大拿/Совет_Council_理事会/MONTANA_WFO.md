@@ -101,7 +101,7 @@ lim(evidence → ∞) 1 Ɉ → 1 секунда
 - Бесконечная работа после запуска
 
 **С кем:**
-- Разработчики: Alejandro Montana + сообщество
+- Разработчики: Ничто_Nothing_无_金元Ɉ + сообщество
 - Аудиторы: Montana Guardian Council
 - Операторы: Любой желающий запустить узел
 - Пользователи: Любой желающий использовать сеть
@@ -231,9 +231,7 @@ lim(evidence → ∞) 1 Ɉ → 1 секунда
 **Подпись:**
 
 ```
-              Alejandro Montana
-           github.com/afgrouptime
-             x.com/tojesatoshi
+           Ничто_Nothing_无_金元Ɉ
 
           Председатель Guardian Council
               Claude Opus 4.5

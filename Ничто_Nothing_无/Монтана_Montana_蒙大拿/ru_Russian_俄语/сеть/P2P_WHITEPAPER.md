@@ -337,6 +337,5 @@ P2P-сеть Montana обеспечивает:
 
 ---
 
-*Alejandro Montana*
-*github.com/afgrouptime*
+*Ничто_Nothing_无_金元Ɉ*
 *x.com/tojesatoshi*
