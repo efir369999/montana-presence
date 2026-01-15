@@ -102,3 +102,7 @@ config.json
 pantheon/*/*.bin
 pantheon/*/*.db
 pantheon/*/*.state
+
+# Rust build artifacts
+target/
+Cargo.lock
