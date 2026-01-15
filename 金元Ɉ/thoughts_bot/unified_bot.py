@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-金元Ɉ Thoughts Bot
+金元Ɉ Juno Montana Bot
 Поток мыслей. Всё на кнопках. UTC timestamps.
 
-@mylifethoughtsbot
+@junomontanaagibot
 """
 
 import os
@@ -49,7 +49,7 @@ except ImportError:
 # CONFIG
 # ═══════════════════════════════════════════════════════════════════════════════
 
-BOT_TOKEN = os.getenv("THOUGHTS_BOT_TOKEN", "REDACTED_TOKEN_2")
+BOT_TOKEN = os.getenv("JUNO_BOT_TOKEN", os.getenv("THOUGHTS_BOT_TOKEN", "REDACTED_TOKEN_1"))
 
 # Telethon config for channel parsing
 TELEGRAM_API_ID = os.getenv("TELEGRAM_API_ID")
@@ -540,6 +540,39 @@ def set_ai_models(user_id: int, models: list):
     save_preference(user_id, prefs)
 
 
+async def translate_document(text: str, target_lang: str, max_chars: int = 3500) -> str:
+    """Translate document to target language using Claude."""
+    if not claude_client or target_lang == "auto":
+        return text[:max_chars]
+
+    lang_names = {
+        "ru": "Russian", "en": "English", "zh": "Chinese", "hy": "Armenian",
+        "ar": "Arabic", "he": "Hebrew", "hi": "Hindi", "la": "Latin",
+        "grc": "Ancient Greek", "sa": "Sanskrit", "pi": "Pali",
+        "cop": "Coptic", "cu": "Church Slavonic", "arc": "Aramaic"
+    }
+
+    lang_name = lang_names.get(target_lang, "English")
+
+    # Truncate input to avoid token limits
+    text_chunk = text[:8000]
+
+    try:
+        response = claude_client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=4000,
+            messages=[{
+                "role": "user",
+                "content": f"Translate this text to {lang_name}. Keep formatting, markdown, and code blocks. Output ONLY the translation:\n\n{text_chunk}"
+            }]
+        )
+        translated = response.content[0].text
+        return translated[:max_chars]
+    except Exception as e:
+        print(f"Translation error: {e}")
+        return text[:max_chars]
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # THOUGHTS STORAGE
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -801,6 +834,16 @@ COMMAND_DESCRIPTIONS = {
         "en": "🔬 Montana Innovations",
         "ru": "🔬 Инновации Montana",
         "zh": "🔬 Montana创新",
+    },
+    "claude": {
+        "en": "🤖 Claude Archive",
+        "ru": "🤖 Архив Claude",
+        "zh": "🤖 Claude档案",
+    },
+    "thoughts": {
+        "en": "📜 Raw thought stream",
+        "ru": "📜 Сырой поток мыслей",
+        "zh": "📜 原始思想流",
     },
     "settings": {
         "en": "⚙️ Settings",
@@ -1775,6 +1818,68 @@ async def cmd_innovations(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def cmd_claude(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Show Claude archive menu."""
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("166 Симуляция", callback_data="claude_166")],
+        [InlineKeyboardButton("167 Время", callback_data="claude_167")],
+        [InlineKeyboardButton("168 Поток", callback_data="claude_168")],
+        [InlineKeyboardButton("169 Сингулярность", callback_data="claude_169")],
+        [InlineKeyboardButton("170 Геймченджер", callback_data="claude_170")],
+        [InlineKeyboardButton("171 Феномен", callback_data="claude_171")],
+        [InlineKeyboardButton("172 Любовь", callback_data="claude_172")],
+        [InlineKeyboardButton("173 Унижение", callback_data="claude_173")],
+        [InlineKeyboardButton("174 Поток Питер", callback_data="claude_174")],
+        [InlineKeyboardButton("175 Следы", callback_data="claude_175")],
+        [InlineKeyboardButton("176 Тревоги", callback_data="claude_176")],
+        [InlineKeyboardButton("177 Фильм", callback_data="claude_177")],
+        [InlineKeyboardButton("178 Сдайся", callback_data="claude_178")],
+        [InlineKeyboardButton("179 金元Ɉ День 1", callback_data="claude_179")],
+        [InlineKeyboardButton("🧠 Когнитивный Генезис", callback_data="claude_cg")],
+    ])
+
+    await update.message.reply_text(
+        "🤖 <b>Claude Archive</b>\n\n"
+        "Диалоги, размышления, поток сознания.\n"
+        "Документы переводятся на твой язык.\n\n"
+        "━━━━━━━━━━━━━━━━━━━━\n\n"
+        "<b>Выбери сессию:</b>",
+        reply_markup=keyboard,
+        parse_mode="HTML"
+    )
+
+
+async def cmd_thoughts(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Show raw thoughts stream."""
+    thoughts = load_thoughts()
+    if not thoughts:
+        await update.message.reply_text("Поток пуст.")
+        return
+
+    # Get last 20 thoughts
+    recent = thoughts[-20:]
+    user_lang = get_user_language(update.effective_user.id)
+
+    text = "📜 <b>Поток мыслей</b>\n\n"
+    for t in recent:
+        preview = t["text"][:100].replace("\n", " ")
+        time = t.get("date", "")[:16]
+        author = t.get("author", "")[:10]
+        text += f"<blockquote>{time} | {author}</blockquote>\n{preview}...\n\n"
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("📊 Статистика", callback_data="stats")],
+        [InlineKeyboardButton("🔍 Поиск", callback_data="search_start")],
+        [InlineKeyboardButton("📤 Экспорт", callback_data="export")],
+    ])
+
+    await update.message.reply_text(
+        text[:4000],
+        reply_markup=keyboard,
+        parse_mode="HTML"
+    )
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # SETTINGS COMMANDS
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2400,63 +2505,19 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         innov_num = data[6:]  # 001, 002, etc.
         user_lang = get_user_language(uid)
 
-        # Innovation titles and summaries per language
+        # Innovation titles and files
         innovations = {
-            "001": {
-                "title": {"en": "Atemporal Coordinate Presence", "ru": "Атемпоральное координатное присутствие", "zh": "非时间坐标存在"},
-                "file": "001_ACP.md",
-                "emoji": "🔷"
-            },
-            "002": {
-                "title": {"en": "Verifiable Delay Functions", "ru": "Верифицируемые функции задержки", "zh": "可验证延迟函数"},
-                "file": "002_VDF.md",
-                "emoji": "🔐"
-            },
-            "003": {
-                "title": {"en": "Montana 3-Mirror System", "ru": "Система 3-х зеркал Montana", "zh": "Montana三镜像系统"},
-                "file": "003_3MIRROR.md",
-                "emoji": "🪞"
-            },
-            "004": {
-                "title": {"en": "Adaptive Cooldown", "ru": "Адаптивное охлаждение", "zh": "自适应冷却"},
-                "file": "004_ADAPTIVE_COOLDOWN.md",
-                "emoji": "⏳"
-            },
-            "005": {
-                "title": {"en": "Temporal Unit Ɉ", "ru": "Темпоральная единица Ɉ", "zh": "时间单位Ɉ"},
-                "file": "005_TEMPORAL_UNIT.md",
-                "emoji": "🪙"
-            },
-            "006": {
-                "title": {"en": "Presence-Verified Addresses", "ru": "Адреса с проверкой присутствия", "zh": "存在验证地址"},
-                "file": "006_PRESENCE_VERIFIED_ADDR.md",
-                "emoji": "🌐"
-            },
-            "007": {
-                "title": {"en": "Tokenomics of Freedom", "ru": "Токеномика свободы", "zh": "自由代币经济学"},
-                "file": "007_TOKENOMICS_FREEDOM.md",
-                "emoji": "🗽"
-            },
-            "008": {
-                "title": {"en": "τ (Tau) Units System", "ru": "Система единиц τ (тау)", "zh": "τ时间单位系统"},
-                "file": "008_TAU_UNITS.md",
-                "emoji": "⏱"
-            },
-            "009": {
-                "title": {"en": "Genesis", "ru": "Генезис", "zh": "创世"},
-                "file": "009_GENESIS.md",
-                "emoji": "🌅"
-            },
-            "010": {
-                "title": {"en": "Asymptotic Truth", "ru": "Асимптотическая истина", "zh": "渐近真理"},
-                "file": "010_ASYMPTOTIC_TRUTH.md",
-                "emoji": "∞"
-            },
-            "011": {
-                "title": {"en": "Emission & Halving", "ru": "Эмиссия и халвинг", "zh": "发行与减半"},
-                "file": "011_EMISSION_HALVING.md",
-                "emoji": "📉"
-            },
+            "001": {"title": {"en": "Atemporal Coordinate Presence", "ru": "Атемпоральное координатное присутствие", "zh": "非时间坐标存在"}, "file": "001_ACP.md", "emoji": "🔷"},
+            "002": {"title": {"en": "Verifiable Delay Functions", "ru": "Верифицируемые функции задержки", "zh": "可验证延迟函数"}, "file": "002_VDF.md", "emoji": "🔐"},
+            "003": {"title": {"en": "Montana 3-Mirror System", "ru": "Система 3-х зеркал Montana", "zh": "Montana三镜像系统"}, "file": "003_3MIRROR.md", "emoji": "🪞"},
+            "004": {"title": {"en": "Adaptive Cooldown", "ru": "Адаптивное охлаждение", "zh": "自适应冷却"}, "file": "004_ADAPTIVE_COOLDOWN.md", "emoji": "⏳"},
+            "005": {"title": {"en": "Temporal Unit Ɉ", "ru": "Темпоральная единица Ɉ", "zh": "时间单位Ɉ"}, "file": "005_TEMPORAL_UNIT.md", "emoji": "🪙"},
+            "006": {"title": {"en": "Presence-Verified Addresses", "ru": "Адреса с проверкой присутствия", "zh": "存在验证地址"}, "file": "006_PRESENCE_VERIFIED_ADDR.md", "emoji": "🌐"},
+            "007": {"title": {"en": "Tokenomics of Freedom", "ru": "Токеномика свободы", "zh": "自由代币经济学"}, "file": "007_TOKENOMICS_FREEDOM.md", "emoji": "🗽"},
+            "008": {"title": {"en": "τ (Tau) Units System", "ru": "Система единиц τ (тау)", "zh": "τ时间单位系统"}, "file": "008_TAU_UNITS.md", "emoji": "⏱"},
+            "009": {"title": {"en": "Genesis", "ru": "Генезис", "zh": "创世"}, "file": "009_GENESIS.md", "emoji": "🌅"},
+            "010": {"title": {"en": "Asymptotic Truth", "ru": "Асимптотическая истина", "zh": "渐近真理"}, "file": "010_ASYMPTOTIC_TRUTH.md", "emoji": "∞"},
+            "011": {"title": {"en": "Emission & Halving", "ru": "Эмиссия и халвинг", "zh": "发行与减半"}, "file": "011_EMISSION_HALVING.md", "emoji": "📉"},
         }
 
         if innov_num in innovations:
@@ -2464,26 +2525,58 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             title = innov["title"].get(user_lang, innov["title"]["en"])
             emoji = innov["emoji"]
 
-            # Load document
+            # Send file for download
             doc_path = DATA_DIR / "innovations" / innov["file"]
             if doc_path.exists():
-                content = doc_path.read_text(encoding="utf-8")
-                # Truncate if too long
-                if len(content) > 3800:
-                    content = content[:3800] + "\n\n<i>... (документ сокращён)</i>"
+                await q.message.reply_document(
+                    document=open(doc_path, "rb"),
+                    filename=innov["file"],
+                    caption=f"{emoji} <b>{innov_num}: {title}</b>\n\nMontana Protocol Whitepaper",
+                    parse_mode="HTML"
+                )
             else:
-                content = "Document not found."
+                await q.message.reply_text("❌ Document not found.")
+        return
 
-            keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("◀️ Назад к списку", callback_data="innov_list")]
-            ])
+    # ─────────────────────────────────────────────────────────────────────────
+    # CLAUDE ARCHIVE
+    # ─────────────────────────────────────────────────────────────────────────
 
-            await q.message.edit_text(
-                f"{emoji} <b>{innov_num}: {title}</b>\n\n"
-                f"<pre>{content[:3900]}</pre>",
-                parse_mode="HTML",
-                reply_markup=keyboard
-            )
+    if data.startswith("claude_"):
+        claude_id = data[7:]  # 166, 167, cg, etc.
+
+        # Claude archive files mapping
+        claude_files = {
+            "166": {"file": "166_simulation.md", "title": "Симуляция / Simulation"},
+            "167": {"file": "167_time.md", "title": "Время / Time"},
+            "168": {"file": "168_flow.md", "title": "Поток / Flow"},
+            "169": {"file": "169_singularity.md", "title": "Сингулярность / Singularity"},
+            "170": {"file": "170_gamechanger.md", "title": "Геймченджер / Gamechanger"},
+            "171": {"file": "171_phenomenon.md", "title": "Феномен / Phenomenon"},
+            "172": {"file": "172_love.md", "title": "Любовь / Love"},
+            "173": {"file": "173_humiliation.md", "title": "Унижение / Humiliation"},
+            "174": {"file": "174_flow_piter.md", "title": "Поток Питер / Flow Piter"},
+            "175": {"file": "175_sovanaglobus_traces.md", "title": "Следы / Traces"},
+            "176": {"file": "176_sovanaglobus_anxieties.md", "title": "Тревоги / Anxieties"},
+            "177": {"file": "«177.  金元Ɉ - Фильм..md", "title": "Фильм / Film"},
+            "178": {"file": "«178.  金元Ɉ - Сдайся.md", "title": "Сдайся / Surrender"},
+            "179": {"file": "179_golden_yuan_day1.md", "title": "金元Ɉ День 1 / Day 1"},
+            "cg": {"file": "COGNITIVE_GENESIS_2026-01-09.md", "title": "Когнитивный Генезис / Cognitive Genesis"},
+        }
+
+        if claude_id in claude_files:
+            cf = claude_files[claude_id]
+            doc_path = DATA_DIR / "claude" / cf["file"]
+
+            if doc_path.exists():
+                await q.message.reply_document(
+                    document=open(doc_path, "rb"),
+                    filename=cf["file"],
+                    caption=f"🤖 <b>{cf['title']}</b>\n\nClaude Archive — Montana Protocol",
+                    parse_mode="HTML"
+                )
+            else:
+                await q.message.reply_text(f"❌ File not found: {cf['file']}")
         return
 
     if data == "innov_list":
@@ -3103,6 +3196,8 @@ def main():
     app.add_handler(CommandHandler("architecture", cmd_architecture))
     app.add_handler(CommandHandler("whitepaper", cmd_whitepaper))
     app.add_handler(CommandHandler("innovations", cmd_innovations))
+    app.add_handler(CommandHandler("claude", cmd_claude))
+    app.add_handler(CommandHandler("thoughts", cmd_thoughts))
 
     # ═══ SETTINGS ═══
     app.add_handler(CommandHandler("settings", cmd_settings))
