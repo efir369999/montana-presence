@@ -1,0 +1,17 @@
+[package]
+name = "montana_cognitive"
+version = "1.0.0"
+edition = "2021"
+description = "Cognitive Consensus Module - AI Council Protocol"
+authors = ["Alejandro Montana <montana@montana.network>"]
+license = "MIT"
+
+# English comments: This module enables AI participation in consensus
+# Depends on Chinese crypto and English philosophy modules
+
+[dependencies]
+# Must depend on Chinese crypto module
+montana_crypto = { path = "../../zh_Chinese_中文/crypto" }
+
+# Must depend on English philosophy module
+montana_philosophy = { path = "../philosophy" }

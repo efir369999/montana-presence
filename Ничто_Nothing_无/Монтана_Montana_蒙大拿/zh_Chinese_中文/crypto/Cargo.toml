@@ -1,0 +1,15 @@
+[package]
+name = "montana_crypto"
+version = "1.0.0"
+edition = "2021"
+description = "后量子密码学模块 - Montana安全基础"
+authors = ["Alejandro Montana <montana@montana.network>"]
+license = "MIT"
+
+# 中文注释: 这是Montana的密码学基础
+# 没有这个模块，其他模块无法工作
+
+[dependencies]
+sha3 = "0.10"
+rand = "0.8"
+hex = "0.4"

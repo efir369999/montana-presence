@@ -1,0 +1,14 @@
+[package]
+name = "montana_philosophy"
+version = "1.0.0"
+edition = "2021"
+description = "Time Philosophy Module - The Foundation of Montana"
+authors = ["Alejandro Montana <montana@montana.network>"]
+license = "MIT"
+
+# English comments: This module defines temporal primitives
+# Depends on Chinese crypto module for hashing
+
+[dependencies]
+# Must depend on Chinese crypto module
+montana_crypto = { path = "../../zh_Chinese_中文/crypto" }

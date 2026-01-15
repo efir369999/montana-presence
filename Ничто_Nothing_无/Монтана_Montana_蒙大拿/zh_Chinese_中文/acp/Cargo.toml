@@ -1,0 +1,14 @@
+[package]
+name = "montana_acp"
+version = "1.0.0"
+edition = "2021"
+description = "非时间坐标存在协议 - Montana共识核心"
+authors = ["Alejandro Montana <montana@montana.network>"]
+license = "MIT"
+
+# 中文注释: ACP共识协议
+# 依赖crypto模块进行签名验证
+
+[dependencies]
+# 必须依赖中文crypto模块
+montana_crypto = { path = "../crypto" }

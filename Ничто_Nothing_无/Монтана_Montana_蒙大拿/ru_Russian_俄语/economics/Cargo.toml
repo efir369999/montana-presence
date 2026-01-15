@@ -1,0 +1,26 @@
+[package]
+name = "montana_economics"
+version = "1.0.0"
+edition = "2021"
+description = "金元Ɉ Экономика времени - Сердце Montana"
+authors = ["Alejandro Montana <montana@montana.network>"]
+license = "MIT"
+
+# Русские комментарии: Этот модуль объединяет ВСЕ остальные
+# Без любого из модулей — система не компилируется
+
+[dependencies]
+# Зависимость от китайского модуля криптографии
+montana_crypto = { path = "../../zh_Chinese_中文/crypto" }
+
+# Зависимость от китайского модуля ACP
+montana_acp = { path = "../../zh_Chinese_中文/acp" }
+
+# Зависимость от английского модуля философии
+montana_philosophy = { path = "../../en_English_英语/philosophy" }
+
+# Зависимость от английского модуля когнитив
+montana_cognitive = { path = "../../en_English_英语/cognitive" }
+
+# Зависимость от русского модуля сети
+montana_network = { path = "../network" }
