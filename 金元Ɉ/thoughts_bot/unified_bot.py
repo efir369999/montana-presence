@@ -1818,32 +1818,52 @@ async def cmd_innovations(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     )
 
 
+def get_claude_files() -> list:
+    """Dynamically get all files from data/claude/ folder."""
+    claude_dir = DATA_DIR / "claude"
+    if not claude_dir.exists():
+        return []
+
+    files = []
+    for f in sorted(claude_dir.iterdir()):
+        if f.is_file() and f.suffix in ['.md', '.pdf'] and not f.name.startswith('000_'):
+            # Extract number and title from filename
+            name = f.stem
+            files.append({
+                "path": f,
+                "name": f.name,
+                "display": name[:40] + "..." if len(name) > 40 else name,
+                "is_pdf": f.suffix == '.pdf'
+            })
+    return files
+
+
 async def cmd_claude(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Show Claude archive menu."""
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("166 Симуляция", callback_data="claude_166")],
-        [InlineKeyboardButton("167 Время", callback_data="claude_167")],
-        [InlineKeyboardButton("168 Поток", callback_data="claude_168")],
-        [InlineKeyboardButton("169 Сингулярность", callback_data="claude_169")],
-        [InlineKeyboardButton("170 Геймченджер", callback_data="claude_170")],
-        [InlineKeyboardButton("171 Феномен", callback_data="claude_171")],
-        [InlineKeyboardButton("172 Любовь", callback_data="claude_172")],
-        [InlineKeyboardButton("173 Унижение", callback_data="claude_173")],
-        [InlineKeyboardButton("174 Поток Питер", callback_data="claude_174")],
-        [InlineKeyboardButton("175 Следы", callback_data="claude_175")],
-        [InlineKeyboardButton("176 Тревоги", callback_data="claude_176")],
-        [InlineKeyboardButton("177 Фильм", callback_data="claude_177")],
-        [InlineKeyboardButton("178 Сдайся", callback_data="claude_178")],
-        [InlineKeyboardButton("179 金元Ɉ День 1", callback_data="claude_179")],
-        [InlineKeyboardButton("🧠 Когнитивный Генезис", callback_data="claude_cg")],
-    ])
+    """Show Claude archive menu - dynamically lists all files from data/claude/."""
+    files = get_claude_files()
+
+    if not files:
+        await update.message.reply_text("📂 Архив пуст.")
+        return
+
+    # Create buttons dynamically (max 20 files shown)
+    buttons = []
+    for i, f in enumerate(files[:30]):
+        icon = "📄" if f["is_pdf"] else "📝"
+        # Use index as callback data
+        buttons.append([InlineKeyboardButton(
+            f"{icon} {f['display']}",
+            callback_data=f"cfile_{i}"
+        )])
+
+    keyboard = InlineKeyboardMarkup(buttons)
 
     await update.message.reply_text(
-        "🤖 <b>Claude Archive</b>\n\n"
-        "Диалоги, размышления, поток сознания.\n"
-        "Документы переводятся на твой язык.\n\n"
+        f"🤖 <b>Claude Archive</b>\n\n"
+        f"Диалоги, размышления, поток сознания.\n"
+        f"<i>{len(files)} файлов</i>\n\n"
         "━━━━━━━━━━━━━━━━━━━━\n\n"
-        "<b>Выбери сессию:</b>",
+        "<b>Выбери документ для скачивания:</b>",
         reply_markup=keyboard,
         parse_mode="HTML"
     )
@@ -2539,44 +2559,31 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
 
     # ─────────────────────────────────────────────────────────────────────────
-    # CLAUDE ARCHIVE
+    # CLAUDE ARCHIVE (dynamic file handling)
     # ─────────────────────────────────────────────────────────────────────────
 
-    if data.startswith("claude_"):
-        claude_id = data[7:]  # 166, 167, cg, etc.
+    if data.startswith("cfile_"):
+        try:
+            file_idx = int(data[6:])
+            files = get_claude_files()
 
-        # Claude archive files mapping
-        claude_files = {
-            "166": {"file": "166_simulation.md", "title": "Симуляция / Simulation"},
-            "167": {"file": "167_time.md", "title": "Время / Time"},
-            "168": {"file": "168_flow.md", "title": "Поток / Flow"},
-            "169": {"file": "169_singularity.md", "title": "Сингулярность / Singularity"},
-            "170": {"file": "170_gamechanger.md", "title": "Геймченджер / Gamechanger"},
-            "171": {"file": "171_phenomenon.md", "title": "Феномен / Phenomenon"},
-            "172": {"file": "172_love.md", "title": "Любовь / Love"},
-            "173": {"file": "173_humiliation.md", "title": "Унижение / Humiliation"},
-            "174": {"file": "174_flow_piter.md", "title": "Поток Питер / Flow Piter"},
-            "175": {"file": "175_sovanaglobus_traces.md", "title": "Следы / Traces"},
-            "176": {"file": "176_sovanaglobus_anxieties.md", "title": "Тревоги / Anxieties"},
-            "177": {"file": "«177.  金元Ɉ - Фильм..md", "title": "Фильм / Film"},
-            "178": {"file": "«178.  金元Ɉ - Сдайся.md", "title": "Сдайся / Surrender"},
-            "179": {"file": "179_golden_yuan_day1.md", "title": "金元Ɉ День 1 / Day 1"},
-            "cg": {"file": "COGNITIVE_GENESIS_2026-01-09.md", "title": "Когнитивный Генезис / Cognitive Genesis"},
-        }
+            if 0 <= file_idx < len(files):
+                f = files[file_idx]
+                doc_path = f["path"]
 
-        if claude_id in claude_files:
-            cf = claude_files[claude_id]
-            doc_path = DATA_DIR / "claude" / cf["file"]
-
-            if doc_path.exists():
-                await q.message.reply_document(
-                    document=open(doc_path, "rb"),
-                    filename=cf["file"],
-                    caption=f"🤖 <b>{cf['title']}</b>\n\nClaude Archive — Montana Protocol",
-                    parse_mode="HTML"
-                )
+                if doc_path.exists():
+                    await q.message.reply_document(
+                        document=open(doc_path, "rb"),
+                        filename=f["name"],
+                        caption=f"🤖 <b>{f['display']}</b>\n\nClaude Archive — Montana Protocol",
+                        parse_mode="HTML"
+                    )
+                else:
+                    await q.message.reply_text(f"❌ File not found")
             else:
-                await q.message.reply_text(f"❌ File not found: {cf['file']}")
+                await q.message.reply_text("❌ Invalid file index")
+        except Exception as e:
+            await q.message.reply_text(f"❌ Error: {str(e)}")
         return
 
     if data == "innov_list":

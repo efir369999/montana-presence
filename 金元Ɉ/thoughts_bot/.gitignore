@@ -4,11 +4,17 @@
 TELEGRAM_API.md
 *.session
 
-# Data (private)
-data/
-parsed/
+# Data (private - except archives)
+data/thoughts.json
+data/sessions.json
+data/preferences.json
+data/channels/
 logs/
 *.log
+
+# Allow archives (public)
+!data/claude/
+!data/innovations/
 
 # Python
 __pycache__/
