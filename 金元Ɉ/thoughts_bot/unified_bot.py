@@ -797,6 +797,11 @@ COMMAND_DESCRIPTIONS = {
         "ru": "📄 Whitepaper",
         "zh": "📄 白皮书",
     },
+    "innovations": {
+        "en": "🔬 Montana Innovations",
+        "ru": "🔬 Инновации Montana",
+        "zh": "🔬 Montana创新",
+    },
     "settings": {
         "en": "⚙️ Settings",
         "ru": "⚙️ Настройки",
@@ -1740,6 +1745,32 @@ async def cmd_whitepaper(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def cmd_innovations(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Show Montana innovations menu."""
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("001 ACP — Консенсус", callback_data="innov_001")],
+        [InlineKeyboardButton("002 VDF — Криптография", callback_data="innov_002")],
+        [InlineKeyboardButton("003 3-Mirror — Инфраструктура", callback_data="innov_003")],
+        [InlineKeyboardButton("004 Adaptive Cooldown — Безопасность", callback_data="innov_004")],
+        [InlineKeyboardButton("005 Temporal Unit Ɉ — Экономика", callback_data="innov_005")],
+        [InlineKeyboardButton("006 PVA — Сеть", callback_data="innov_006")],
+        [InlineKeyboardButton("007 Tokenomics of Freedom — Философия", callback_data="innov_007")],
+    ])
+
+    await update.message.reply_text(
+        "🔬 <b>Montana Innovations</b>\n\n"
+
+        "Академические спецификации протокола.\n"
+        "Каждый документ — whitepaper-уровень.\n\n"
+
+        "━━━━━━━━━━━━━━━━━━━━\n\n"
+
+        "<b>Выбери инновацию:</b>",
+        reply_markup=keyboard,
+        parse_mode="HTML"
+    )
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # SETTINGS COMMANDS
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2358,6 +2389,102 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
 
     # ─────────────────────────────────────────────────────────────────────────
+    # INNOVATIONS
+    # ─────────────────────────────────────────────────────────────────────────
+
+    if data.startswith("innov_"):
+        innov_num = data[6:]  # 001, 002, etc.
+        user_lang = get_user_language(uid)
+
+        # Innovation titles and summaries per language
+        innovations = {
+            "001": {
+                "title": {"en": "Atemporal Coordinate Presence", "ru": "Атемпоральное координатное присутствие", "zh": "非时间坐标存在"},
+                "file": "001_ACP.md",
+                "emoji": "🔷"
+            },
+            "002": {
+                "title": {"en": "Verifiable Delay Functions", "ru": "Верифицируемые функции задержки", "zh": "可验证延迟函数"},
+                "file": "002_VDF.md",
+                "emoji": "🔐"
+            },
+            "003": {
+                "title": {"en": "Montana 3-Mirror System", "ru": "Система 3-х зеркал Montana", "zh": "Montana三镜像系统"},
+                "file": "003_3MIRROR.md",
+                "emoji": "🪞"
+            },
+            "004": {
+                "title": {"en": "Adaptive Cooldown", "ru": "Адаптивное охлаждение", "zh": "自适应冷却"},
+                "file": "004_ADAPTIVE_COOLDOWN.md",
+                "emoji": "⏳"
+            },
+            "005": {
+                "title": {"en": "Temporal Unit Ɉ", "ru": "Темпоральная единица Ɉ", "zh": "时间单位Ɉ"},
+                "file": "005_TEMPORAL_UNIT.md",
+                "emoji": "🪙"
+            },
+            "006": {
+                "title": {"en": "Presence-Verified Addresses", "ru": "Адреса с проверкой присутствия", "zh": "存在验证地址"},
+                "file": "006_PRESENCE_VERIFIED_ADDR.md",
+                "emoji": "🌐"
+            },
+            "007": {
+                "title": {"en": "Tokenomics of Freedom", "ru": "Токеномика свободы", "zh": "自由代币经济学"},
+                "file": "007_TOKENOMICS_FREEDOM.md",
+                "emoji": "🗽"
+            },
+        }
+
+        if innov_num in innovations:
+            innov = innovations[innov_num]
+            title = innov["title"].get(user_lang, innov["title"]["en"])
+            emoji = innov["emoji"]
+
+            # Load document
+            doc_path = DATA_DIR / "innovations" / innov["file"]
+            if doc_path.exists():
+                content = doc_path.read_text(encoding="utf-8")
+                # Truncate if too long
+                if len(content) > 3800:
+                    content = content[:3800] + "\n\n<i>... (документ сокращён)</i>"
+            else:
+                content = "Document not found."
+
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("◀️ Назад к списку", callback_data="innov_list")]
+            ])
+
+            await q.message.edit_text(
+                f"{emoji} <b>{innov_num}: {title}</b>\n\n"
+                f"<pre>{content[:3900]}</pre>",
+                parse_mode="HTML",
+                reply_markup=keyboard
+            )
+        return
+
+    if data == "innov_list":
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("001 ACP — Консенсус", callback_data="innov_001")],
+            [InlineKeyboardButton("002 VDF — Криптография", callback_data="innov_002")],
+            [InlineKeyboardButton("003 3-Mirror — Инфраструктура", callback_data="innov_003")],
+            [InlineKeyboardButton("004 Adaptive Cooldown — Безопасность", callback_data="innov_004")],
+            [InlineKeyboardButton("005 Temporal Unit Ɉ — Экономика", callback_data="innov_005")],
+            [InlineKeyboardButton("006 PVA — Сеть", callback_data="innov_006")],
+            [InlineKeyboardButton("007 Tokenomics of Freedom — Философия", callback_data="innov_007")],
+        ])
+
+        await q.message.edit_text(
+            "🔬 <b>Montana Innovations</b>\n\n"
+            "Академические спецификации протокола.\n"
+            "Каждый документ — whitepaper-уровень.\n\n"
+            "━━━━━━━━━━━━━━━━━━━━\n\n"
+            "<b>Выбери инновацию:</b>",
+            reply_markup=keyboard,
+            parse_mode="HTML"
+        )
+        return
+
+    # ─────────────────────────────────────────────────────────────────────────
     # MENU
     # ─────────────────────────────────────────────────────────────────────────
 
@@ -2947,6 +3074,7 @@ def main():
     app.add_handler(CommandHandler("app", cmd_app))
     app.add_handler(CommandHandler("architecture", cmd_architecture))
     app.add_handler(CommandHandler("whitepaper", cmd_whitepaper))
+    app.add_handler(CommandHandler("innovations", cmd_innovations))
 
     # ═══ SETTINGS ═══
     app.add_handler(CommandHandler("settings", cmd_settings))
