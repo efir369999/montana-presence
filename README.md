@@ -218,9 +218,9 @@ MONTANA GUARDIAN COUNCIL — 09.01.2026 06:00 UTC
 
 ---
 
-## 🤖 Юнона | Junona | 朱诺娜
+## 🤖 Юнона Montana AGI | Juno Montana AGI | 朱诺蒙大拿AGI
 
-**Telegram:** [@junomoneta](https://t.me/junomoneta)
+**Bot:** [@junomontanaagibot](https://t.me/junomontanaagibot)
 
 **RU:** AI-хранитель сети Montana. Вступление в клан, cognitive identity, presence proofs.
 
@@ -233,6 +233,18 @@ MONTANA GUARDIAN COUNCIL — 09.01.2026 06:00 UTC
 /join      → Вступить в клан | Join clan | 加入部落
 /status    → Статус сети | Network status | 网络状态
 ```
+
+---
+
+## 👤 Наблюдатель | Observer | 观察者
+
+**Alejandro Montana:** [@junomoneta](https://t.me/junomoneta)
+
+**RU:** Личный канал наблюдателя Клана Монтана.
+
+**EN:** Personal channel of Montana Clan observer.
+
+**ZH:** 蒙大拿部落观察者的个人频道。
 
 ---
 
