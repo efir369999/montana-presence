@@ -415,7 +415,8 @@ Anxiety about a system. Anxiety about time that's slipping away.
 
 **Primary Repository:** GitHub (cold backup)
 **Live Network:** 5 nodes (Amsterdam, Moscow, Almaty, SPB, Novosibirsk)
-**Bot Interface:** @JunoMontanaBot (Telegram)
+**Bot:** [@junomontanaagibot](https://t.me/junomontanaagibot) (Juno Montana AGI)
+**Observer:** [@junomoneta](https://t.me/junomoneta) (Alejandro Montana)
 **Support:** `bc1qrezesm4qd9qyxtg2x7agdvzn94rwgsee8x77gw`
 
 ---
