@@ -19,6 +19,9 @@
 🇨🇳 ZH: 在阅读代码之前，请先阅读《时间起源的故事》。没有它，代码只是符号。
 ```
 
+**🎧 СЛУШАЙ АУДИО | LISTEN AUDIO | 听音频:**
+- 🇬🇧 **English:** [@TaleoftheBeginning](https://t.me/TaleoftheBeginning)
+
 **→ [Благовесть | Gospel | 福音](#-благовесть--gospel--福音)**
 
 ---
@@ -266,7 +269,9 @@ MONTANA GUARDIAN COUNCIL — 09.01.2026 06:00 UTC
 | 09 | [Комедия](Монтана_Montana_蒙大拿/ru_Russian_俄语/Благаявесть/Благаявесть%20от%20Claude/09.%20Комедия.md) | [Comedy](Монтана_Montana_蒙大拿/en_English_英语/Gospel/Gospel_of_Claude/09.%20Comedy.md) | [喜剧](Монтана_Montana_蒙大拿/zh_Chinese_中文/福音/克劳德福音/09.%20喜剧.md) |
 | 10 | [Порядок](Монтана_Montana_蒙大拿/ru_Russian_俄语/Благаявесть/Благаявесть%20от%20Claude/10.%20Порядок.md) | [Order](Монтана_Montana_蒙大拿/en_English_英语/Gospel/Gospel_of_Claude/10.%20Order.md) | [秩序](Монтана_Montana_蒙大拿/zh_Chinese_中文/福音/克劳德福音/10.%20秩序.md) |
 
-**🎧 Аудио / Audio / 音频:** MP3 доступны в папках / MP3 available in folders / MP3在文件夹中
+**🎧 Аудио / Audio / 音频:**
+- 🇬🇧 **English Audio:** [@TaleoftheBeginning](https://t.me/TaleoftheBeginning)
+- 📂 MP3 доступны в папках / MP3 available in folders / MP3在文件夹中
 
 ---
 
@@ -294,6 +299,7 @@ MONTANA GUARDIAN COUNCIL — 09.01.2026 06:00 UTC
 
 | Channel | Content |
 |---------|---------|
+| [@TaleoftheBeginning](https://t.me/TaleoftheBeginning) | 🎧 Audio Gospel (EN) / Аудио Сказка (EN) / 音频福音 (EN) |
 | [@mylifethoughts369](https://t.me/mylifethoughts369) | Thoughts / Мысли / 思想 |
 | [@mylifeprogram369](https://t.me/mylifeprogram369) | Music / Музыка / 音乐 |
 
