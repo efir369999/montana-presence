@@ -1,29 +1,29 @@
-# Genesis Materials
+# 创世材料
 
-Все файлы, связанные с genesis Montana ACP.
+所有与Montana ACP创世相关的文件。
 
-## Структура
+## 结构
 
-### Документация
+### 文档
 
-- [GENESIS_SIGNATURE.md](GENESIS_SIGNATURE.md) — описание протокола подписи genesis
-- [COGNITIVE_GENESIS_2026-01-09.md](COGNITIVE_GENESIS_2026-01-09.md) — когнитивный генезис
-- [GENESIS_PROOF_2026-01-09.md](GENESIS_PROOF_2026-01-09.md) — доказательство genesis
+- [GENESIS_SIGNATURE.md](GENESIS_SIGNATURE.md) — 创世签名协议描述
+- [COGNITIVE_GENESIS_2026-01-09.md](COGNITIVE_GENESIS_2026-01-09.md) — 认知创世
+- [GENESIS_PROOF_2026-01-09.md](GENESIS_PROOF_2026-01-09.md) — 创世证明
 
-### Доказательства (визуальные)
+### 证明（视觉）
 
 - [COGNITIVE_GENESIS_PHOTO_2026-01-09.jpg](COGNITIVE_GENESIS_PHOTO_2026-01-09.jpg)
 - [GENESIS_PROOF_2026-01-09.png](GENESIS_PROOF_2026-01-09.png)
 
-### Примеры кода
+### 代码示例
 
-- [example_genesis.py](example_genesis.py) — пример работы с genesis
+- [example_genesis.py](example_genesis.py) — 创世使用示例
 
-### Исходный код (montana codebase)
+### 源代码 (montana codebase)
 
-- [../../montana/src/bin/genesis_sign.rs](../../montana/src/bin/genesis_sign.rs) — утилита подписи genesis
+- [../../montana/src/bin/genesis_sign.rs](../../montana/src/bin/genesis_sign.rs) — 创世签名工具
 
 ---
 
-**Дата создания папки:** 2026-01-09
-**Координаты:** /Montana ACP/Council/genesis/
+**文件夹创建日期：** 2026-01-09
+**坐标：** /Montana ACP/Council/genesis/

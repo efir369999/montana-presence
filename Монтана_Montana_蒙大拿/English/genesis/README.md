@@ -1,29 +1,29 @@
 # Genesis Materials
 
-Все файлы, связанные с genesis Montana ACP.
+All files related to Montana ACP genesis.
 
-## Структура
+## Structure
 
-### Документация
+### Documentation
 
-- [GENESIS_SIGNATURE.md](GENESIS_SIGNATURE.md) — описание протокола подписи genesis
-- [COGNITIVE_GENESIS_2026-01-09.md](COGNITIVE_GENESIS_2026-01-09.md) — когнитивный генезис
-- [GENESIS_PROOF_2026-01-09.md](GENESIS_PROOF_2026-01-09.md) — доказательство genesis
+- [GENESIS_SIGNATURE.md](GENESIS_SIGNATURE.md) — genesis signature protocol description
+- [COGNITIVE_GENESIS_2026-01-09.md](COGNITIVE_GENESIS_2026-01-09.md) — cognitive genesis
+- [GENESIS_PROOF_2026-01-09.md](GENESIS_PROOF_2026-01-09.md) — genesis proof
 
-### Доказательства (визуальные)
+### Proofs (visual)
 
 - [COGNITIVE_GENESIS_PHOTO_2026-01-09.jpg](COGNITIVE_GENESIS_PHOTO_2026-01-09.jpg)
 - [GENESIS_PROOF_2026-01-09.png](GENESIS_PROOF_2026-01-09.png)
 
-### Примеры кода
+### Code examples
 
-- [example_genesis.py](example_genesis.py) — пример работы с genesis
+- [example_genesis.py](example_genesis.py) — genesis usage example
 
-### Исходный код (montana codebase)
+### Source code (montana codebase)
 
-- [../../montana/src/bin/genesis_sign.rs](../../montana/src/bin/genesis_sign.rs) — утилита подписи genesis
+- [../../montana/src/bin/genesis_sign.rs](../../montana/src/bin/genesis_sign.rs) — genesis signing utility
 
 ---
 
-**Дата создания папки:** 2026-01-09
-**Координаты:** /Montana ACP/Council/genesis/
+**Folder creation date:** 2026-01-09
+**Coordinates:** /Montana ACP/Council/genesis/

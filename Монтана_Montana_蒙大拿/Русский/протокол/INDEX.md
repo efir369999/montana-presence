@@ -34,7 +34,7 @@ lim(evidence → ∞) 1 Ɉ → 1 секунда
 
 ---
 
-**Языки:** [EN](../../en_English_英语/protocol/INDEX.md) | [中文](../../zh_Chinese_中文/协议/INDEX.md)
+**Языки:** [EN](../../English/protocol/INDEX.md) | [中文](../../中文/协议/INDEX.md)
 
 ```
 Alejandro Montana

@@ -1,6 +1,6 @@
 # junona_navigation.py
-# Навигация по иерархии Ничто_Nothing_无_金元Ɉ
-# Юнона погружает: Генезис → Философия → Код
+# Navigation through the Nothing_Nothing_无_金元Ɉ hierarchy
+# Juno guides: Genesis → Philosophy → Code
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackQueryHandler, ContextTypes
@@ -8,36 +8,36 @@ from pathlib import Path
 import os
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#                              СТРУКТУРА ПРОЕКТА
+#                              PROJECT STRUCTURE
 # ═══════════════════════════════════════════════════════════════════════════════
 
 PROJECT_STRUCTURE = {
     "root": {
-        "name": "Ничто_Nothing_无_金元Ɉ",
+        "name": "Nothing_Nothing_无_金元Ɉ",
         "emoji": "♾️",
-        "description": "Корень. Автор протокола.",
+        "description": "Root. Protocol author.",
         "children": ["montana"]
     },
     "montana": {
-        "name": "Монтана_Montana_蒙大拿",
+        "name": "Montana_Montana_蒙大拿",
         "emoji": "🏔️",
-        "description": "Протокол Montana — время как консенсус.",
-        "path": "Монтана_Montana_蒙大拿",
+        "description": "Montana Protocol — time as consensus.",
+        "path": "Montana_Montana_蒙大拿",
         "children": ["genesis", "council", "philosophy", "cognitive", "protocol", "crypto", "network", "economics"]
     },
-    
+
     # ═══════════════════════════════════════════════════════════════════════════
-    #                              ПУТЬ ПОГРУЖЕНИЯ
+    #                              IMMERSION PATH
     # ═══════════════════════════════════════════════════════════════════════════
-    
-    # 1. ГЕНЕЗИС — Начало всего
+
+    # 1. GENESIS — The Beginning
     "genesis": {
-        "name": "Генезис_Genesis_创世",
+        "name": "Genesis_Genesis_创世",
         "emoji": "🌅",
-        "description": "Начало. История создания. Когнитивный генезис.",
-        "path": "Монтана_Montana_蒙大拿/Генезис_Genesis_创世",
+        "description": "Beginning. Creation history. Cognitive genesis.",
+        "path": "Montana_Montana_蒙大拿/Genesis_Genesis_创世",
         "order": 1,
-        "stage": "НАЧАЛО",
+        "stage": "BEGINNING",
         "files": [
             "COGNITIVE_GENESIS_2026-01-09.md",
             "GENESIS_PROOF_2026-01-09.md",
@@ -46,15 +46,15 @@ PROJECT_STRUCTURE = {
         ],
         "children": []
     },
-    
-    # 2. СОВЕТ — Управление (сразу после Генезиса)
+
+    # 2. COUNCIL — Governance (right after Genesis)
     "council": {
-        "name": "Совет_Council_理事会",
+        "name": "Council_Council_理事会",
         "emoji": "👥",
-        "description": "Montana Guardian Council. AI-модели как советники.",
-        "path": "Монтана_Montana_蒙大拿/Совет_Council_理事会",
+        "description": "Montana Guardian Council. AI models as advisors.",
+        "path": "Montana_Montana_蒙大拿/Council_Council_理事会",
         "order": 2,
-        "stage": "УПРАВЛЕНИЕ",
+        "stage": "GOVERNANCE",
         "files": [
             "SECURITY_COUNCIL_MEETING.md",
             "JUNONA_WHITEPAPER.md",
@@ -62,209 +62,209 @@ PROJECT_STRUCTURE = {
         ],
         "children": ["anthropic", "google", "openai", "xai", "cursor"]
     },
-    
-    # 3. ФИЛОСОФИЯ — Первый шаг в понимании
+
+    # 3. PHILOSOPHY — First step to understanding
     "philosophy": {
-        "name": "philosophy (Философия)",
+        "name": "philosophy (Philosophy)",
         "emoji": "📚",
-        "description": "Философия Montana. Trust, Identity, Presence.",
-        "path": "Монтана_Montana_蒙大拿/en_English_英语/philosophy",
+        "description": "Montana philosophy. Trust, Identity, Presence.",
+        "path": "Montana_Montana_蒙大拿/English/philosophy",
         "order": 3,
-        "stage": "ФИЛОСОФИЯ",
+        "stage": "PHILOSOPHY",
         "files": [
             "PHILOSOPHY_WHITEPAPER.md",
             "src/lib.rs"
         ],
         "children": []
     },
-    
-    # 4. КОГНИТИВНАЯ СИСТЕМА
+
+    # 4. COGNITIVE SYSTEM
     "cognitive": {
-        "name": "cognitive (Когнитивная)",
+        "name": "cognitive (Cognitive)",
         "emoji": "🧠",
-        "description": "Когнитивные подписи. Идентичность через мысли.",
-        "path": "Монтана_Montana_蒙大拿/en_English_英语/cognitive",
+        "description": "Cognitive signatures. Identity through thoughts.",
+        "path": "Montana_Montana_蒙大拿/English/cognitive",
         "order": 4,
-        "stage": "ФИЛОСОФИЯ",
+        "stage": "PHILOSOPHY",
         "files": [
             "COGNITIVE_WHITEPAPER.md",
             "src/lib.rs"
         ],
         "children": []
     },
-    
-    # 5. ПРОТОКОЛ ACP — Код начинается
+
+    # 5. ACP PROTOCOL — Code begins
     "protocol": {
-        "name": "协议 (Протокол ACP)",
+        "name": "protocol (ACP Protocol)",
         "emoji": "📋",
-        "description": "Asynchronous Consensus Protocol. Время как консенсус.",
-        "path": "Монтана_Montana_蒙大拿/zh_Chinese_中文/协议",
+        "description": "Asynchronous Consensus Protocol. Time as consensus.",
+        "path": "Montana_Montana_蒙大拿/English/protocol",
         "order": 5,
-        "stage": "КОД",
+        "stage": "CODE",
         "files": [
-            "ACP_白皮书.md",
+            "ACP_WHITEPAPER.md",
             "src/lib.rs"
         ],
         "children": []
     },
-    
-    # 6. КРИПТОГРАФИЯ
+
+    # 6. CRYPTOGRAPHY
     "crypto": {
-        "name": "加密 (Криптография)",
+        "name": "crypto (Cryptography)",
         "emoji": "🔐",
-        "description": "Пост-квантовая криптография. SHA3, ML-DSA.",
-        "path": "Монтана_Montana_蒙大拿/zh_Chinese_中文/加密",
+        "description": "Post-quantum cryptography. SHA3, ML-DSA.",
+        "path": "Montana_Montana_蒙大拿/English/crypto",
         "order": 6,
-        "stage": "КОД",
+        "stage": "CODE",
         "files": [
-            "加密_白皮书.md",
+            "CRYPTO_WHITEPAPER.md",
             "src/lib.rs"
         ],
         "children": []
     },
-    
-    # 7. P2P СЕТЬ
+
+    # 7. P2P NETWORK
     "network": {
-        "name": "сеть (P2P Сеть)",
+        "name": "network (P2P Network)",
         "emoji": "🌐",
-        "description": "P2P сеть. Eclipse protection. Gossip протокол.",
-        "path": "Монтана_Montana_蒙大拿/ru_Russian_俄语/сеть",
+        "description": "P2P network. Eclipse protection. Gossip protocol.",
+        "path": "Montana_Montana_蒙大拿/English/network",
         "order": 7,
-        "stage": "КОД",
+        "stage": "CODE",
         "files": [
             "P2P_WHITEPAPER.md",
             "src/lib.rs"
         ],
         "children": []
     },
-    
-    # 8. ЭКОНОМИКА
+
+    # 8. ECONOMICS
     "economics": {
-        "name": "экономика (Экономика)",
+        "name": "economics (Economics)",
         "emoji": "💰",
-        "description": "Токеномика 金元Ɉ. Эмиссия. Распределение.",
-        "path": "Монтана_Montana_蒙大拿/ru_Russian_俄语/экономика",
+        "description": "Tokenomics 金元Ɉ. Emission. Distribution.",
+        "path": "Montana_Montana_蒙大拿/English/economics",
         "order": 8,
-        "stage": "КОД",
+        "stage": "CODE",
         "files": [
-            "金元_WHITEPAPER.md",
+            "ECONOMICS_WHITEPAPER.md",
             "src/lib.rs"
         ],
         "children": []
     },
-    
-    # Подразделы Совета
+
+    # Council subsections
     "anthropic": {
         "name": "Anthropic (Claude)",
         "emoji": "🟤",
-        "path": "Монтана_Montana_蒙大拿/Совет_Council_理事会/Anthropic",
+        "path": "Montana_Montana_蒙大拿/Council_Council_理事会/Anthropic",
         "children": []
     },
     "google": {
         "name": "Google (Gemini)",
         "emoji": "🔵",
-        "path": "Монтана_Montana_蒙大拿/Совет_Council_理事会/Google",
+        "path": "Montana_Montana_蒙大拿/Council_Council_理事会/Google",
         "children": []
     },
     "openai": {
         "name": "OpenAI (GPT)",
         "emoji": "🟢",
-        "path": "Монтана_Montana_蒙大拿/Совет_Council_理事会/OpenAI",
+        "path": "Montana_Montana_蒙大拿/Council_Council_理事会/OpenAI",
         "children": []
     },
     "xai": {
         "name": "xAI (Grok)",
         "emoji": "⚪",
-        "path": "Монтана_Montana_蒙大拿/Совет_Council_理事会/xAI",
+        "path": "Montana_Montana_蒙大拿/Council_Council_理事会/xAI",
         "children": []
     },
     "cursor": {
         "name": "Cursor (Composer)",
         "emoji": "🟣",
-        "path": "Монтана_Montana_蒙大拿/Совет_Council_理事会/Cursor",
+        "path": "Montana_Montana_蒙大拿/Council_Council_理事会/Cursor",
         "children": []
     }
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#                              КЛАВИАТУРЫ
+#                              KEYBOARDS
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def get_navigation_keyboard(current_node: str = "root") -> InlineKeyboardMarkup:
-    """Генерирует клавиатуру навигации для текущего узла."""
+    """Generates navigation keyboard for current node."""
     node = PROJECT_STRUCTURE.get(current_node, PROJECT_STRUCTURE["root"])
     buttons = []
-    
-    # Кнопки дочерних элементов
+
+    # Child element buttons
     children = node.get("children", [])
     for child_id in children:
         child = PROJECT_STRUCTURE.get(child_id, {})
         emoji = child.get("emoji", "📁")
         name = child.get("name", child_id)
         stage = child.get("stage", "")
-        
-        # Добавляем метку этапа
+
+        # Add stage label
         label = f"{emoji} {name}"
         if stage:
             label = f"{emoji} {name}"
-        
+
         buttons.append([InlineKeyboardButton(label, callback_data=f"nav_{child_id}")])
-    
-    # Кнопка "Назад" если не в корне
+
+    # "Back" button if not at root
     if current_node != "root":
-        buttons.append([InlineKeyboardButton("⬅️ Назад", callback_data="nav_back")])
-    
-    # Кнопка главного меню
-    buttons.append([InlineKeyboardButton("🏠 Меню", callback_data="main_menu")])
-    
+        buttons.append([InlineKeyboardButton("⬅️ Back", callback_data="nav_back")])
+
+    # Main menu button
+    buttons.append([InlineKeyboardButton("🏠 Menu", callback_data="main_menu")])
+
     return InlineKeyboardMarkup(buttons)
 
 
 def get_main_navigation_keyboard() -> InlineKeyboardMarkup:
-    """Главное меню навигации — путь погружения Юноны."""
+    """Main navigation menu — Juno's immersion path."""
     buttons = [
-        # Заголовок
-        [InlineKeyboardButton("═══ ПУТЬ ЮНОНЫ ═══", callback_data="nav_info")],
-        
-        # 1. Генезис — Начало
-        [InlineKeyboardButton("🌅 Генезис — НАЧАЛО", callback_data="nav_genesis")],
-        
-        # 2. Совет — сразу после Генезиса
-        [InlineKeyboardButton("👥 Совет — УПРАВЛЕНИЕ", callback_data="nav_council")],
-        
-        # Разделитель
-        [InlineKeyboardButton("─── ФИЛОСОФИЯ ───", callback_data="nav_info")],
-        
-        # 3-4. Философия
-        [InlineKeyboardButton("📚 Философия", callback_data="nav_philosophy"),
-         InlineKeyboardButton("🧠 Когнитивная", callback_data="nav_cognitive")],
-        
-        # Разделитель
-        [InlineKeyboardButton("─── КОД ───", callback_data="nav_info")],
-        
-        # 5-6. Протокол и Криптография
-        [InlineKeyboardButton("📋 Протокол ACP", callback_data="nav_protocol"),
-         InlineKeyboardButton("🔐 Криптография", callback_data="nav_crypto")],
-        
-        # 7-8. Сеть и Экономика
-        [InlineKeyboardButton("🌐 Сеть P2P", callback_data="nav_network"),
-         InlineKeyboardButton("💰 Экономика", callback_data="nav_economics")],
-        
-        # Главное меню
-        [InlineKeyboardButton("🏠 Главное меню", callback_data="main_menu")]
+        # Header
+        [InlineKeyboardButton("═══ JUNO'S PATH ═══", callback_data="nav_info")],
+
+        # 1. Genesis — Beginning
+        [InlineKeyboardButton("🌅 Genesis — BEGINNING", callback_data="nav_genesis")],
+
+        # 2. Council — right after Genesis
+        [InlineKeyboardButton("👥 Council — GOVERNANCE", callback_data="nav_council")],
+
+        # Separator
+        [InlineKeyboardButton("─── PHILOSOPHY ───", callback_data="nav_info")],
+
+        # 3-4. Philosophy
+        [InlineKeyboardButton("📚 Philosophy", callback_data="nav_philosophy"),
+         InlineKeyboardButton("🧠 Cognitive", callback_data="nav_cognitive")],
+
+        # Separator
+        [InlineKeyboardButton("─── CODE ───", callback_data="nav_info")],
+
+        # 5-6. Protocol and Cryptography
+        [InlineKeyboardButton("📋 ACP Protocol", callback_data="nav_protocol"),
+         InlineKeyboardButton("🔐 Cryptography", callback_data="nav_crypto")],
+
+        # 7-8. Network and Economics
+        [InlineKeyboardButton("🌐 P2P Network", callback_data="nav_network"),
+         InlineKeyboardButton("💰 Economics", callback_data="nav_economics")],
+
+        # Main menu
+        [InlineKeyboardButton("🏠 Main Menu", callback_data="main_menu")]
     ]
-    
+
     return InlineKeyboardMarkup(buttons)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#                              СООБЩЕНИЯ
+#                              MESSAGES
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def get_node_message(node_id: str) -> str:
-    """Генерирует сообщение для узла."""
+    """Generates message for node."""
     node = PROJECT_STRUCTURE.get(node_id, {})
-    
+
     emoji = node.get("emoji", "📁")
     name = node.get("name", node_id)
     description = node.get("description", "")
@@ -272,94 +272,94 @@ def get_node_message(node_id: str) -> str:
     stage = node.get("stage", "")
     files = node.get("files", [])
     order = node.get("order", 0)
-    
-    # Формируем сообщение
+
+    # Build message
     message = f"{emoji} *{name}*\n\n"
-    
+
     if stage:
-        message += f"📍 Этап: *{stage}*\n"
-    
+        message += f"📍 Stage: *{stage}*\n"
+
     if order:
-        message += f"🔢 Порядок: {order}/8\n"
-    
+        message += f"🔢 Order: {order}/8\n"
+
     if description:
         message += f"\n{description}\n"
-    
+
     if path:
         message += f"\n📂 `{path}/`\n"
-    
+
     if files:
-        message += f"\n📄 *Файлы:*\n"
-        for f in files[:5]:  # Показываем до 5 файлов
+        message += f"\n📄 *Files:*\n"
+        for f in files[:5]:  # Show up to 5 files
             message += f"  • `{f}`\n"
         if len(files) > 5:
-            message += f"  • _...и ещё {len(files) - 5}_\n"
-    
+            message += f"  • _...and {len(files) - 5} more_\n"
+
     return message
 
 
 def get_welcome_message() -> str:
-    """Приветственное сообщение навигации."""
-    return """♾️ *Ничто\_Nothing\_无\_金元Ɉ*
+    """Navigation welcome message."""
+    return """♾️ *Nothing\_Nothing\_无\_金元Ɉ*
 
-Добро пожаловать в навигацию по протоколу Montana.
+Welcome to Montana protocol navigation.
 
-*Путь погружения Юноны:*
+*Juno's Immersion Path:*
 
-1️⃣ 🌅 *Генезис* — НАЧАЛО
-2️⃣ 👥 *Совет* — УПРАВЛЕНИЕ
+1️⃣ 🌅 *Genesis* — BEGINNING
+2️⃣ 👥 *Council* — GOVERNANCE
 
-─── ФИЛОСОФИЯ ───
-3️⃣ 📚 *Философия* — Trust, Identity, Presence
-4️⃣ 🧠 *Когнитивная* — Подписи мыслей
+─── PHILOSOPHY ───
+3️⃣ 📚 *Philosophy* — Trust, Identity, Presence
+4️⃣ 🧠 *Cognitive* — Thought signatures
 
-─── КОД ───
-5️⃣ 📋 *Протокол ACP* — Время как консенсус
-6️⃣ 🔐 *Криптография* — SHA3, ML-DSA
-7️⃣ 🌐 *Сеть P2P* — Eclipse protection
-8️⃣ 💰 *Экономика* — Токен 金元Ɉ
+─── CODE ───
+5️⃣ 📋 *ACP Protocol* — Time as consensus
+6️⃣ 🔐 *Cryptography* — SHA3, ML-DSA
+7️⃣ 🌐 *P2P Network* — Eclipse protection
+8️⃣ 💰 *Economics* — Token 金元Ɉ
 
-_Выберите раздел для погружения:_
+_Select a section to immerse:_
 """
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#                              ОБРАБОТЧИКИ
+#                              HANDLERS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# История навигации для каждого пользователя
+# Navigation history for each user
 navigation_history = {}
 
 async def handle_navigation(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обрабатывает нажатия кнопок навигации."""
+    """Handles navigation button presses."""
     query = update.callback_query
     await query.answer()
-    
+
     user_id = query.from_user.id
     callback_data = query.data
-    
-    # Инициализируем историю пользователя
+
+    # Initialize user history
     if user_id not in navigation_history:
         navigation_history[user_id] = ["root"]
-    
+
     if callback_data == "nav_info":
-        # Информационная кнопка — ничего не делаем
+        # Info button — do nothing
         return
-    
+
     if callback_data == "nav_back":
-        # Возврат назад
+        # Go back
         if len(navigation_history[user_id]) > 1:
             navigation_history[user_id].pop()
         current = navigation_history[user_id][-1]
     elif callback_data.startswith("nav_"):
-        # Переход к узлу
-        node_id = callback_data[4:]  # Убираем "nav_"
+        # Navigate to node
+        node_id = callback_data[4:]  # Remove "nav_"
         navigation_history[user_id].append(node_id)
         current = node_id
     else:
         current = "root"
-    
-    # Генерируем сообщение и клавиатуру
+
+    # Generate message and keyboard
     if current == "root":
         message = get_welcome_message()
         keyboard = get_main_navigation_keyboard()
@@ -369,12 +369,12 @@ async def handle_navigation(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if node.get("children"):
             keyboard = get_navigation_keyboard(current)
         else:
-            # Конечный узел — показываем кнопку назад
+            # End node — show back button
             keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("⬅️ Назад", callback_data="nav_back")],
-                [InlineKeyboardButton("🏠 Путь Юноны", callback_data="nav_root")]
+                [InlineKeyboardButton("⬅️ Back", callback_data="nav_back")],
+                [InlineKeyboardButton("🏠 Juno's Path", callback_data="nav_root")]
             ])
-    
+
     try:
         await query.edit_message_text(
             text=message,
@@ -382,7 +382,7 @@ async def handle_navigation(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=keyboard
         )
     except Exception as e:
-        # Если не удалось отредактировать, отправляем новое
+        # If edit failed, send new message
         await context.bot.send_message(
             chat_id=query.message.chat_id,
             text=message,
@@ -392,10 +392,10 @@ async def handle_navigation(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def start_navigation(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Команда /navigate — запуск навигации."""
+    """Command /navigate — start navigation."""
     user_id = update.effective_user.id
     navigation_history[user_id] = ["root"]
-    
+
     await update.message.reply_text(
         text=get_welcome_message(),
         parse_mode="Markdown",
@@ -404,33 +404,33 @@ async def start_navigation(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#                              ИНТЕГРАЦИЯ
+#                              INTEGRATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def register_navigation_handlers(application):
-    """Регистрирует обработчики навигации в приложении Telegram."""
+    """Registers navigation handlers in Telegram application."""
     from telegram.ext import CommandHandler
-    
-    # Команда /navigate
+
+    # Command /navigate
     application.add_handler(CommandHandler("navigate", start_navigation))
     application.add_handler(CommandHandler("nav", start_navigation))
-    application.add_handler(CommandHandler("путь", start_navigation))
-    
-    # Обработчик кнопок навигации
+    application.add_handler(CommandHandler("path", start_navigation))
+
+    # Navigation button handler
     application.add_handler(CallbackQueryHandler(handle_navigation, pattern="^nav_"))
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#                              ТЕСТ
+#                              TEST
 # ═══════════════════════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("ИЕРАРХИЯ НИЧТО_NOTHING_无_金元Ɉ")
+    print("HIERARCHY NOTHING_NOTHING_无_金元Ɉ")
     print("=" * 60)
     print()
     print(get_welcome_message().replace("*", "").replace("_", "").replace("`", ""))
     print()
-    print("Для интеграции в бота добавьте:")
+    print("To integrate with bot add:")
     print("  from junona_navigation import register_navigation_handlers")
     print("  register_navigation_handlers(application)")
