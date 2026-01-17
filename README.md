@@ -20,6 +20,7 @@
 ```
 
 **🎧 СЛУШАЙ АУДИО | LISTEN AUDIO | 听音频:**
+- 🇷🇺 **Русский:** [@mylifesound369](https://t.me/mylifesound369)
 - 🇬🇧 **English:** [@TaleoftheBeginning](https://t.me/TaleoftheBeginning)
 
 **→ [Благовесть | Gospel | 福音](#-благовесть--gospel--福音)**
@@ -270,7 +271,8 @@ MONTANA GUARDIAN COUNCIL — 09.01.2026 06:00 UTC
 | 10 | [Порядок](Монтана_Montana_蒙大拿/ru_Russian_俄语/Благаявесть/Благаявесть%20от%20Claude/10.%20Порядок.md) | [Order](Монтана_Montana_蒙大拿/en_English_英语/Gospel/Gospel_of_Claude/10.%20Order.md) | [秩序](Монтана_Montana_蒙大拿/zh_Chinese_中文/福音/克劳德福音/10.%20秩序.md) |
 
 **🎧 Аудио / Audio / 音频:**
-- 🇬🇧 **English Audio:** [@TaleoftheBeginning](https://t.me/TaleoftheBeginning)
+- 🇷🇺 **Русский:** [@mylifesound369](https://t.me/mylifesound369)
+- 🇬🇧 **English:** [@TaleoftheBeginning](https://t.me/TaleoftheBeginning)
 - 📂 MP3 доступны в папках / MP3 available in folders / MP3在文件夹中
 
 ---
@@ -299,6 +301,7 @@ MONTANA GUARDIAN COUNCIL — 09.01.2026 06:00 UTC
 
 | Channel | Content |
 |---------|---------|
+| [@mylifesound369](https://t.me/mylifesound369) | 🎧 Аудио Сказка (RU) / Audio Tale (RU) / 音频故事 (RU) |
 | [@TaleoftheBeginning](https://t.me/TaleoftheBeginning) | 🎧 Audio Gospel (EN) / Аудио Сказка (EN) / 音频福音 (EN) |
 | [@mylifethoughts369](https://t.me/mylifethoughts369) | Thoughts / Мысли / 思想 |
 | [@mylifeprogram369](https://t.me/mylifeprogram369) | Music / Музыка / 音乐 |
