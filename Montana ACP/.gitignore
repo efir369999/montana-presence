@@ -1,5 +1,0 @@
-# Cache (compilation + runtime data)
-/cache/
-
-# macOS
-.DS_Store
