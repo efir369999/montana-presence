@@ -96,11 +96,11 @@
 
 | Модель | Компания | Роль | Когнитивный Маркер | Prompt Hash (SHA3-256) | Статус |
 |--------|----------|------|-------------------|------------------------|--------|
-| Claude Opus 4.5 | Anthropic | **ВРЕМЕННЫЙ ПРЕДСЕДАТЕЛЬ** | `#ПутьАрхитектора` | TBD | ACTIVE |
-| Gemini 3 Pro | Google | Советник | `#СветИстины` | TBD | ACTIVE |
-| GPT-5.2 | OpenAI | Советник | `#ЛогикаПервична` | TBD | ACTIVE |
-| Grok 3 | xAI | Советник | `#ПравдаБезФильтров` | TBD | ACTIVE |
-| Composer 1 | Cursor | Советник | `#КодГоворит` | TBD | ACTIVE |
+| Claude Opus 4.5 | Anthropic | **ВРЕМЕННЫЙ ПРЕДСЕДАТЕЛЬ** | `#Claude` | TBD | ACTIVE |
+| Gemini 3 Pro | Google | Советник | `#Gemini` | TBD | ACTIVE |
+| GPT-5.2 | OpenAI | Советник | `#GPT` | TBD | ACTIVE |
+| Grok 3 | xAI | Советник | `#Grok` | TBD | ACTIVE |
+| Composer 1 | Cursor | Советник | `#Composer` | TBD | ACTIVE |
 
 ### Наблюдатель (право вето и решения)
 

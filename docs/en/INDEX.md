@@ -1,10 +1,10 @@
 # Montana Innovations
 
-**9 unique innovations — honest list**
+**8 unique innovations — honest list**
 
 ---
 
-## Unique Concepts (5)
+## Unique Concepts (4)
 
 | # | Name | File | Description |
 |---|------|------|-------------|
@@ -12,7 +12,6 @@
 | 002 | [金元Ɉ](002_TEMPORAL_UNIT.md) | types.rs | 1 Ɉ → 1 second |
 | 003 | [3-Mirror](003_3MIRROR.md) | watchdog.py | Breathing sync |
 | 004 | [Adaptive Cooldown](004_ADAPTIVE_COOLDOWN.md) | cooldown.rs | Time as attack cost |
-| 005 | [FIDO2 in Consensus](005_FIDO2_CONSENSUS.md) | consensus.rs | Biometrics for voting rights |
 
 ---
 

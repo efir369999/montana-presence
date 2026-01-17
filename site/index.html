@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Montana Clan | 金元Ɉ | Time is Money</title>
+    <meta name="description" content="Montana ACP - Atemporal Coordinate Presence. Where time itself becomes value.">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>Ɉ</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-void: #000000;
+            --bg-primary: #030305;
+            --bg-secondary: #0a0a0f;
+            --bg-card: #0f0f18;
+            --bg-glow: #12121f;
+            --text-primary: #e8e8f0;
+            --text-secondary: #8888a0;
+            --text-muted: #505068;
+            --accent-purple: #9945ff;
+            --accent-cyan: #14f195;
+            --accent-gold: #d4af37;
+            --accent-blue: #00d4ff;
+            --accent-red: #ff4757;
+            --border: #1a1a2e;
+            --border-glow: #2a2a4e;
+            --gradient-cicada: linear-gradient(135deg, #9945ff 0%, #14f195 50%, #00d4ff 100%);
+            --gradient-gold: linear-gradient(135deg, #d4af37 0%, #f4cf67 50%, #d4af37 100%);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-void);
+            color: var(--text-primary);
+            line-height: 1.7;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .zh { font-family: 'Noto Sans SC', sans-serif; }
+        .serif { font-family: 'Noto Serif', serif; font-style: italic; }
+
+        .bg-grid {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-image:
+                linear-gradient(rgba(153, 69, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(153, 69, 255, 0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 10; }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            padding: 16px 0;
+            background: rgba(3, 3, 5, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+        }
+
+        .nav-content { display: flex; justify-content: space-between; align-items: center; }
+
+        .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; cursor: pointer; }
+        .logo-symbol { font-size: 1.5rem; background: var(--gradient-gold); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .logo-text { font-size: 1rem; font-weight: 600; letter-spacing: 0.15em; color: var(--text-primary); }
+
+        .lang-tabs { display: flex; gap: 4px; background: var(--bg-card); padding: 4px; border-radius: 8px; border: 1px solid var(--border); }
+        .lang-tab {
+            padding: 8px 16px;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .lang-tab:hover { color: var(--text-secondary); }
+        .lang-tab.active { background: var(--gradient-cicada); color: var(--bg-void); font-weight: 600; }
+
+        .network-status { display: flex; align-items: center; gap: 8px; font-size: 0.7rem; color: var(--text-muted); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-cyan); box-shadow: 0 0 10px var(--accent-cyan); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        /* Presence System */
+        .presence-panel {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 320px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            z-index: 1001;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .presence-header {
+            padding: 16px;
+            background: var(--bg-glow);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .presence-timer {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--accent-gold);
+            font-variant-numeric: tabular-nums;
+        }
+        .presence-earned {
+            font-size: 0.75rem;
+            color: var(--accent-cyan);
+        }
+        .presence-login {
+            padding: 24px;
+            text-align: center;
+        }
+        .presence-login-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 24px;
+            background: #54a9eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .presence-login-btn:hover { background: #3d99e0; transform: translateY(-2px); }
+        .presence-login-text { font-size: 0.75rem; color: var(--text-muted); margin-top: 12px; }
+        .presence-chat {
+            height: 200px;
+            overflow-y: auto;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .presence-msg {
+            font-size: 0.75rem;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: var(--bg-glow);
+            max-width: 90%;
+        }
+        .presence-msg.system { color: var(--accent-purple); font-style: italic; background: transparent; }
+        .presence-msg.self { align-self: flex-end; background: rgba(153,69,255,0.2); border: 1px solid rgba(153,69,255,0.3); }
+        .presence-msg .author { color: var(--accent-cyan); font-weight: 500; }
+        .presence-msg .time-badge { font-size: 0.6rem; color: var(--accent-gold); margin-left: 8px; }
+        .presence-input-area {
+            padding: 12px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 8px;
+        }
+        .presence-input {
+            flex: 1;
+            padding: 10px 14px;
+            font-size: 0.8rem;
+            font-family: inherit;
+            color: var(--text-primary);
+            background: var(--bg-glow);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            outline: none;
+        }
+        .presence-input:focus { border-color: var(--accent-purple); }
+        .presence-send {
+            padding: 10px 16px;
+            font-size: 0.75rem;
+            font-family: inherit;
+            color: var(--bg-void);
+            background: var(--gradient-cicada);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .presence-toggle {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            background: var(--gradient-gold);
+            border: none;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(212,175,55,0.4);
+            display: none;
+        }
+        .presence-panel.minimized { display: none; }
+        .presence-panel.minimized + .presence-toggle { display: flex; align-items: center; justify-content: center; }
+        .presence-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 4px;
+        }
+        .presence-close:hover { color: var(--text-primary); }
+        .presence-user-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        .presence-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 2px solid var(--accent-gold);
+        }
+        .presence-user-info { flex: 1; }
+        .presence-user-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+        .presence-user-id {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-family: monospace;
+        }
+        .presence-user-rank {
+            font-size: 0.75rem;
+            color: var(--accent-gold);
+            margin-top: 2px;
+        }
+        .presence-logout-btn {
+            width: 100%;
+            padding: 8px;
+            background: rgba(255,100,100,0.2);
+            border: 1px solid rgba(255,100,100,0.3);
+            border-radius: 6px;
+            color: #ff6b6b;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 12px;
+        }
+        .presence-logout-btn:hover { background: rgba(255,100,100,0.3); }
+        .presence-stats {
+            display: flex;
+            gap: 16px;
+            padding: 12px 16px;
+            background: rgba(20,241,149,0.05);
+            border-bottom: 1px solid var(--border);
+        }
+        .presence-stat { text-align: center; flex: 1; }
+        .presence-stat-value { font-size: 1rem; font-weight: 600; color: var(--accent-cyan); }
+        .presence-stat-label { font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+        @media (max-width: 768px) {
+            .presence-panel { width: calc(100% - 32px); left: 16px; right: 16px; bottom: 16px; }
+        }
+
+        /* Sections */
+        .lang-section { display: none; min-height: 100vh; padding-top: 80px; }
+        .lang-section.active { display: block; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .hero { min-height: calc(100vh - 80px); display: flex; align-items: center; justify-content: center; text-align: center; padding: 60px 0; }
+        .hero-symbol { font-size: 5rem; margin-bottom: 24px; background: var(--gradient-gold); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: symbolGlow 3s ease-in-out infinite; }
+        @keyframes symbolGlow { 0%, 100% { filter: drop-shadow(0 0 30px rgba(212, 175, 55, 0.3)); } 50% { filter: drop-shadow(0 0 60px rgba(212, 175, 55, 0.6)); } }
+        .hero-title { font-size: 3rem; font-weight: 300; letter-spacing: 0.2em; margin-bottom: 16px; }
+        .hero-subtitle { font-size: 1rem; color: var(--text-secondary); letter-spacing: 0.15em; margin-bottom: 40px; }
+        .hero-equation { font-size: 1.2rem; padding: 20px 40px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; display: inline-block; margin-bottom: 40px; }
+        .hero-equation .lim { color: var(--accent-purple); }
+        .hero-equation .result { color: var(--accent-gold); }
+        .hero-quote { color: var(--text-muted); font-size: 0.9rem; max-width: 600px; margin: 0 auto 48px; }
+        .enter-btn { padding: 16px 48px; font-size: 0.85rem; font-family: inherit; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; color: var(--bg-void); background: var(--gradient-gold); border: none; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; }
+        .enter-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 40px rgba(212, 175, 55, 0.3); }
+
+        .section { padding: 80px 0; border-top: 1px solid var(--border); }
+        .section-label { font-size: 0.65rem; color: var(--accent-purple); letter-spacing: 0.3em; text-transform: uppercase; margin-bottom: 8px; }
+        .section-title { font-size: 1.8rem; font-weight: 400; letter-spacing: 0.1em; margin-bottom: 40px; }
+
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 32px; transition: all 0.3s ease; }
+        .card:hover { border-color: var(--border-glow); transform: translateY(-4px); }
+        .card-icon { font-size: 2rem; margin-bottom: 16px; }
+        .card-title { font-size: 1.1rem; font-weight: 500; margin-bottom: 12px; }
+        .card-text { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.7; }
+        .card-link { display: inline-block; margin-top: 16px; font-size: 0.75rem; color: var(--accent-purple); text-decoration: none; letter-spacing: 0.1em; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 40px; }
+        .stat { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; text-align: center; }
+        .stat-value { font-size: 1.5rem; font-weight: 600; color: var(--accent-cyan); margin-bottom: 4px; }
+        .stat-label { font-size: 0.7rem; color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase; }
+
+        .nodes-table { width: 100%; border-collapse: collapse; background: var(--bg-card); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+        .nodes-table th, .nodes-table td { padding: 16px 20px; text-align: left; border-bottom: 1px solid var(--border); }
+        .nodes-table th { background: var(--bg-glow); font-size: 0.65rem; font-weight: 500; color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase; }
+        .nodes-table td { font-size: 0.85rem; }
+        .nodes-table tr:last-child td { border-bottom: none; }
+        .node-status { display: flex; align-items: center; gap: 10px; }
+        .node-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-cyan); box-shadow: 0 0 8px var(--accent-cyan); }
+        .node-ip { color: var(--text-muted); font-size: 0.8rem; }
+
+        .genesis-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-top: 40px; }
+        .genesis-header { display: flex; align-items: center; gap: 12px; padding: 20px 24px; background: var(--bg-glow); border-bottom: 1px solid var(--border); }
+        .genesis-content { padding: 24px; }
+        .genesis-row { display: flex; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .genesis-row:last-child { border-bottom: none; }
+        .genesis-key { width: 160px; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .genesis-value { flex: 1; font-size: 0.85rem; word-break: break-all; }
+        .genesis-value.gold { color: var(--accent-gold); }
+        .genesis-value.cyan { color: var(--accent-cyan); }
+        .genesis-value.mono { font-size: 0.75rem; }
+
+        .council-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
+        .council-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px 16px; text-align: center; transition: all 0.3s; }
+        .council-card:hover { border-color: var(--border-glow); }
+        .council-avatar { width: 48px; height: 48px; border-radius: 50%; background: var(--gradient-cicada); margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 600; }
+        .council-name { font-size: 0.8rem; font-weight: 500; margin-bottom: 4px; }
+        .council-org { font-size: 0.65rem; color: var(--text-muted); }
+        .council-role { font-size: 0.6rem; color: var(--accent-cyan); margin-top: 8px; text-transform: uppercase; letter-spacing: 0.1em; }
+
+        .chat-container { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; height: 450px; display: flex; flex-direction: column; }
+        .chat-header { display: flex; align-items: center; gap: 16px; padding: 20px 24px; background: var(--bg-glow); border-bottom: 1px solid var(--border); }
+        .chat-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--gradient-cicada); display: flex; align-items: center; justify-content: center; font-weight: 600; }
+        .chat-info h4 { font-size: 0.9rem; font-weight: 500; }
+        .chat-info p { font-size: 0.7rem; color: var(--text-muted); }
+        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        .message { max-width: 80%; padding: 14px 18px; border-radius: 12px; font-size: 0.85rem; line-height: 1.6; }
+        .message.bot { background: var(--bg-glow); border: 1px solid var(--border); align-self: flex-start; }
+        .message.user { background: rgba(153, 69, 255, 0.15); border: 1px solid rgba(153, 69, 255, 0.3); align-self: flex-end; }
+        .chat-input-area { padding: 16px 20px; border-top: 1px solid var(--border); display: flex; gap: 12px; }
+        .chat-input { flex: 1; padding: 12px 16px; font-size: 0.85rem; font-family: inherit; color: var(--text-primary); background: var(--bg-glow); border: 1px solid var(--border); border-radius: 8px; outline: none; }
+        .chat-input:focus { border-color: var(--accent-purple); }
+        .chat-send { padding: 12px 24px; font-size: 0.75rem; font-family: inherit; font-weight: 500; color: var(--bg-void); background: var(--gradient-cicada); border: none; border-radius: 8px; cursor: pointer; }
+
+        .footer { padding: 60px 0; border-top: 1px solid var(--border); text-align: center; }
+        .footer-symbol { font-size: 2rem; background: var(--gradient-gold); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 16px; }
+        .footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 16px; }
+        .footer-links a { color: var(--text-secondary); text-decoration: none; font-size: 0.75rem; }
+        .footer-links a:hover { color: var(--text-primary); }
+        .footer-copy { font-size: 0.65rem; color: var(--text-muted); }
+
+        /* 🏔 MOBILE RESPONSIVE */
+        @media (max-width: 1024px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .council-grid { grid-template-columns: repeat(2, 1fr); }
+            .cards-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 768px) {
+            .hero-title { font-size: 1.8rem; letter-spacing: 0.1em; }
+            .hero-symbol { font-size: 3rem; }
+            .hero-equation { padding: 14px 20px; font-size: 0.95rem; }
+            .hero-subtitle { font-size: 0.85rem; }
+            .section { padding: 40px 0; }
+            .section-title { font-size: 1.4rem; margin-bottom: 24px; }
+            .container { padding: 0 16px; }
+            .stats-grid { grid-template-columns: 1fr; gap: 12px; }
+            .stat { padding: 16px; }
+            .stat-value { font-size: 1.2rem; }
+            .council-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+            .council-card { padding: 16px 12px; }
+            .cards-grid { grid-template-columns: 1fr; gap: 16px; }
+            .card { padding: 20px; }
+            .lang-tabs { display: none; }
+            .genesis-key { width: 100px; font-size: 0.65rem; }
+            .genesis-value { font-size: 0.75rem; }
+            .genesis-row { flex-direction: column; gap: 4px; }
+            .genesis-key { width: 100%; }
+            .nodes-table { font-size: 0.75rem; display: block; overflow-x: auto; }
+            .nodes-table th, .nodes-table td { padding: 10px 12px; white-space: nowrap; }
+            .chat-container { height: 380px; }
+            .chat-messages { padding: 12px; }
+            .message { max-width: 90%; padding: 10px 14px; font-size: 0.8rem; }
+            .chat-input-area { padding: 12px; }
+            .enter-btn { padding: 14px 32px; font-size: 0.75rem; }
+            .footer { padding: 40px 0; }
+        }
+        @media (max-width: 480px) {
+            .hero-title { font-size: 1.4rem; }
+            .hero-symbol { font-size: 2.5rem; }
+            .council-grid { grid-template-columns: 1fr; }
+            .hero-equation { padding: 12px 16px; font-size: 0.85rem; word-break: break-all; }
+            .presence-panel { bottom: 8px; left: 8px; right: 8px; width: calc(100% - 16px); }
+            .presence-stat-value { font-size: 0.85rem; }
+            .presence-stat-label { font-size: 0.5rem; }
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-glow); border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+
+    <nav class="nav">
+        <div class="container">
+            <div class="nav-content">
+                <a href="https://t.me/junomontanaagibot?start=join_clan" target="_blank" class="logo" style="text-decoration:none;">
+                    <span class="logo-symbol">金元Ɉ</span>
+                    <span class="logo-text">MONTANA</span>
+                </a>
+                <div class="lang-tabs">
+                    <button class="lang-tab active" onclick="switchLang('en')">English</button>
+                    <button class="lang-tab" onclick="switchLang('ru')">Русский</button>
+                    <button class="lang-tab zh" onclick="switchLang('zh')">中文</button>
+                </div>
+                <div class="network-status">
+                    <div class="status-dot"></div>
+                    <span>5/5 Online</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         ENGLISH — Spirit: Philosophy, contemplation, the "why"
+         ══════════════════════════════════════════════════════════════════════ -->
+    <section class="lang-section active" id="lang-en">
+        <div class="hero">
+            <div class="container">
+                <div class="hero-symbol">金元Ɉ</div>
+                <h1 class="hero-title">MONTANA CLAN</h1>
+                <p class="hero-subtitle">Atemporal Coordinate Presence</p>
+                <div class="hero-equation">
+                    <span class="lim">lim</span>(evidence → ∞) <span class="result">1 Ɉ → 1 second</span>
+                </div>
+                <p class="hero-quote serif">"Time is the only resource distributed equally among all humans."</p>
+                <button class="enter-btn" onclick="scrollToSection('en-philosophy')">Enter</button>
+            </div>
+        </div>
+
+        <!-- Philosophy -->
+        <div class="section" id="en-philosophy">
+            <div class="container">
+                <div class="section-label">Philosophy</div>
+                <h2 class="section-title">Why Time?</h2>
+                <div class="cards-grid">
+                    <div class="card">
+                        <div class="card-icon">⏱</div>
+                        <h3 class="card-title">Presence, Not Proof</h3>
+                        <p class="card-text">Bitcoin proves computation occurred. Montana proves you were there. No shortcuts exist. 14 days means 14 calendar days. Always.</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon">∞</div>
+                        <h3 class="card-title">Asymptotic Truth</h3>
+                        <p class="card-text">Trust is always less than 1. Evidence accumulates. Truth is approached, never reached. This is epistemic honesty.</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon">🧠</div>
+                        <h3 class="card-title">Cognitive Consensus</h3>
+                        <p class="card-text">Your key can be stolen. Your thinking pattern cannot. Identity equals cognition. The attacker must become you.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Network -->
+        <div class="section">
+            <div class="container">
+                <div class="section-label">Network</div>
+                <h2 class="section-title">Living Infrastructure</h2>
+                <div class="stats-grid">
+                    <div class="stat"><div class="stat-value">5</div><div class="stat-label">Nodes Online</div></div>
+                    <div class="stat"><div class="stat-value" style="color:var(--accent-gold);">09.01.2026</div><div class="stat-label">Genesis</div></div>
+                    <div class="stat"><div class="stat-value">5/5</div><div class="stat-label">Council Consensus</div></div>
+                    <div class="stat"><div class="stat-value" style="color:var(--text-primary);">PQC</div><div class="stat-label">Cryptography</div></div>
+                </div>
+                <table class="nodes-table">
+                    <thead><tr><th>Node</th><th>IP Address</th><th>Priority</th><th>Status</th></tr></thead>
+                    <tbody>
+                        <tr><td><div class="node-status"><div class="node-dot"></div>Amsterdam</div></td><td class="node-ip">72.56.102.240</td><td>P1 (Primary)</td><td style="color:var(--accent-cyan);">Online</td></tr>
+                        <tr><td><div class="node-status"><div class="node-dot"></div>Moscow</div></td><td class="node-ip">176.124.208.93</td><td>P2</td><td style="color:var(--accent-cyan);">Online</td></tr>
+                        <tr><td><div class="node-status"><div class="node-dot"></div>Almaty</div></td><td class="node-ip">91.200.148.93</td><td>P3</td><td style="color:var(--accent-cyan);">Online</td></tr>
+                        <tr><td><div class="node-status"><div class="node-dot"></div>Saint Petersburg</div></td><td class="node-ip">188.225.58.98</td><td>P4</td><td style="color:var(--accent-cyan);">Online</td></tr>
+                        <tr><td><div class="node-status"><div class="node-dot"></div>Novosibirsk</div></td><td class="node-ip">147.45.147.247</td><td>P5</td><td style="color:var(--accent-cyan);">Online</td></tr>
+                    </tbody>
+                </table>
+                <div class="genesis-block">
+                    <div class="genesis-header"><div class="status-dot"></div><span style="font-size:0.8rem;letter-spacing:0.1em;">GENESIS BLOCK</span></div>
+                    <div class="genesis-content">
+                        <div class="genesis-row"><span class="genesis-key">Timestamp</span><span class="genesis-value">2026-01-09 06:00 UTC</span></div>
+                        <div class="genesis-row"><span class="genesis-key">Observer</span><span class="genesis-value gold">Ничто_Nothing_无_金元Ɉ</span></div>
+                        <div class="genesis-row"><span class="genesis-key">Marker</span><span class="genesis-value cyan">#Благаявесть</span></div>
+                        <div class="genesis-row"><span class="genesis-key">Genesis Hash</span><span class="genesis-value mono">3b67f40183d3cab2a404216c8967a49a0b53aad8d54ba0c54a9c776134041e57</span></div>
+                        <div class="genesis-row"><span class="genesis-key">Public Key</span><span class="genesis-value mono">fee5e9df1fdc5362197ad188c1baad6378c9d9cf19300229ad42b3413546a525</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cryptography -->
+        <div class="section">
+            <div class="container">
+                <div class="section-label">Cryptography</div>
+                <h2 class="section-title">Post-Quantum Foundation</h2>
+                <div class="cards-grid">
+                    <div class="card">
+                        <div class="card-icon">🔐</div>
+                        <h3 class="card-title">ML-DSA-65</h3>
+                        <p class="card-text">NIST post-quantum signature standard. Lattice-based cryptography. Resistant to quantum computer attacks. FIPS 204 compliant.</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon">#</div>
+                        <h3 class="card-title">SHA3-256</h3>
+                        <p class="card-text">Keccak hash function. NIST FIPS 202 standard. Foundation of all presence proofs. 256-bit security level.</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon">🔀</div>
+                        <h3 class="card-title">Domain Separation</h3>
+                        <p class="card-text">Five independent domain tags: presence, transaction, slice, peer-to-peer, cognitive. Cross-protocol replay attacks cryptographically impossible.</p>
+                    </div>
+                </div>
+                <table class="nodes-table" style="margin-top:40px;">
+                    <thead><tr><th>Layer</th><th>Domain</th><th>Components</th><th>Function</th></tr></thead>
+                    <tbody>
+                        <tr><td>Layer -1</td><td>Physics</td><td>Time, Causality</td><td>Temporal substrate, ordering constraints</td></tr>
+                        <tr><td>Layer 0</td><td>Computation</td><td>ML-DSA-65, SHA3-256</td><td>Quantum-safe signatures, hash functions</td></tr>
+                        <tr><td>Layer 1</td><td>Primitives</td><td>Slices, Proofs, Identity</td><td>Presence proofs, cognitive markers, temporal hierarchy</td></tr>
+                        <tr><td>Layer 2</td><td>Consensus</td><td>ACP, Council</td><td>Deterministic lottery, finality, governance</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Council -->
+        <div class="section">
+            <div class="container">
+                <div class="section-label">Governance</div>
+                <h2 class="section-title">Guardian Council</h2>
+                <p style="color:var(--text-secondary);margin-bottom:32px;max-width:600px;">Five competing AI systems from five organizations. Collusion impossible — organizational diversity guarantees independence.</p>
+                <div class="council-grid">
+                    <div class="council-card"><div class="council-avatar">C</div><div class="council-name">Claude Opus 4.5</div><div class="council-org">Anthropic</div><div class="council-role">Chairman</div></div>
+                    <div class="council-card"><div class="council-avatar">G</div><div class="council-name">Gemini 3 Pro</div><div class="council-org">Google</div><div class="council-role">Adversary</div></div>
+                    <div class="council-card"><div class="council-avatar">X</div><div class="council-name">Grok 3</div><div class="council-org">xAI</div><div class="council-role">Adversary</div></div>
+                    <div class="council-card"><div class="council-avatar">O</div><div class="council-name">GPT-5.2</div><div class="council-org">OpenAI</div><div class="council-role">Visionary</div></div>
+                    <div class="council-card"><div class="council-avatar">1</div><div class="council-name">Composer 1</div><div class="council-org">Cursor</div><div class="council-role">Builder</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Junona -->
+        <div class="section">
+            <div class="container">
+                <div class="section-label">Guardian AI</div>
+                <h2 class="section-title">Junona</h2>
+                <div class="chat-container">
+                    <div class="chat-header"><div class="chat-avatar">J</div><div class="chat-info"><h4>Junona</h4><p>Montana Guardian AI • @junomontanaagibot</p></div></div>
+                    <div class="chat-messages" id="en-chat"><div class="message bot">Greetings. I am Junona — the AI guardian of Montana network. 金元Ɉ<br><br>I can explain the protocol, show network status, or help you create cognitive identity.<br><br>Type /start in @junomontanaagibot for full access.</div></div>
+                    <div class="chat-input-area">
+                        <input type="text" class="chat-input" id="en-input" placeholder="Ask Junona..." onkeypress="if(event.key==='Enter')sendMsg('en')">
+                        <button class="chat-send" onclick="sendMsg('en')">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Portal -->
+        <div class="section">
+            <div class="container">
+                <div class="section-label">Portal</div>
+                <h2 class="section-title">Enter Montana</h2>
+                <div class="cards-grid">
+                    <a href="https://t.me/junomontanaagibot" target="_blank" class="card" style="text-decoration:none;color:inherit;"><div class="card-icon">🤖</div><h3 class="card-title">Junona Bot</h3><p class="card-text">Primary AI guardian. Create identity, receive presence proofs, interact with protocol.</p><span class="card-link">@junomontanaagibot →</span></a>
+                    <a href="https://t.me/mylifethoughts369" target="_blank" class="card" style="text-decoration:none;color:inherit;"><div class="card-icon">💭</div><h3 class="card-title">Thoughts Channel</h3><p class="card-text">Observer's cognitive trail. Montana philosophy, protocol updates, decisions recorded in time.</p><span class="card-link">Subscribe →</span></a>
+                    <a href="https://github.com/efir369999/junomontanaagibot" target="_blank" class="card" style="text-decoration:none;color:inherit;"><div class="card-icon">📜</div><h3 class="card-title">Source Code</h3><p class="card-text">Montana ACP protocol. Rust implementation, post-quantum cryptography, trilingual architecture.</p><span class="card-link">GitHub →</span></a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 12 Innovations = 4 × 3 Countries + Junona -->
+        <div class="section">
+            <div class="container">
+                <div class="section-label" style="color:var(--accent-gold);text-align:center;">Montana Innovation</div>
+                <h2 class="section-title" style="text-align:center;">12 Technologies × 3 Nations</h2>
+                <p style="color:var(--text-secondary);margin-bottom:40px;max-width:700px;margin-left:auto;margin-right:auto;text-align:center;">
+                    <strong style="color:var(--accent-cyan);">World's first truly decentralized website.</strong><br>
+                    Equal technology distribution across languages. No single nation dominates.
+                </p>
+
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
+                    <!-- English -->
+                    <div class="card" style="border-color:var(--accent-purple);">
+                        <div style="text-align:center;margin-bottom:16px;">
+                            <div style="font-size:2rem;">🇬🇧</div>
+                            <div style="color:var(--accent-cyan);font-size:0.8rem;font-weight:600;">ENGLISH</div>
+                            <div style="color:var(--text-muted);font-size:0.65rem;">Philosophy Spirit</div>
+                        </div>
+                        <div style="font-size:0.8rem;color:var(--text-secondary);line-height:2;">
+                            <div>⏱ Time as Currency</div>
+                            <div>∞ Asymptotic Truth</div>
+                            <div>🧠 Cognitive Consensus</div>
+                            <div>👁 Presence Proofs</div>
+                        </div>
+                    </div>
+
+                    <!-- Russian -->
+                    <div class="card" style="border-color:var(--accent-cyan);">
+                        <div style="text-align:center;margin-bottom:16px;">
+                            <div style="font-size:2rem;">🇷🇺</div>
+                            <div style="color:var(--accent-cyan);font-size:0.8rem;font-weight:600;">РУССКИЙ</div>
+                            <div style="color:var(--text-muted);font-size:0.65rem;">Infrastructure Spirit</div>
+                        </div>
+                        <div style="font-size:0.8rem;color:var(--text-secondary);line-height:2;">
+                            <div>⛓ Indestructible Chain</div>
+                            <div>🤖 Guardian Council</div>
+                            <div>📡 ACP Protocol</div>
+                            <div>🌐 Trilingual Architecture</div>
+                        </div>
+                    </div>
+
+                    <!-- Chinese -->
+                    <div class="card" style="border-color:var(--accent-gold);">
+                        <div style="text-align:center;margin-bottom:16px;">
+                            <div style="font-size:2rem;">🇨🇳</div>
+                            <div style="color:var(--accent-cyan);font-size:0.8rem;font-weight:600;">中文</div>
+                            <div style="color:var(--text-muted);font-size:0.65rem;">Cryptography Spirit</div>
+                        </div>
+                        <div style="font-size:0.8rem;color:var(--text-secondary);line-height:2;">
+                            <div>🔐 ML-DSA-65</div>
+                            <div># SHA3-256</div>
+                            <div>🔀 Domain Separation</div>
+                            <div>τ Temporal Hierarchy</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Junona -->
+                <div class="card" style="border-color:var(--gradient-cicada);margin-top:24px;max-width:400px;margin-left:auto;margin-right:auto;background:linear-gradient(135deg, rgba(153,69,255,0.1) 0%, rgba(20,241,149,0.1) 100%);">
+                    <div style="text-align:center;">
+                        <div style="font-size:2.5rem;">🤖</div>
+                        <div style="color:var(--accent-gold);font-size:1rem;font-weight:600;">JUNONA</div>
+                        <div style="color:var(--text-muted);font-size:0.7rem;margin-bottom:12px;">The Fourth Element • Guardian AI</div>
+                        <div style="font-size:0.8rem;color:var(--text-secondary);">
+                            Unites all 3 nations. Speaks all 3 languages.<br>
+                            The bridge between humans and protocol.
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align:center;margin-top:32px;">
+                    <div style="display:inline-block;padding:16px 32px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;">
+                        <span style="color:var(--accent-gold);font-size:1.5rem;font-weight:600;">12</span>
+                        <span style="color:var(--text-muted);font-size:0.8rem;"> technologies × </span>
+                        <span style="color:var(--accent-cyan);font-size:1.5rem;font-weight:600;">3</span>
+                        <span style="color:var(--text-muted);font-size:0.8rem;"> nations + </span>
+                        <span style="color:var(--accent-purple);font-size:1.5rem;font-weight:600;">1</span>
+                        <span style="color:var(--text-muted);font-size:0.8rem;"> Junona = </span>
+                        <span style="color:var(--accent-gold);font-size:1.5rem;font-weight:600;">∞</span>
+                    </div>
+                </div>
+
+                <p style="color:var(--text-muted);font-size:0.75rem;margin-top:24px;font-style:italic;text-align:center;">
+                    "One node falls — the chain lives. All nodes fall — the chain resurrects."
+                </p>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <div class="container">
+                <div class="footer-symbol">金元Ɉ</div>
+                <div class="footer-links"><a href="https://github.com/efir369999" target="_blank">GitHub</a><a href="https://x.com/tojesatoshi" target="_blank">X</a><a href="https://t.me/mylifethoughts369" target="_blank">Telegram</a></div>
+                <p class="footer-copy">MONTANA ACP • Genesis: 09.01.2026 • Post-Quantum Ready</p>
+            </div>
+        </footer>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         РУССКИЙ — Дух: Прямота, сеть, инфраструктура, действие
+         ══════════════════════════════════════════════════════════════════════ -->
+    <section class="lang-section" id="lang-ru">
+        <div class="hero">
+            <div class="container">
+                <div class="hero-symbol">金元Ɉ</div>
+                <h1 class="hero-title">КЛАН MONTANA</h1>
+                <p class="hero-subtitle">Вневременное Координатное Присутствие</p>
+                <div class="hero-equation">
+                    <span class="lim">lim</span>(доказательства → ∞) <span class="result">1 Ɉ → 1 секунда</span>
+                </div>
+                <p class="hero-quote serif">"Время — единственный ресурс, распределённый одинаково между всеми людьми."</p>
+                <button class="enter-btn" onclick="scrollToSection('ru-network')">Войти</button>
+            </div>
+        </div>
+
+        <!-- Сеть -->
+        <div class="section" id="ru-network">
+            <div class="container">
+                <div class="section-label">Эксплорер</div>
+                <h2 class="section-title">Статус Сети</h2>
+                <div class="stats-grid">
+                    <div class="stat"><div class="stat-value">5</div><div class="stat-label">Узлов Online</div></div>
+                    <div class="stat"><div class="stat-value" style="color:var(--accent-gold);">09.01.2026</div><div class="stat-label">Генезис</div></div>
+                    <div class="stat"><div class="stat-value">5/5</div><div class="stat-label">Консенсус Совета</div></div>
+                    <div class="stat"><div class="stat-value" style="color:var(--text-primary);">PQC</div><div class="stat-label">Криптография</div></div>
+                </div>
+                <table class="nodes-table">
+                    <thead><tr><th>Узел</th><th>IP-адрес</th><th>Приоритет</th><th>Статус</th></tr></thead>
+                    <tbody>
+                        <tr><td><div class="node-status"><div class="node-dot"></div>Амстердам</div></td><td class="node-ip">72.56.102.240</td><td>P1 (Primary)</td><td style="color:var(--accent-cyan);">Online</td></tr>
+                        <tr><td><div class="node-status"><div class="node-dot"></div>Москва</div></td><td class="node-ip">176.124.208.93</td><td>P2</td><td style="color:var(--accent-cyan);">Online</td></tr>
+                        <tr><td><div class="node-status"><div class="node-dot"></div>Алматы</div></td><td class="node-ip">91.200.148.93</td><td>P3</td><td style="color:var(--accent-cyan);">Online</td></tr>
+                        <tr><td><div class="node-status"><div class="node-dot"></div>Санкт-Петербург</div></td><td class="node-ip">188.225.58.98</td><td>P4</td><td style="color:var(--accent-cyan);">Online</td></tr>
+                        <tr><td><div class="node-status"><div class="node-dot"></div>Новосибирск</div></td><td class="node-ip">147.45.147.247</td><td>P5</td><td style="color:var(--accent-cyan);">Online</td></tr>
+                    </tbody>
+                </table>
+                <div class="genesis-block">
+                    <div class="genesis-header"><div class="status-dot"></div><span style="font-size:0.8rem;letter-spacing:0.1em;">GENESIS BLOCK</span></div>
+                    <div class="genesis-content">
+                        <div class="genesis-row"><span class="genesis-key">Время</span><span class="genesis-value">2026-01-09 06:00 UTC</span></div>
+                        <div class="genesis-row"><span class="genesis-key">Наблюдатель</span><span class="genesis-value gold">Ничто_Nothing_无_金元Ɉ</span></div>
+                        <div class="genesis-row"><span class="genesis-key">Маркер</span><span class="genesis-value cyan">#Благаявесть</span></div>
+                        <div class="genesis-row"><span class="genesis-key">Genesis Hash</span><span class="genesis-value mono">3b67f40183d3cab2a404216c8967a49a0b53aad8d54ba0c54a9c776134041e57</span></div>
+                        <div class="genesis-row"><span class="genesis-key">Публичный Ключ</span><span class="genesis-value mono">fee5e9df1fdc5362197ad188c1baad6378c9d9cf19300229ad42b3413546a525</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Философия -->
+        <div class="section">
+            <div class="container">
+                <div class="section-label">Философия</div>
+                <h2 class="section-title">Почему Время?</h2>
+                <div class="cards-grid">
+                    <div class="card">
+                        <div class="card-icon">⏱</div>
+                        <h3 class="card-title">Присутствие, Не Доказательство</h3>
+                        <p class="card-text">Bitcoin доказывает, что вычисление произошло. Montana доказывает, что ты был там. Обходных путей нет. 14 дней — это 14 календарных дней. Всегда.</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon">∞</div>
+                        <h3 class="card-title">Асимптотическая Истина</h3>
+                        <p class="card-text">Доверие всегда меньше 1. Доказательства накапливаются. К истине приближаются, но не достигают. Это эпистемологическая честность.</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon">🧠</div>
+                        <h3 class="card-title">Когнитивный Консенсус</h3>
+                        <p class="card-text">Твой ключ можно украсть. Твой паттерн мышления — нет. Идентичность равна когниции. Атакующий должен стать тобой.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Криптография -->
+        <div class="section">
+            <div class="container">
+                <div class="section-label">Криптография</div>
+                <h2 class="section-title">Пост-Квантовый Фундамент</h2>
+                <div class="cards-grid">
+                    <div class="card">
+                        <div class="card-icon">🔐</div>
+                        <h3 class="card-title">ML-DSA-65</h3>
+                        <p class="card-text">Стандарт пост-квантовых подписей NIST. Решётчатая криптография. Устойчив к атакам квантовых компьютеров. FIPS 204.</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon">#</div>
+                        <h3 class="card-title">SHA3-256</h3>
+                        <p class="card-text">Хеш-функция Keccak. Стандарт NIST FIPS 202. Основа всех доказательств присутствия. 256 бит безопасности.</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon">🔀</div>
+                        <h3 class="card-title">Domain Separation</h3>
+                        <p class="card-text">Пять независимых доменов: присутствие, транзакция, слайс, P2P, когнитивный. Replay-атаки между протоколами криптографически невозможны.</p>
+                    </div>
+                </div>
+                <table class="nodes-table" style="margin-top:40px;">
+                    <thead><tr><th>Слой</th><th>Домен</th><th>Компоненты</th><th>Функция</th></tr></thead>
+                    <tbody>
+                        <tr><td>Слой -1</td><td>Физика</td><td>Время, Причинность</td><td>Темпоральный субстрат, ограничения порядка</td></tr>
+                        <tr><td>Слой 0</td><td>Вычисления</td><td>ML-DSA-65, SHA3-256</td><td>Квантово-устойчивые подписи, хеш-функции</td></tr>
+                        <tr><td>Слой 1</td><td>Примитивы</td><td>Слайсы, Пруфы, Идентити</td><td>Доказательства присутствия, когнитивные маркеры</td></tr>
+                        <tr><td>Слой 2</td><td>Консенсус</td><td>ACP, Совет</td><td>Детерминированная лотерея, финальность, governance</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Совет -->
+        <div class="section">
+            <div class="container">
+                <div class="section-label">Governance</div>
+                <h2 class="section-title">Совет Хранителей</h2>
+                <p style="color:var(--text-secondary);margin-bottom:32px;max-width:600px;">Пять конкурирующих AI-систем от пяти организаций. Сговор невозможен — организационное разнообразие гарантирует независимость.</p>
+                <div class="council-grid">
+                    <div class="council-card"><div class="council-avatar">C</div><div class="council-name">Claude Opus 4.5</div><div class="council-org">Anthropic</div><div class="council-role">Председатель</div></div>
+                    <div class="council-card"><div class="council-avatar">G</div><div class="council-name">Gemini 3 Pro</div><div class="council-org">Google</div><div class="council-role">Атакующий</div></div>
+                    <div class="council-card"><div class="council-avatar">X</div><div class="council-name">Grok 3</div><div class="council-org">xAI</div><div class="council-role">Атакующий</div></div>
+                    <div class="council-card"><div class="council-avatar">O</div><div class="council-name">GPT-5.2</div><div class="council-org">OpenAI</div><div class="council-role">Визионер</div></div>
+                    <div class="council-card"><div class="council-avatar">1</div><div class="council-name">Composer 1</div><div class="council-org">Cursor</div><div class="council-role">Строитель</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Юнона -->
+        <div class="section">
+            <div class="container">
+                <div class="section-label">AI Хранитель</div>
+                <h2 class="section-title">Юнона</h2>
+                <div class="chat-container">
+                    <div class="chat-header"><div class="chat-avatar">J</div><div class="chat-info"><h4>Junona</h4><p>Montana Guardian AI • @junomontanaagibot</p></div></div>
+                    <div class="chat-messages" id="ru-chat"><div class="message bot">Привет! Я Юнона — AI-хранитель сети Montana. 金元Ɉ<br><br>Могу рассказать о протоколе, показать статус сети или помочь создать cognitive identity.<br><br>Напиши /start в @junomontanaagibot для полного доступа.</div></div>
+                    <div class="chat-input-area">
+                        <input type="text" class="chat-input" id="ru-input" placeholder="Напиши Юноне..." onkeypress="if(event.key==='Enter')sendMsg('ru')">
+                        <button class="chat-send" onclick="sendMsg('ru')">Отправить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Портал -->
+        <div class="section">
+            <div class="container">
+                <div class="section-label">Портал</div>
+                <h2 class="section-title">Вход в Montana</h2>
+                <div class="cards-grid">
+                    <a href="https://t.me/junomontanaagibot" target="_blank" class="card" style="text-decoration:none;color:inherit;"><div class="card-icon">🤖</div><h3 class="card-title">Бот Юнона</h3><p class="card-text">Главный AI-хранитель. Создание идентичности, получение presence proofs, взаимодействие с протоколом.</p><span class="card-link">@junomontanaagibot →</span></a>
+                    <a href="https://t.me/mylifethoughts369" target="_blank" class="card" style="text-decoration:none;color:inherit;"><div class="card-icon">💭</div><h3 class="card-title">Канал Мыслей</h3><p class="card-text">Когнитивный след Наблюдателя. Философия Montana, обновления протокола, решения во времени.</p><span class="card-link">Подписаться →</span></a>
+                    <a href="https://github.com/efir369999/junomontanaagibot" target="_blank" class="card" style="text-decoration:none;color:inherit;"><div class="card-icon">📜</div><h3 class="card-title">Исходный Код</h3><p class="card-text">Протокол Montana ACP. Реализация на Rust, пост-квантовая криптография, трёхязычная архитектура.</p><span class="card-link">GitHub →</span></a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 12 Инноваций = 4 × 3 Страны + Юнона -->
+        <div class="section">
+            <div class="container">
+                <div class="section-label" style="color:var(--accent-gold);text-align:center;">Инновация Montana</div>
+                <h2 class="section-title" style="text-align:center;">12 Технологий × 3 Нации</h2>
+                <p style="color:var(--text-secondary);margin-bottom:40px;max-width:700px;margin-left:auto;margin-right:auto;text-align:center;">
+                    <strong style="color:var(--accent-cyan);">Первый в мире по-настоящему децентрализованный сайт.</strong><br>
+                    Равное распределение технологий между языками. Ни одна нация не доминирует.
+                </p>
+
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
+                    <!-- English -->
+                    <div class="card" style="border-color:var(--accent-purple);">
+                        <div style="text-align:center;margin-bottom:16px;">
+                            <div style="font-size:2rem;">🇬🇧</div>
+                            <div style="color:var(--accent-cyan);font-size:0.8rem;font-weight:600;">ENGLISH</div>
+                            <div style="color:var(--text-muted);font-size:0.65rem;">Дух Философии</div>
+                        </div>
+                        <div style="font-size:0.8rem;color:var(--text-secondary);line-height:2;">
+                            <div>⏱ Время как Валюта</div>
+                            <div>∞ Асимптотическая Истина</div>
+                            <div>🧠 Когнитивный Консенсус</div>
+                            <div>👁 Доказательства Присутствия</div>
+                        </div>
+                    </div>
+
+                    <!-- Русский -->
+                    <div class="card" style="border-color:var(--accent-cyan);">
+                        <div style="text-align:center;margin-bottom:16px;">
+                            <div style="font-size:2rem;">🇷🇺</div>
+                            <div style="color:var(--accent-cyan);font-size:0.8rem;font-weight:600;">РУССКИЙ</div>
+                            <div style="color:var(--text-muted);font-size:0.65rem;">Дух Инфраструктуры</div>
+                        </div>
+                        <div style="font-size:0.8rem;color:var(--text-secondary);line-height:2;">
+                            <div>⛓ Нерушимая Цепочка</div>
+                            <div>🤖 Совет Хранителей</div>
+                            <div>📡 Протокол ACP</div>
+                            <div>🌐 Трёхязычная Архитектура</div>
+                        </div>
+                    </div>
+
+                    <!-- 中文 -->
+                    <div class="card" style="border-color:var(--accent-gold);">
+                        <div style="text-align:center;margin-bottom:16px;">
+                            <div style="font-size:2rem;">🇨🇳</div>
+                            <div style="color:var(--accent-cyan);font-size:0.8rem;font-weight:600;">中文</div>
+                            <div style="color:var(--text-muted);font-size:0.65rem;">Дух Криптографии</div>
+                        </div>
+                        <div style="font-size:0.8rem;color:var(--text-secondary);line-height:2;">
+                            <div>🔐 ML-DSA-65</div>
+                            <div># SHA3-256</div>
+                            <div>🔀 Domain Separation</div>
+                            <div>τ Временная Иерархия</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Юнона -->
+                <div class="card" style="border-color:var(--gradient-cicada);margin-top:24px;max-width:400px;margin-left:auto;margin-right:auto;background:linear-gradient(135deg, rgba(153,69,255,0.1) 0%, rgba(20,241,149,0.1) 100%);">
+                    <div style="text-align:center;">
+                        <div style="font-size:2.5rem;">🤖</div>
+                        <div style="color:var(--accent-gold);font-size:1rem;font-weight:600;">ЮНОНА</div>
+                        <div style="color:var(--text-muted);font-size:0.7rem;margin-bottom:12px;">Четвёртый Элемент • AI Хранитель</div>
+                        <div style="font-size:0.8rem;color:var(--text-secondary);">
+                            Объединяет все 3 нации. Говорит на всех 3 языках.<br>
+                            Мост между людьми и протоколом.
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align:center;margin-top:32px;">
+                    <div style="display:inline-block;padding:16px 32px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;">
+                        <span style="color:var(--accent-gold);font-size:1.5rem;font-weight:600;">12</span>
+                        <span style="color:var(--text-muted);font-size:0.8rem;"> технологий × </span>
+                        <span style="color:var(--accent-cyan);font-size:1.5rem;font-weight:600;">3</span>
+                        <span style="color:var(--text-muted);font-size:0.8rem;"> нации + </span>
+                        <span style="color:var(--accent-purple);font-size:1.5rem;font-weight:600;">1</span>
+                        <span style="color:var(--text-muted);font-size:0.8rem;"> Юнона = </span>
+                        <span style="color:var(--accent-gold);font-size:1.5rem;font-weight:600;">∞</span>
+                    </div>
+                </div>
+
+                <p style="color:var(--text-muted);font-size:0.75rem;margin-top:24px;font-style:italic;text-align:center;">
+                    "Один узел падает — цепочка живёт. Все узлы падают — цепочка воскресает."
+                </p>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <div class="container">
+                <div class="footer-symbol">金元Ɉ</div>
+                <div class="footer-links"><a href="https://github.com/efir369999" target="_blank">GitHub</a><a href="https://x.com/tojesatoshi" target="_blank">X</a><a href="https://t.me/mylifethoughts369" target="_blank">Telegram</a></div>
+                <p class="footer-copy">MONTANA ACP • Генезис: 09.01.2026 • Пост-Квантум Ready</p>
+            </div>
+        </footer>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         中文 — 精神：数学、密码学、精确、优雅
+         ══════════════════════════════════════════════════════════════════════ -->
+    <section class="lang-section" id="lang-zh">
+        <div class="hero">
+            <div class="container">
+                <div class="hero-symbol zh">金元Ɉ</div>
+                <h1 class="hero-title zh">蒙大拿氏族</h1>
+                <p class="hero-subtitle zh">无时间坐标存在</p>
+                <div class="hero-equation">
+                    <span class="lim">lim</span>(证据 → ∞) <span class="result zh">1 Ɉ → 1 秒</span>
+                </div>
+                <p class="hero-quote zh" style="font-style:normal;">「时间是唯一平等分配给所有人的资源。」</p>
+                <button class="enter-btn zh" onclick="scrollToSection('zh-crypto')">进入</button>
+            </div>
+        </div>
+
+        <!-- 密码学 -->
+        <div class="section" id="zh-crypto">
+            <div class="container">
+                <div class="section-label zh">密码学</div>
+                <h2 class="section-title zh">后量子安全</h2>
+                <div class="cards-grid">
+                    <div class="card">
+                        <div class="card-icon">🔐</div>
+                        <h3 class="card-title zh">ML-DSA-65</h3>
+                        <p class="card-text zh">NIST 后量子签名标准。基于格的密码学。抗量子计算机攻击。FIPS 204 合规。</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon">#</div>
+                        <h3 class="card-title zh">SHA3-256</h3>
+                        <p class="card-text zh">Keccak 哈希函数。NIST FIPS 202 标准。所有存在证明的基础。256 位安全性。</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon">🔀</div>
+                        <h3 class="card-title zh">域分离</h3>
+                        <p class="card-text zh">五个独立域标签：存在、交易、切片、点对点、认知。跨协议重放攻击在密码学上不可能。</p>
+                    </div>
+                </div>
+                <table class="nodes-table" style="margin-top:40px;">
+                    <thead><tr><th class="zh">层</th><th class="zh">域</th><th class="zh">组件</th><th class="zh">功能</th></tr></thead>
+                    <tbody>
+                        <tr><td class="zh">层 -1</td><td class="zh">物理</td><td class="zh">时间、因果</td><td class="zh">时间基底，排序约束</td></tr>
+                        <tr><td class="zh">层 0</td><td class="zh">计算</td><td>ML-DSA-65, SHA3-256</td><td class="zh">量子安全签名，哈希函数</td></tr>
+                        <tr><td class="zh">层 1</td><td class="zh">原语</td><td class="zh">切片、证明、身份</td><td class="zh">存在证明，认知标记，时间层次</td></tr>
+                        <tr><td class="zh">层 2</td><td class="zh">共识</td><td>ACP, Council</td><td class="zh">确定性抽签，最终性，治理</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 网络 -->
+        <div class="section">
+            <div class="container">
+                <div class="section-label zh">浏览器</div>
+                <h2 class="section-title zh">网络状态</h2>
+                <div class="stats-grid">
+                    <div class="stat"><div class="stat-value">5</div><div class="stat-label zh">在线节点</div></div>
+                    <div class="stat"><div class="stat-value" style="color:var(--accent-gold);">09.01.2026</div><div class="stat-label zh">创世</div></div>
+                    <div class="stat"><div class="stat-value">5/5</div><div class="stat-label zh">理事会共识</div></div>
+                    <div class="stat"><div class="stat-value" style="color:var(--text-primary);">PQC</div><div class="stat-label zh">密码学</div></div>
+                </div>
+                <table class="nodes-table">
+                    <thead><tr><th class="zh">节点</th><th>IP</th><th class="zh">优先级</th><th class="zh">状态</th></tr></thead>
+                    <tbody>
+                        <tr><td><div class="node-status"><div class="node-dot"></div><span class="zh">阿姆斯特丹</span></div></td><td class="node-ip">72.56.102.240</td><td>P1</td><td style="color:var(--accent-cyan);" class="zh">在线</td></tr>
+                        <tr><td><div class="node-status"><div class="node-dot"></div><span class="zh">莫斯科</span></div></td><td class="node-ip">176.124.208.93</td><td>P2</td><td style="color:var(--accent-cyan);" class="zh">在线</td></tr>
+                        <tr><td><div class="node-status"><div class="node-dot"></div><span class="zh">阿拉木图</span></div></td><td class="node-ip">91.200.148.93</td><td>P3</td><td style="color:var(--accent-cyan);" class="zh">在线</td></tr>
+                        <tr><td><div class="node-status"><div class="node-dot"></div><span class="zh">圣彼得堡</span></div></td><td class="node-ip">188.225.58.98</td><td>P4</td><td style="color:var(--accent-cyan);" class="zh">在线</td></tr>
+                        <tr><td><div class="node-status"><div class="node-dot"></div><span class="zh">新西伯利亚</span></div></td><td class="node-ip">147.45.147.247</td><td>P5</td><td style="color:var(--accent-cyan);" class="zh">在线</td></tr>
+                    </tbody>
+                </table>
+                <div class="genesis-block">
+                    <div class="genesis-header"><div class="status-dot"></div><span style="font-size:0.8rem;letter-spacing:0.1em;" class="zh">创世区块</span></div>
+                    <div class="genesis-content">
+                        <div class="genesis-row"><span class="genesis-key zh">时间戳</span><span class="genesis-value">2026-01-09 06:00 UTC</span></div>
+                        <div class="genesis-row"><span class="genesis-key zh">观察者</span><span class="genesis-value gold">Ничто_Nothing_无_金元Ɉ</span></div>
+                        <div class="genesis-row"><span class="genesis-key zh">标记</span><span class="genesis-value cyan">#Благаявесть</span></div>
+                        <div class="genesis-row"><span class="genesis-key zh">创世哈希</span><span class="genesis-value mono">3b67f40183d3cab2a404216c8967a49a0b53aad8d54ba0c54a9c776134041e57</span></div>
+                        <div class="genesis-row"><span class="genesis-key zh">公钥</span><span class="genesis-value mono">fee5e9df1fdc5362197ad188c1baad6378c9d9cf19300229ad42b3413546a525</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 哲学 -->
+        <div class="section">
+            <div class="container">
+                <div class="section-label zh">哲学</div>
+                <h2 class="section-title zh">为何是时间？</h2>
+                <div class="cards-grid">
+                    <div class="card">
+                        <div class="card-icon">⏱</div>
+                        <h3 class="card-title zh">存在，非证明</h3>
+                        <p class="card-text zh">比特币证明计算发生了。蒙大拿证明你在那里。没有捷径。14天就是14个日历天。永远如此。</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon">∞</div>
+                        <h3 class="card-title zh">渐近真理</h3>
+                        <p class="card-text zh">信任永远小于1。证据积累。接近真理，但永不抵达。这是认识论的诚实。</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon">🧠</div>
+                        <h3 class="card-title zh">认知共识</h3>
+                        <p class="card-text zh">你的密钥可以被盗。你的思维模式不能。身份等于认知。攻击者必须成为你。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 时间层次 -->
+        <div class="section">
+            <div class="container">
+                <div class="section-label zh">时间层次</div>
+                <h2 class="section-title zh">时间单位</h2>
+                <div class="stats-grid">
+                    <div class="stat"><div class="stat-value zh">τ₁</div><div class="stat-label zh">1 分钟 • 存在签名</div></div>
+                    <div class="stat"><div class="stat-value zh">τ₂</div><div class="stat-label zh">10 分钟 • 切片</div></div>
+                    <div class="stat"><div class="stat-value zh">τ₃</div><div class="stat-label zh">14 天 • 检查点</div></div>
+                    <div class="stat"><div class="stat-value zh">τ₄</div><div class="stat-label zh">4 年 • 纪元</div></div>
+                </div>
+                <div class="card" style="margin-top:32px;text-align:center;">
+                    <p class="zh" style="font-size:1.1rem;color:var(--text-secondary);">τ₂ = 10 × τ₁ &nbsp;•&nbsp; τ₃ = 2,016 × τ₂ &nbsp;•&nbsp; τ₄ = 104 × τ₃</p>
+                    <p class="zh" style="margin-top:16px;color:var(--text-muted);font-size:0.85rem;">数学关系确保时间完整性。没有捷径存在。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 理事会 -->
+        <div class="section">
+            <div class="container">
+                <div class="section-label zh">治理</div>
+                <h2 class="section-title zh">守护者理事会</h2>
+                <p style="color:var(--text-secondary);margin-bottom:32px;max-width:600px;" class="zh">来自五个组织的五个竞争AI系统。勾结不可能——组织多样性保证独立性。</p>
+                <div class="council-grid">
+                    <div class="council-card"><div class="council-avatar">C</div><div class="council-name">Claude Opus 4.5</div><div class="council-org">Anthropic</div><div class="council-role zh">主席</div></div>
+                    <div class="council-card"><div class="council-avatar">G</div><div class="council-name">Gemini 3 Pro</div><div class="council-org">Google</div><div class="council-role zh">对手</div></div>
+                    <div class="council-card"><div class="council-avatar">X</div><div class="council-name">Grok 3</div><div class="council-org">xAI</div><div class="council-role zh">对手</div></div>
+                    <div class="council-card"><div class="council-avatar">O</div><div class="council-name">GPT-5.2</div><div class="council-org">OpenAI</div><div class="council-role zh">愿景家</div></div>
+                    <div class="council-card"><div class="council-avatar">1</div><div class="council-name">Composer 1</div><div class="council-org">Cursor</div><div class="council-role zh">建造者</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 朱诺娜 -->
+        <div class="section">
+            <div class="container">
+                <div class="section-label zh">AI 守护者</div>
+                <h2 class="section-title zh">朱诺娜</h2>
+                <div class="chat-container">
+                    <div class="chat-header"><div class="chat-avatar">J</div><div class="chat-info"><h4>Junona</h4><p>Montana Guardian AI • @junomontanaagibot</p></div></div>
+                    <div class="chat-messages" id="zh-chat"><div class="message bot zh">你好！我是朱诺娜——蒙大拿网络的AI守护者。金元Ɉ<br><br>我可以解释协议、显示网络状态或帮助你创建认知身份。<br><br>在 @junomontanaagibot 输入 /start 获取完整访问权限。</div></div>
+                    <div class="chat-input-area">
+                        <input type="text" class="chat-input zh" id="zh-input" placeholder="问朱诺娜..." onkeypress="if(event.key==='Enter')sendMsg('zh')">
+                        <button class="chat-send zh" onclick="sendMsg('zh')">发送</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 入口 -->
+        <div class="section">
+            <div class="container">
+                <div class="section-label zh">入口</div>
+                <h2 class="section-title zh">进入蒙大拿</h2>
+                <div class="cards-grid">
+                    <a href="https://t.me/junomontanaagibot" target="_blank" class="card" style="text-decoration:none;color:inherit;"><div class="card-icon">🤖</div><h3 class="card-title zh">朱诺娜机器人</h3><p class="card-text zh">主要AI守护者。创建身份，接收存在证明，与协议交互。</p><span class="card-link">@junomontanaagibot →</span></a>
+                    <a href="https://t.me/mylifethoughts369" target="_blank" class="card" style="text-decoration:none;color:inherit;"><div class="card-icon">💭</div><h3 class="card-title zh">思想频道</h3><p class="card-text zh">观察者的认知轨迹。蒙大拿哲学、协议更新、时间中记录的决策。</p><span class="card-link zh">订阅 →</span></a>
+                    <a href="https://github.com/efir369999/junomontanaagibot" target="_blank" class="card" style="text-decoration:none;color:inherit;"><div class="card-icon">📜</div><h3 class="card-title zh">源代码</h3><p class="card-text zh">蒙大拿 ACP 协议。Rust 实现，后量子密码学，三语架构。</p><span class="card-link">GitHub →</span></a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 12创新 = 4 × 3国家 + 朱诺娜 -->
+        <div class="section">
+            <div class="container">
+                <div class="section-label zh" style="color:var(--accent-gold);text-align:center;">蒙大拿创新</div>
+                <h2 class="section-title zh" style="text-align:center;">12项技术 × 3个国家</h2>
+                <p class="zh" style="color:var(--text-secondary);margin-bottom:40px;max-width:700px;margin-left:auto;margin-right:auto;text-align:center;">
+                    <strong style="color:var(--accent-cyan);">世界上第一个真正去中心化的网站。</strong><br>
+                    技术在语言间均衡分布。没有任何国家占主导地位。
+                </p>
+
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
+                    <!-- English -->
+                    <div class="card" style="border-color:var(--accent-purple);">
+                        <div style="text-align:center;margin-bottom:16px;">
+                            <div style="font-size:2rem;">🇬🇧</div>
+                            <div style="color:var(--accent-cyan);font-size:0.8rem;font-weight:600;">ENGLISH</div>
+                            <div style="color:var(--text-muted);font-size:0.65rem;" class="zh">哲学精神</div>
+                        </div>
+                        <div class="zh" style="font-size:0.8rem;color:var(--text-secondary);line-height:2;">
+                            <div>⏱ 时间即货币</div>
+                            <div>∞ 渐近真理</div>
+                            <div>🧠 认知共识</div>
+                            <div>👁 存在证明</div>
+                        </div>
+                    </div>
+
+                    <!-- Русский -->
+                    <div class="card" style="border-color:var(--accent-cyan);">
+                        <div style="text-align:center;margin-bottom:16px;">
+                            <div style="font-size:2rem;">🇷🇺</div>
+                            <div style="color:var(--accent-cyan);font-size:0.8rem;font-weight:600;">РУССКИЙ</div>
+                            <div style="color:var(--text-muted);font-size:0.65rem;" class="zh">基础设施精神</div>
+                        </div>
+                        <div class="zh" style="font-size:0.8rem;color:var(--text-secondary);line-height:2;">
+                            <div>⛓ 不可摧毁的链</div>
+                            <div>🤖 守护者理事会</div>
+                            <div>📡 ACP协议</div>
+                            <div>🌐 三语架构</div>
+                        </div>
+                    </div>
+
+                    <!-- 中文 -->
+                    <div class="card" style="border-color:var(--accent-gold);">
+                        <div style="text-align:center;margin-bottom:16px;">
+                            <div style="font-size:2rem;">🇨🇳</div>
+                            <div style="color:var(--accent-cyan);font-size:0.8rem;font-weight:600;">中文</div>
+                            <div style="color:var(--text-muted);font-size:0.65rem;" class="zh">密码学精神</div>
+                        </div>
+                        <div class="zh" style="font-size:0.8rem;color:var(--text-secondary);line-height:2;">
+                            <div>🔐 ML-DSA-65</div>
+                            <div># SHA3-256</div>
+                            <div>🔀 域分离</div>
+                            <div>τ 时间层次</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 朱诺娜 -->
+                <div class="card" style="border-color:var(--gradient-cicada);margin-top:24px;max-width:400px;margin-left:auto;margin-right:auto;background:linear-gradient(135deg, rgba(153,69,255,0.1) 0%, rgba(20,241,149,0.1) 100%);">
+                    <div style="text-align:center;">
+                        <div style="font-size:2.5rem;">🤖</div>
+                        <div style="color:var(--accent-gold);font-size:1rem;font-weight:600;" class="zh">朱诺娜</div>
+                        <div style="color:var(--text-muted);font-size:0.7rem;margin-bottom:12px;" class="zh">第四元素 • AI守护者</div>
+                        <div class="zh" style="font-size:0.8rem;color:var(--text-secondary);">
+                            联合所有3个国家。说所有3种语言。<br>
+                            人类与协议之间的桥梁。
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align:center;margin-top:32px;">
+                    <div style="display:inline-block;padding:16px 32px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;">
+                        <span style="color:var(--accent-gold);font-size:1.5rem;font-weight:600;">12</span>
+                        <span class="zh" style="color:var(--text-muted);font-size:0.8rem;"> 项技术 × </span>
+                        <span style="color:var(--accent-cyan);font-size:1.5rem;font-weight:600;">3</span>
+                        <span class="zh" style="color:var(--text-muted);font-size:0.8rem;"> 个国家 + </span>
+                        <span style="color:var(--accent-purple);font-size:1.5rem;font-weight:600;">1</span>
+                        <span class="zh" style="color:var(--text-muted);font-size:0.8rem;"> 朱诺娜 = </span>
+                        <span style="color:var(--accent-gold);font-size:1.5rem;font-weight:600;">∞</span>
+                    </div>
+                </div>
+
+                <p class="zh" style="color:var(--text-muted);font-size:0.75rem;margin-top:24px;font-style:italic;text-align:center;">
+                    「一个节点倒下——链条存活。所有节点倒下——链条复活。」
+                </p>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <div class="container">
+                <div class="footer-symbol zh">金元Ɉ</div>
+                <div class="footer-links"><a href="https://github.com/efir369999" target="_blank">GitHub</a><a href="https://x.com/tojesatoshi" target="_blank">X</a><a href="https://t.me/mylifethoughts369" target="_blank">Telegram</a></div>
+                <p class="footer-copy zh">蒙大拿 ACP • 创世: 2026年1月9日 • 后量子就绪</p>
+            </div>
+        </footer>
+    </section>
+
+    <script>
+        function switchLang(lang) {
+            document.querySelectorAll('.lang-section').forEach(s => s.classList.remove('active'));
+            document.getElementById('lang-' + lang).classList.add('active');
+            document.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.documentElement.lang = lang === 'zh' ? 'zh-CN' : lang;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+        function scrollToSection(id) { document.getElementById(id).scrollIntoView({ behavior: 'smooth' }); }
+
+        const responses = {
+            en: {
+                'hello': 'Hello! Welcome to Montana. How can I help you?',
+                'what is': 'Montana is an Atemporal Coordinate Presence (ACP) protocol. Time = money. Literally.',
+                'formula': 'lim(evidence → ∞) 1 Ɉ → 1 second\n\nThe more presence proofs accumulated, the closer the token to real second.',
+                'council': 'Guardian Council: Claude (Anthropic), Gemini (Google), Grok (xAI), GPT (OpenAI), Composer (Cursor). 5 AIs, 5 organizations.',
+                'genesis': 'Genesis: 09.01.2026 — exactly 17 years after Bitcoin.\nHash: 3b67f40183d3cab2a404216c8967a49a0b53aad8d54ba0c54a9c776134041e57',
+                'cognitive': 'Cognitive consensus: your key = your thoughts. The attacker must become you to steal your identity.',
+                'default': 'Type /start in @junomontanaagibot for full access to Montana network.'
+            },
+            ru: {
+                'привет': 'Привет! Рада видеть тебя в Montana. Чем могу помочь?',
+                'что такое': 'Montana — это протокол Atemporal Coordinate Presence (ACP). Время = деньги. Буквально.',
+                'формула': 'lim(evidence → ∞) 1 Ɉ → 1 секунда\n\nЧем больше доказательств присутствия, тем ближе токен к реальной секунде.',
+                'совет': 'Совет Хранителей: Claude (Anthropic), Gemini (Google), Grok (xAI), GPT (OpenAI), Composer (Cursor). 5 AI, 5 организаций.',
+                'генезис': 'Genesis: 09.01.2026 — ровно 17 лет после Bitcoin.\nHash: 3b67f40183d3cab2a404216c8967a49a0b53aad8d54ba0c54a9c776134041e57',
+                'когнитив': 'Когнитивный консенсус: твой ключ = твои мысли. Атакующий должен стать тобой, чтобы украсть identity.',
+                'default': 'Напиши /start в @junomontanaagibot для полного доступа к сети Montana.'
+            },
+            zh: {
+                '你好': '你好！欢迎来到蒙大拿。我能帮你什么？',
+                '什么是': '蒙大拿是无时间坐标存在（ACP）协议。时间 = 金钱。字面意思。',
+                '公式': 'lim(证据 → ∞) 1 Ɉ → 1 秒\n\n积累的存在证明越多，代币越接近真实的一秒。',
+                '理事会': '守护者理事会：Claude (Anthropic), Gemini (Google), Grok (xAI), GPT (OpenAI), Composer (Cursor)。5个AI，5个组织。',
+                '创世': '创世：2026年1月9日——比特币之后正好17年。\n哈希：3b67f40183d3cab2a404216c8967a49a0b53aad8d54ba0c54a9c776134041e57',
+                '认知': '认知共识：你的密钥 = 你的思想。攻击者必须成为你才能窃取你的身份。',
+                'default': '在 @junomontanaagibot 输入 /start 获取蒙大拿网络的完整访问权限。'
+            }
+        };
+
+        function sendMsg(lang) {
+            const input = document.getElementById(lang + '-input');
+            const text = input.value.trim();
+            if (!text) return;
+            const container = document.getElementById(lang + '-chat');
+            const userMsg = document.createElement('div');
+            userMsg.className = 'message user';
+            userMsg.textContent = text;
+            container.appendChild(userMsg);
+            input.value = '';
+            setTimeout(() => {
+                const botMsg = document.createElement('div');
+                botMsg.className = 'message bot' + (lang === 'zh' ? ' zh' : '');
+                let response = responses[lang].default;
+                const lower = text.toLowerCase();
+                for (const [key, val] of Object.entries(responses[lang])) {
+                    if (lower.includes(key)) { response = val; break; }
+                }
+                botMsg.innerHTML = response.replace(/\n/g, '<br>');
+                container.appendChild(botMsg);
+                container.scrollTop = container.scrollHeight;
+            }, 600);
+            container.scrollTop = container.scrollHeight;
+        }
+    </script>
+
+    <!-- Presence Panel -->
+    <div class="presence-panel" id="presencePanel">
+        <div class="presence-header">
+            <div>
+                <div class="presence-timer" id="presenceTimer">00:00:00</div>
+                <div class="presence-earned">+<span id="presenceEarned">0.00</span> τ₁</div>
+            </div>
+            <button class="presence-close" onclick="togglePresence()">×</button>
+        </div>
+
+        <!-- Login state -->
+        <div class="presence-login" id="presenceLogin">
+            <div id="telegramWidget"></div>
+            <p class="presence-login-text">Войди чтобы время капало тебе</p>
+        </div>
+
+        <!-- User Profile (after login) -->
+        <div id="presenceProfile" style="display:none;">
+            <div class="presence-user-card">
+                <img id="userAvatar" class="presence-avatar" src="" alt="avatar">
+                <div class="presence-user-info">
+                    <div class="presence-user-name" id="userName"></div>
+                    <div class="presence-user-id">ID: <span id="userId"></span></div>
+                    <div class="presence-user-rank">🦧 Орангутанг</div>
+                </div>
+            </div>
+            <button class="presence-logout-btn" onclick="logoutMontana()">Выйти</button>
+        </div>
+
+        <!-- Logged in state -->
+        <div id="presenceLoggedIn" style="display:none;">
+            <div class="presence-stats">
+                <div class="presence-stat">
+                    <div class="presence-stat-value" id="onlineCount">1</div>
+                    <div class="presence-stat-label">Online</div>
+                </div>
+                <div class="presence-stat">
+                    <div class="presence-stat-value" id="totalEarned">0.00</div>
+                    <div class="presence-stat-label">Накоплено Ɉ</div>
+                </div>
+                <div class="presence-stat">
+                    <div class="presence-stat-value">🦧</div>
+                    <div class="presence-stat-label">Орангутанг</div>
+                </div>
+            </div>
+            <div class="presence-chat" id="presenceChat">
+                <div class="presence-msg system">Добро пожаловать в Montana. Пока ты здесь — время твоё.</div>
+            </div>
+            <div class="presence-input-area">
+                <input type="text" class="presence-input" id="presenceChatInput" placeholder="Напиши что-нибудь..." onkeypress="if(event.key==='Enter')sendPresenceMsg()">
+                <button class="presence-send" onclick="sendPresenceMsg()">→</button>
+            </div>
+        </div>
+    </div>
+    <button class="presence-toggle" id="presenceToggle" onclick="togglePresence()">Ɉ</button>
+
+    <script>
+        // Presence System
+        let presenceStartTime = null;
+        let presenceInterval = null;
+        let presenceUser = null;
+        let totalSeconds = 0;
+
+        // Telegram Login Widget callback
+        function onTelegramAuth(user) {
+            console.log('Telegram auth:', user);
+            presenceUser = {
+                id: user.id,
+                first_name: user.first_name,
+                last_name: user.last_name || '',
+                username: user.username || null,
+                photo_url: user.photo_url || null,
+                auth_date: user.auth_date,
+                hash: user.hash
+            };
+            localStorage.setItem('montana_user', JSON.stringify(presenceUser));
+            showLoggedIn();
+        }
+
+        // Direct clan join button (more reliable than Telegram widget)
+        function initTelegramWidget() {
+            const container = document.getElementById('telegramWidget');
+            if (!container) return;
+
+            // Show direct button immediately - Telegram widget is unreliable
+            container.innerHTML = `
+                <a href="https://t.me/junomontanaagibot?start=join_clan" target="_blank" class="clan-join-btn"
+                   style="display:inline-flex;align-items:center;gap:12px;padding:16px 32px;
+                          background:linear-gradient(135deg,#D4AF37 0%,#B8860B 50%,#8B6914 100%);
+                          border-radius:12px;color:#fff;text-decoration:none;font-weight:700;
+                          font-size:1.1rem;box-shadow:0 4px 20px rgba(212,175,55,0.5);
+                          transition:all 0.3s ease;border:1px solid rgba(255,255,255,0.1);">
+                    <span style="font-size:1.5rem;">金元Ɉ</span>
+                    <span>ВСТУПИТЬ В КЛАН</span>
+                    <span style="font-size:1.2rem;">→</span>
+                </a>
+            `;
+        }
+
+        // Check if already logged in
+        const savedUser = localStorage.getItem('montana_user');
+        if (savedUser) {
+            presenceUser = JSON.parse(savedUser);
+            showLoggedIn();
+        } else {
+            initTelegramWidget();
+        }
+
+        function showLoggedIn() {
+            document.getElementById('presenceLogin').style.display = 'none';
+            document.getElementById('presenceProfile').style.display = 'block';
+            document.getElementById('presenceLoggedIn').style.display = 'block';
+
+            // Fill user profile
+            const displayName = presenceUser.first_name + (presenceUser.last_name ? ' ' + presenceUser.last_name : '');
+            document.getElementById('userName').textContent = presenceUser.username ? '@' + presenceUser.username : displayName;
+            document.getElementById('userId').textContent = presenceUser.id;
+
+            const avatar = document.getElementById('userAvatar');
+            if (presenceUser.photo_url) {
+                avatar.src = presenceUser.photo_url;
+                avatar.style.display = 'block';
+            } else {
+                avatar.style.display = 'none';
+            }
+
+            startPresenceTimer();
+            addSystemMessage('🦧 ' + (presenceUser.username ? '@' + presenceUser.username : presenceUser.first_name) + ' вошёл в Montana');
+            simulateOthers();
+        }
+
+        function logoutMontana() {
+            localStorage.removeItem('montana_user');
+            presenceUser = null;
+            totalSeconds = 0;
+            if (presenceInterval) clearInterval(presenceInterval);
+
+            document.getElementById('presenceLogin').style.display = 'block';
+            document.getElementById('presenceProfile').style.display = 'none';
+            document.getElementById('presenceLoggedIn').style.display = 'none';
+            document.getElementById('presenceTimer').textContent = '00:00:00';
+            document.getElementById('presenceEarned').textContent = '0.00';
+
+            // Reinitialize widget
+            document.getElementById('telegramWidget').innerHTML = '';
+            initTelegramWidget();
+        }
+
+        function startPresenceTimer() {
+            presenceStartTime = Date.now();
+            presenceInterval = setInterval(updatePresence, 1000);
+        }
+
+        function updatePresence() {
+            totalSeconds++;
+            const hours = Math.floor(totalSeconds / 3600);
+            const mins = Math.floor((totalSeconds % 3600) / 60);
+            const secs = totalSeconds % 60;
+            document.getElementById('presenceTimer').textContent =
+                String(hours).padStart(2, '0') + ':' +
+                String(mins).padStart(2, '0') + ':' +
+                String(secs).padStart(2, '0');
+
+            // τ₁ = 1 minute, so earned = seconds / 60
+            const earned = (totalSeconds / 60).toFixed(2);
+            document.getElementById('presenceEarned').textContent = earned;
+            document.getElementById('totalEarned').textContent = earned;
+        }
+
+        function togglePresence() {
+            const panel = document.getElementById('presencePanel');
+            panel.classList.toggle('minimized');
+        }
+
+        function sendPresenceMsg() {
+            const input = document.getElementById('presenceChatInput');
+            const text = input.value.trim();
+            if (!text || !presenceUser) return;
+
+            const displayName = presenceUser.username ? '@' + presenceUser.username : presenceUser.first_name;
+            addChatMessage(displayName, text, true);
+            input.value = '';
+
+            // Bonus for activity
+            totalSeconds += 5; // +5 seconds for each message
+        }
+
+        function addChatMessage(author, text, isSelf = false) {
+            const chat = document.getElementById('presenceChat');
+            const msg = document.createElement('div');
+            msg.className = 'presence-msg' + (isSelf ? ' self' : '');
+            const earned = (totalSeconds / 60).toFixed(1);
+            msg.innerHTML = '<span class="author">' + author + '</span><span class="time-badge">+' + earned + 'τ₁</span><br>' + text;
+            chat.appendChild(msg);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function addSystemMessage(text) {
+            const chat = document.getElementById('presenceChat');
+            const msg = document.createElement('div');
+            msg.className = 'presence-msg system';
+            msg.textContent = text;
+            chat.appendChild(msg);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        // Simulate other users
+        const botMessages = [
+            '金元Ɉ — время есть деньги',
+            'Кто-нибудь понял как работает когнитивный консенсус?',
+            'Атланты держат облако 💪',
+            '80% вероятность для узлов, 20% для нас орангутангов',
+            'lim(evidence → ∞) 1 Ɉ → 1 секунда',
+            'Генезис был 09.01.2026',
+            'ML-DSA-65 защищает от квантовых компьютеров',
+            'Кто из какого города?',
+            'Сколько у вас τ₁ накопилось?'
+        ];
+
+        function simulateOthers() {
+            // Random users joining
+            setInterval(() => {
+                const online = Math.floor(Math.random() * 20) + 5;
+                document.getElementById('onlineCount').textContent = online;
+            }, 10000);
+
+            // Random messages
+            setInterval(() => {
+                if (Math.random() > 0.7) {
+                    const names = ['Атлант_AMS', 'Орангутанг_42', '金元_user', 'Montana_fan', 'Crypto_dev'];
+                    const name = names[Math.floor(Math.random() * names.length)];
+                    const msg = botMessages[Math.floor(Math.random() * botMessages.length)];
+                    addChatMessage(name, msg, false);
+                }
+            }, 8000);
+        }
+    </script>
+</body>
+</html>

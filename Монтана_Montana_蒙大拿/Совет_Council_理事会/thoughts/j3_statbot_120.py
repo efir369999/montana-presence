@@ -207,6 +207,528 @@ def is_authorized(user_id: int) -> bool:
     user_data = users.get(str(user_id), {})
     return user_data.get('authorized', False)
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 🏔 MONTANA CLAN AUTHORIZATION SYSTEM
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Состояния для ConversationHandler
+CLAN_WAITING_LETTER = 1
+CLAN_WAITING_INVITER = 2
+
+# Хранилище pending запросов на вход в клан
+pending_clan_requests = {}
+
+# 🏔 MONTANA: Определение языка пользователя (только 3: RU/EN/ZH)
+def detect_user_language(user) -> str:
+    """Определяет язык: ru, en или zh"""
+    lang_code = getattr(user, 'language_code', 'en') or 'en'
+    lang_code = lang_code.lower()[:2]
+    if lang_code in ['ru', 'uk', 'be', 'kk']:
+        return 'ru'
+    elif lang_code in ['zh', 'ja', 'ko']:
+        return 'zh'
+    return 'en'
+
+# 🏔 MONTANA: Тексты на 3 языках
+JUNONA_TEXTS = {
+    'welcome_clan': {
+        'ru': "🏔 *Привет, {name}!*\n\nТы в Клане Montana.\n\n金元Ɉ _Время — деньги буквально._",
+        'en': "🏔 *Hello, {name}!*\n\nYou are in Montana Clan.\n\n金元Ɉ _Time is money literally._",
+        'zh': "🏔 *你好，{name}！*\n\n你在Montana部落里。\n\n金元Ɉ _时间就是金钱。_"
+    },
+    'welcome_guest': {
+        'ru': "🏔 *Привет!*\n\nЯ — Юнона, AI-хранитель Montana.\nТы ещё не в Клане.\n\n👇 *Вступить:*",
+        'en': "🏔 *Hello!*\n\nI am Junona, AI guardian of Montana.\nYou are not in the Clan yet.\n\n👇 *Join:*",
+        'zh': "🏔 *你好！*\n\n我是朱诺娜，Montana的AI守护者。\n你还不在部落里。\n\n👇 *加入：*"
+    },
+    'join_btn': {
+        'ru': "🏔 Вступить в Клан",
+        'en': "🏔 Join the Clan",
+        'zh': "🏔 加入部落"
+    },
+    'join_form': {
+        'ru': "📝 *ЗАЯВКА В КЛАН MONTANA*\n\nРасскажи о себе:\n• Кто ты?\n• Откуда?\n• Почему Montana?\n\n_Можешь прикрепить фото или локацию._",
+        'en': "📝 *MONTANA CLAN APPLICATION*\n\nTell us about yourself:\n• Who are you?\n• Where from?\n• Why Montana?\n\n_You can attach a photo or location._",
+        'zh': "📝 *MONTANA部落申请*\n\n介绍一下你自己：\n• 你是谁？\n• 来自哪里？\n• 为什么选择Montana？\n\n_你可以附上照片或位置。_"
+    },
+    'menu_btn': {'ru': "🏠 Меню", 'en': "🏠 Menu", 'zh': "🏠 菜单"},
+    'status_btn': {'ru': "📊 Статус сети", 'en': "📊 Network Status", 'zh': "📊 网络状态"}
+}
+
+def get_text(key: str, lang: str, **kwargs) -> str:
+    """Получает текст на нужном языке"""
+    texts = JUNONA_TEXTS.get(key, {})
+    text = texts.get(lang, texts.get('en', key))
+    return text.format(**kwargs) if kwargs else text
+
+async def get_full_user_profile(bot, user) -> dict:
+    """Получает максимально полную информацию о пользователе"""
+    profile = {
+        'id': user.id,
+        'username': user.username,
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'language_code': getattr(user, 'language_code', None),
+        'is_premium': getattr(user, 'is_premium', False),
+        'is_bot': user.is_bot,
+        'photo_file_id': None,
+        'bio': None,
+    }
+
+    # Получаем фото профиля
+    try:
+        photos = await bot.get_user_profile_photos(user.id, limit=1)
+        if photos.total_count > 0:
+            profile['photo_file_id'] = photos.photos[0][0].file_id
+    except Exception as e:
+        logging.warning(f"Не удалось получить фото профиля: {e}")
+
+    # Получаем полный профиль с био (через Chat)
+    try:
+        chat = await bot.get_chat(user.id)
+        profile['bio'] = getattr(chat, 'bio', None)
+    except Exception as e:
+        logging.warning(f"Не удалось получить био: {e}")
+
+    return profile
+
+
+def format_clan_request_card(profile: dict, inviter_info: dict, letter: str) -> str:
+    """Форматирует красивую карточку запроса на вход в клан"""
+
+    # Статусы
+    premium_status = "✅ Да" if profile.get('is_premium') else "❌ Нет"
+    bot_status = "🤖 Да" if profile.get('is_bot') else "👤 Нет"
+
+    # Имя пользователя
+    full_name = profile.get('first_name', '')
+    if profile.get('last_name'):
+        full_name += f" {profile['last_name']}"
+
+    # Username со ссылкой
+    username_display = f"@{profile['username']}" if profile.get('username') else "не указан"
+    user_link = f"tg://user?id={profile['id']}"
+
+    # Пригласитель
+    inviter_username = f"@{inviter_info.get('username')}" if inviter_info.get('username') else "не указан"
+    inviter_link = f"tg://user?id={inviter_info.get('id')}" if inviter_info.get('id') else "#"
+
+    # Био (обрезаем если длинное)
+    bio = profile.get('bio') or "не указано"
+    if len(bio) > 100:
+        bio = bio[:97] + "..."
+
+    # Письмо (обрезаем если длинное)
+    letter_display = letter if len(letter) <= 500 else letter[:497] + "..."
+
+    # Время запроса
+    request_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    card = f"""
+🔐 *ЗАПРОС НА ВХОД В КЛАН MONTANA*
+{'═' * 35}
+
+👤 [{full_name}]({user_link})
+🆔 `{profile['id']}`
+
+{'─' * 35}
+📋 *ДАННЫЕ ПОЛЬЗОВАТЕЛЯ*
+{'─' * 35}
+
+📝 Username: {username_display}
+👤 Имя: {profile.get('first_name') or 'N/A'}
+👥 Фамилия: {profile.get('last_name') or 'N/A'}
+🌐 Язык: {profile.get('language_code') or 'N/A'}
+📖 Био: _{bio}_
+✨ Premium: {premium_status}
+🤖 Бот: {bot_status}
+📅 Запрос: {request_time}
+
+{'─' * 35}
+👥 *ПРИГЛАСИТЕЛЬ*
+{'─' * 35}
+
+🔗 Ник: [{inviter_username}]({inviter_link})
+🆔 ID: `{inviter_info.get('id', 'N/A')}`
+
+{'─' * 35}
+✉️ *ПИСЬМО АТЛАНТУ*
+{'─' * 35}
+
+_{letter_display}_
+
+{'═' * 35}
+"""
+    return card
+
+
+async def start_clan_join(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Начинает процесс вступления в клан"""
+    user = update.message.from_user
+    args = context.args
+
+    # Проверяем есть ли ID пригласителя
+    if not args or not args[0].isdigit():
+        await update.message.reply_text(
+            "🏔 *ВХОД В КЛАН MONTANA*\n\n"
+            "Чтобы войти в клан, тебе нужен *пригласитель* (Атлант или член клана).\n\n"
+            "Попроси ссылку-приглашение у члена клана или напиши:\n"
+            "`/join ID_ПРИГЛАСИТЕЛЯ`\n\n"
+            "_Без пригласителя вход невозможен._",
+            parse_mode="Markdown"
+        )
+        return
+
+    inviter_id = int(args[0])
+
+    # Проверяем существует ли пригласитель
+    try:
+        inviter_chat = await context.bot.get_chat(inviter_id)
+        inviter_info = {
+            'id': inviter_id,
+            'username': inviter_chat.username,
+            'first_name': inviter_chat.first_name
+        }
+    except Exception:
+        await update.message.reply_text(
+            "❌ *Пригласитель не найден*\n\n"
+            "ID пригласителя неверный или пользователь не существует.",
+            parse_mode="Markdown"
+        )
+        return
+
+    # Сохраняем данные в pending
+    pending_clan_requests[user.id] = {
+        'inviter': inviter_info,
+        'state': CLAN_WAITING_LETTER
+    }
+
+    inviter_display = f"@{inviter_info['username']}" if inviter_info.get('username') else inviter_info.get('first_name', 'Unknown')
+
+    await update.message.reply_text(
+        f"🏔 *ВСТУПЛЕНИЕ В КЛАН MONTANA*\n\n"
+        f"👥 Твой пригласитель: *{inviter_display}*\n\n"
+        f"{'─' * 30}\n\n"
+        f"✉️ *Напиши письмо Атланту*\n\n"
+        f"В письме обязательно укажи:\n\n"
+        f"1️⃣ *Кто тебя пригласил* и как вы знакомы\n\n"
+        f"2️⃣ *Чем ты можешь усилить клан*\n"
+        f"   Какие у тебя навыки, опыт, ресурсы?\n\n"
+        f"3️⃣ *Какие дыры/слабости видишь*\n"
+        f"   Что можешь доказать и закрыть?\n\n"
+        f"{'─' * 30}\n\n"
+        f"_Атлант прочитает и примет решение._\n"
+        f"_Напиши своё письмо следующим сообщением:_",
+        parse_mode="Markdown"
+    )
+
+    return CLAN_WAITING_LETTER
+
+
+async def process_clan_letter(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обрабатывает письмо пользователя и отправляет запрос Атланту"""
+    user = update.message.from_user
+    letter = update.message.text
+
+    if user.id not in pending_clan_requests:
+        return
+
+    request_data = pending_clan_requests[user.id]
+    inviter_info = request_data['inviter']
+
+    # Получаем полный профиль
+    profile = await get_full_user_profile(context.bot, user)
+
+    # Форматируем карточку
+    card_text = format_clan_request_card(profile, inviter_info, letter)
+
+    # Кнопки принятия/отклонения
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("✅ ПРИНЯТЬ В КЛАН", callback_data=f"clan_accept_{user.id}"),
+        ],
+        [
+            InlineKeyboardButton("❌ ОТКЛОНИТЬ", callback_data=f"clan_deny_{user.id}")
+        ]
+    ])
+
+    # Отправляем Атланту (владельцу бота)
+    try:
+        # Если есть фото - отправляем с фото
+        if profile.get('photo_file_id'):
+            await context.bot.send_photo(
+                chat_id=BOT_CREATOR_ID,
+                photo=profile['photo_file_id'],
+                caption=card_text,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+        else:
+            await context.bot.send_message(
+                chat_id=BOT_CREATOR_ID,
+                text=card_text,
+                parse_mode="Markdown",
+                reply_markup=keyboard,
+                disable_web_page_preview=True
+            )
+
+        # Сохраняем данные запроса
+        pending_clan_requests[user.id]['letter'] = letter
+        pending_clan_requests[user.id]['profile'] = profile
+
+        await update.message.reply_text(
+            "✅ *Запрос отправлен!*\n\n"
+            "Атлант получил твоё письмо и данные.\n"
+            "Ожидай решения. Тебе придёт уведомление.\n\n"
+            "_🏔 Клан Montana_",
+            parse_mode="Markdown"
+        )
+
+    except Exception as e:
+        logging.error(f"Ошибка отправки запроса в клан: {e}")
+        await update.message.reply_text(
+            "❌ Ошибка отправки запроса. Попробуй позже."
+        )
+
+    # Очищаем состояние
+    del pending_clan_requests[user.id]
+    return -1  # Завершаем conversation
+
+
+async def handle_clan_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обрабатывает callback'и клана"""
+    query = update.callback_query
+    user = query.from_user
+    user_id = user.id
+    callback_data = query.data
+    lang = detect_user_language(user)
+
+    # 🏔 Кнопка "Вступить в клан" — начинает процесс заявки
+    if callback_data == "clan_join_request":
+        await query.answer()
+        pending_clan_requests[user_id] = {
+            'state': CLAN_WEB_WAITING_INFO,
+            'source': 'button'
+        }
+        await query.message.reply_text(
+            get_text('join_form', lang),
+            parse_mode="Markdown"
+        )
+        return
+
+    # Только создатель бота может принимать/отклонять
+    if user_id != BOT_CREATOR_ID:
+        await query.answer("⛔ Только Атлант может принимать решения", show_alert=True)
+        return
+
+    if callback_data.startswith("clan_accept_"):
+        target_id = int(callback_data.split("_")[2])
+
+        # Авторизуем пользователя
+        users = load_users()
+        if str(target_id) not in users:
+            users[str(target_id)] = {"authorized": True, "clan_member": True}
+        else:
+            users[str(target_id)]["authorized"] = True
+            users[str(target_id)]["clan_member"] = True
+        save_users(users)
+
+        await query.answer("✅ Принят в клан!")
+        await query.edit_message_caption(
+            caption=query.message.caption + "\n\n✅ *ПРИНЯТ В КЛАН MONTANA*",
+            parse_mode="Markdown"
+        ) if query.message.caption else await query.edit_message_text(
+            text=query.message.text + "\n\n✅ *ПРИНЯТ В КЛАН MONTANA*",
+            parse_mode="Markdown"
+        )
+
+        # Уведомляем пользователя
+        try:
+            await context.bot.send_message(
+                chat_id=target_id,
+                text="🏔 *ДОБРО ПОЖАЛОВАТЬ В КЛАН MONTANA!*\n\n"
+                     "✅ Атлант принял тебя в клан.\n\n"
+                     "Теперь ты *Орангутанг* — член клана Montana.\n"
+                     "Пока ты с нами — время капает тебе.\n\n"
+                     "_20% вероятность получить Ɉ_\n\n"
+                     "Используй /start для начала работы.",
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            logging.error(f"Не удалось уведомить пользователя: {e}")
+
+    elif callback_data.startswith("clan_deny_"):
+        target_id = int(callback_data.split("_")[2])
+
+        await query.answer("❌ Отклонено")
+        await query.edit_message_caption(
+            caption=query.message.caption + "\n\n❌ *ОТКЛОНЕНО*",
+            parse_mode="Markdown"
+        ) if query.message.caption else await query.edit_message_text(
+            text=query.message.text + "\n\n❌ *ОТКЛОНЕНО*",
+            parse_mode="Markdown"
+        )
+
+        # Уведомляем пользователя
+        try:
+            await context.bot.send_message(
+                chat_id=target_id,
+                text="❌ *Запрос отклонён*\n\n"
+                     "Атлант не принял тебя в клан.\n"
+                     "Ты можешь попробовать позже или найти другого пригласителя.",
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            logging.error(f"Не удалось уведомить пользователя: {e}")
+
+
+# 🏔 WEB CLAN JOIN - Вступление через сайт
+CLAN_WEB_WAITING_INFO = 10
+
+async def start_web_clan_join(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Начинает процесс вступления в клан через веб-сайт"""
+    user = update.message.from_user
+
+    # Сохраняем состояние
+    pending_clan_requests[user.id] = {
+        'state': CLAN_WEB_WAITING_INFO,
+        'source': 'web'
+    }
+
+    await update.message.reply_text(
+        f"🏔 *ДОБРО ПОЖАЛОВАТЬ В КЛАН MONTANA*\n\n"
+        f"Привет, *{user.first_name}*!\n\n"
+        f"Ты пришёл с сайта Montana. Чтобы вступить в Клан, "
+        f"расскажи о себе Атланту.\n\n"
+        f"{'─' * 30}\n\n"
+        f"📝 *Напиши заявку:*\n\n"
+        f"• Кто ты и чем занимаешься?\n"
+        f"• Как узнал о Montana?\n"
+        f"• Чем можешь усилить Клан?\n"
+        f"• Какие навыки/ресурсы есть?\n\n"
+        f"{'─' * 30}\n\n"
+        f"_Можешь также отправить фото или геолокацию._\n"
+        f"_Атлант рассмотрит заявку и примет решение._",
+        parse_mode="Markdown"
+    )
+
+
+async def process_web_clan_application(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обрабатывает заявку на вступление через веб"""
+    user = update.message.from_user
+
+    if user.id not in pending_clan_requests:
+        return False
+
+    request_data = pending_clan_requests[user.id]
+    if request_data.get('state') != CLAN_WEB_WAITING_INFO:
+        return False
+
+    # Собираем информацию
+    profile = await get_full_user_profile(context.bot, user)
+
+    # Текст заявки
+    application_text = ""
+    photo_file_id = None
+    location_text = None
+
+    if update.message.text:
+        application_text = update.message.text
+    elif update.message.photo:
+        photo_file_id = update.message.photo[-1].file_id
+        application_text = update.message.caption or "[Фото без текста]"
+    elif update.message.location:
+        loc = update.message.location
+        location_text = f"📍 {loc.latitude}, {loc.longitude}"
+        application_text = f"[Геолокация отправлена]\n{location_text}"
+
+    # Формируем карточку заявки
+    request_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    full_name = profile.get('first_name', '')
+    if profile.get('last_name'):
+        full_name += f" {profile['last_name']}"
+
+    username_display = f"@{profile['username']}" if profile.get('username') else "не указан"
+    user_link = f"tg://user?id={profile['id']}"
+    premium_status = "✅ Premium" if profile.get('is_premium') else ""
+    bio = profile.get('bio') or "не указано"
+
+    card = f"""
+🏔 *ЗАЯВКА НА ВСТУПЛЕНИЕ В КЛАН*
+{'═' * 35}
+📍 Источник: *Веб-сайт Montana*
+
+👤 [{full_name}]({user_link})
+🆔 `{profile['id']}`
+
+{'─' * 35}
+📋 *ДАННЫЕ*
+{'─' * 35}
+
+📝 Username: {username_display}
+🌐 Язык: {profile.get('language_code') or 'N/A'}
+📖 Био: _{bio[:80]}{'...' if len(bio) > 80 else ''}_
+{premium_status}
+📅 Запрос: {request_time}
+{location_text or ''}
+
+{'─' * 35}
+✉️ *ЗАЯВКА*
+{'─' * 35}
+
+_{application_text[:500]}{'...' if len(application_text) > 500 else ''}_
+
+{'═' * 35}
+"""
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("✅ ПРИНЯТЬ В КЛАН", callback_data=f"clan_accept_{user.id}")],
+        [InlineKeyboardButton("❌ ОТКЛОНИТЬ", callback_data=f"clan_deny_{user.id}")]
+    ])
+
+    try:
+        # Отправляем Атланту
+        if profile.get('photo_file_id') or photo_file_id:
+            await context.bot.send_photo(
+                chat_id=BOT_CREATOR_ID,
+                photo=photo_file_id or profile['photo_file_id'],
+                caption=card,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+        else:
+            await context.bot.send_message(
+                chat_id=BOT_CREATOR_ID,
+                text=card,
+                parse_mode="Markdown",
+                reply_markup=keyboard,
+                disable_web_page_preview=True
+            )
+
+        await update.message.reply_text(
+            "✅ *Заявка отправлена!*\n\n"
+            "Атлант получил твою заявку.\n"
+            "Ожидай решения — тебе придёт уведомление.\n\n"
+            "_🏔 Клан Montana_",
+            parse_mode="Markdown"
+        )
+
+    except Exception as e:
+        logging.error(f"Ошибка отправки веб-заявки: {e}")
+        await update.message.reply_text("❌ Ошибка отправки. Попробуй позже.")
+
+    # Очищаем состояние
+    del pending_clan_requests[user.id]
+    return True
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# END MONTANA CLAN AUTHORIZATION SYSTEM
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
 # Команда для отображения списка пользователей
 async def show_users_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
@@ -404,50 +926,42 @@ async def group_update_callback(update: Update, context: ContextTypes.DEFAULT_TY
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     user = update.message.from_user
-
-    if not is_authorized(chat_id):
-        # Отправляем запрос создателю бота
-        try:
-            keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("✅ Разрешить", callback_data=f"auth_allow_{chat_id}")],
-                [InlineKeyboardButton("❌ Отклонить", callback_data=f"auth_deny_{chat_id}")]
-            ])
-            await context.bot.send_message(
-                chat_id=BOT_CREATOR_ID,
-                text=f"🔐 Запрос на авторизацию\n\n👤 Пользователь: @{user.username or 'N/A'}\n🆔 ID: {chat_id}\n📝 Имя: {user.first_name or 'N/A'}",
-                reply_markup=keyboard
-            )
-            await update.message.reply_text("⏳ Запрос на авторизацию отправлен. Ожидайте подтверждения.")
-        except (BadRequest, Forbidden) as e:
-            # Если не удалось отправить создателю (чат не найден или доступ запрещен)
-            logging.error(f"Не удалось отправить запрос на авторизацию создателю: {e}")
-            await update.message.reply_text(
-                "⛔ Авторизация временно недоступна. Свяжитесь с администратором."
-            )
-        except Exception as e:
-            logging.error(f"Ошибка при отправке запроса на авторизацию: {e}")
-            await update.message.reply_text(
-                "⛔ Произошла ошибка при обработке запроса. Попробуйте позже."
-            )
-        return  
-
     args = context.args
-    referrer_id = args[0] if args and args[0].isdigit() else None
+    lang = detect_user_language(user)
 
-    add_user(chat_id, telegram_username=user.username, telegram_id=user.id, referrer_id=referrer_id, authorized=True)
+    # 🏔 MONTANA CLAN: Обработка join_clan из веб-сайта
+    if args and args[0] == 'join_clan':
+        await start_web_clan_join(update, context)
+        return
 
-    # Отправляем одно сообщение с инлайн-кнопками и кнопкой "Меню"
-    await update.message.reply_text(
-        'Ваш Телеграм ID зарегистрирован.\n',
-        parse_mode="Markdown",
-        reply_markup=get_main_menu_buttons()  # Инлайн-кнопки для выбора действий
-    )
+    # 🏔 ПРОВЕРКА: Пользователь в клане?
+    is_clan_member = is_authorized(chat_id)
 
-    # Отправляем отдельное сообщение с кнопкой "Меню" для удобства
-    await update.message.reply_text(
-        "Используйте кнопку 🏠 Меню для навигации.",
-        reply_markup=get_reply_keyboard()  # Обычная кнопка "Меню" внизу
-    )
+    if is_clan_member:
+        # ✅ В КЛАНЕ — показываем персональное меню
+        add_user(chat_id, telegram_username=user.username, telegram_id=user.id, authorized=True)
+
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton(get_text('status_btn', lang), callback_data="refresh_data")],
+            [InlineKeyboardButton(get_text('menu_btn', lang), callback_data="main_menu")]
+        ])
+
+        await update.message.reply_text(
+            get_text('welcome_clan', lang, name=user.first_name or 'Узел'),
+            parse_mode="Markdown",
+            reply_markup=keyboard
+        )
+    else:
+        # ❌ НЕ В КЛАНЕ — предлагаем вступить
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton(get_text('join_btn', lang), callback_data="clan_join_request")]
+        ])
+
+        await update.message.reply_text(
+            get_text('welcome_guest', lang),
+            parse_mode="Markdown",
+            reply_markup=keyboard
+        )
 
 
 
@@ -1954,6 +2468,31 @@ if __name__ == '__main__':
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("show_users", show_users_command))
 
+    # 🏔 MONTANA CLAN - Команда /join для вступления в клан
+    application.add_handler(CommandHandler("join", start_clan_join))
+
+    # 🏔 MONTANA CLAN - Обработка письма от pending пользователей
+    async def letter_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = update.message.from_user.id
+        if user_id in pending_clan_requests:
+            state = pending_clan_requests[user_id].get('state')
+            if state == CLAN_WAITING_LETTER:
+                await process_clan_letter(update, context)
+                return
+            elif state == CLAN_WEB_WAITING_INFO:
+                await process_web_clan_application(update, context)
+                return
+        # Если не pending - пропускаем, чтобы другие handlers обработали
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, letter_handler), group=1)
+
+    # 🏔 MONTANA CLAN - Обработка фото и локации для веб-заявок
+    async def web_clan_media_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = update.message.from_user.id
+        if user_id in pending_clan_requests and pending_clan_requests[user_id].get('state') == CLAN_WEB_WAITING_INFO:
+            await process_web_clan_application(update, context)
+    application.add_handler(MessageHandler(filters.PHOTO, web_clan_media_handler), group=1)
+    application.add_handler(MessageHandler(filters.LOCATION, web_clan_media_handler), group=1)
+
     # Обработчики текстовых сообщений
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex('^🏠 Меню$'), main_menu))
 
@@ -1961,6 +2500,9 @@ if __name__ == '__main__':
     application.add_handler(CallbackQueryHandler(inline_refresh_data, pattern="^refresh_data$"))
     application.add_handler(CallbackQueryHandler(inline_generic, pattern="^(trades|main_menu)$"))
     application.add_handler(CallbackQueryHandler(inline_generic, pattern="^auth_"))
+
+    # 🏔 MONTANA CLAN - Обработка решений Атланта (принять/отклонить)
+    application.add_handler(CallbackQueryHandler(handle_clan_callback, pattern="^clan_"))
     application.add_handler(CallbackQueryHandler(group_update_callback, pattern="^group_update$"))
     application.add_handler(CommandHandler("123", send_group_update_command))      
     application.add_handler(CommandHandler("248", save_daily_balance_snapshot_command))
