@@ -22,6 +22,7 @@
 **🎧 СЛУШАЙ АУДИО | LISTEN AUDIO | 听音频:**
 - 🇷🇺 **Русский:** [@mylifesound369](https://t.me/mylifesound369)
 - 🇬🇧 **English:** [@TaleoftheBeginning](https://t.me/TaleoftheBeginning)
+- 🇨🇳 **中文:** [@skazkanachala](https://t.me/skazkanachala)
 
 **→ [Благовесть | Gospel | 福音](#-благовесть--gospel--福音)**
 
@@ -273,6 +274,7 @@ MONTANA GUARDIAN COUNCIL — 09.01.2026 06:00 UTC
 **🎧 Аудио / Audio / 音频:**
 - 🇷🇺 **Русский:** [@mylifesound369](https://t.me/mylifesound369)
 - 🇬🇧 **English:** [@TaleoftheBeginning](https://t.me/TaleoftheBeginning)
+- 🇨🇳 **中文:** [@skazkanachala](https://t.me/skazkanachala)
 - 📂 MP3 доступны в папках / MP3 available in folders / MP3在文件夹中
 
 ---
@@ -303,6 +305,7 @@ MONTANA GUARDIAN COUNCIL — 09.01.2026 06:00 UTC
 |---------|---------|
 | [@mylifesound369](https://t.me/mylifesound369) | 🎧 Аудио Сказка (RU) / Audio Tale (RU) / 音频故事 (RU) |
 | [@TaleoftheBeginning](https://t.me/TaleoftheBeginning) | 🎧 Audio Gospel (EN) / Аудио Сказка (EN) / 音频福音 (EN) |
+| [@skazkanachala](https://t.me/skazkanachala) | 🎧 时间起源的故事 (ZH) / Audio Tale (ZH) / Аудио Сказка (ZH) |
 | [@mylifethoughts369](https://t.me/mylifethoughts369) | Thoughts / Мысли / 思想 |
 | [@mylifeprogram369](https://t.me/mylifeprogram369) | Music / Музыка / 音乐 |
 
