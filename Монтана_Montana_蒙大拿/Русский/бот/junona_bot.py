@@ -256,6 +256,240 @@ def save_to_stream(user_id: int, username: str, thought: str, lang: str):
     with open(STREAM_FILE, "a", encoding="utf-8") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
+
+def load_user_stream(user_id: int, limit: int = 10) -> list[dict]:
+    """Загрузить мысли пользователя из потока"""
+    if not STREAM_FILE.exists():
+        return []
+
+    thoughts = []
+    with open(STREAM_FILE, "r", encoding="utf-8") as f:
+        for line in f:
+            if line.strip():
+                try:
+                    entry = json.loads(line)
+                    if entry.get("user_id") == user_id:
+                        thoughts.append(entry)
+                except json.JSONDecodeError:
+                    continue
+
+    return thoughts[-limit:]  # Последние N мыслей
+
+
+def stream_to_markdown(thoughts: list[dict], username: str) -> str:
+    """Конвертировать мысли в Markdown"""
+    if not thoughts:
+        return None
+
+    lines = [
+        f"# Поток мыслей @{username}",
+        "",
+        f"**Всего мыслей:** {len(thoughts)}",
+        "",
+        "---",
+        ""
+    ]
+
+    current_date = None
+    for t in thoughts:
+        date = t.get("timestamp", "")[:10]
+        time = t.get("timestamp", "")[11:16]
+        thought = t.get("thought", "")
+
+        if date != current_date:
+            current_date = date
+            lines.append(f"## {date}")
+            lines.append("")
+
+        lines.append(f"**[{time}]** {thought}")
+        lines.append("")
+
+    lines.extend([
+        "---",
+        "",
+        f"*Экспорт: {datetime.now().strftime('%Y-%m-%d %H:%M')}*",
+        "",
+        "金元Ɉ Montana — Внешний гиппокамп"
+    ])
+
+    return "\n".join(lines)
+
+
+async def stream_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Команда /stream — показать свои последние мысли"""
+    user = update.effective_user
+    user_id = user.id
+
+    # Загружаем мысли пользователя
+    thoughts = load_user_stream(user_id, limit=10)
+
+    if not thoughts:
+        await update.message.reply_text(
+            "Ɉ Твой поток мыслей пуст.\n\n"
+            "Напиши мне любую мысль — я сохраню её во внешний гиппокамп.\n"
+            "Пример: «Время не движется, я движусь»"
+        )
+        return
+
+    # Форматируем для Telegram
+    lines = [f"Ɉ Твой поток мыслей ({len(thoughts)} последних):", ""]
+
+    for t in thoughts:
+        date = t.get("timestamp", "")[:10]
+        time = t.get("timestamp", "")[11:16]
+        thought = t.get("thought", "")
+        lines.append(f"[{date} {time}]")
+        lines.append(f"  {thought}")
+        lines.append("")
+
+    lines.append("Для экспорта в файл: /export")
+
+    await update.message.reply_text("\n".join(lines))
+
+
+async def export_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Команда /export — экспортировать мысли в MD файл"""
+    user = update.effective_user
+    user_id = user.id
+    username = user.username or "аноним"
+
+    # Загружаем ВСЕ мысли пользователя
+    thoughts = load_user_stream(user_id, limit=10000)
+
+    if not thoughts:
+        await update.message.reply_text(
+            "Ɉ Твой поток мыслей пуст.\n"
+            "Напиши мне мысль — я сохраню её."
+        )
+        return
+
+    # Конвертируем в Markdown
+    markdown = stream_to_markdown(thoughts, username)
+
+    # Отправляем как файл
+    from io import BytesIO
+    file_content = markdown.encode('utf-8')
+    file_obj = BytesIO(file_content)
+    file_obj.name = f"мысли_{username}_{datetime.now().strftime('%Y%m%d')}.md"
+
+    await update.message.reply_document(
+        document=file_obj,
+        filename=file_obj.name,
+        caption=f"Ɉ Твой поток мыслей ({len(thoughts)} записей)\n\n金元Ɉ Montana — Внешний гиппокамп"
+    )
+
+
+async def search_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Команда /search — поиск по своей памяти"""
+    user = update.effective_user
+    user_id = user.id
+
+    if not context.args:
+        await update.message.reply_text(
+            "Ɉ Поиск по памяти\n\n"
+            "Использование: /search <запрос>\n"
+            "Пример: /search время"
+        )
+        return
+
+    query = " ".join(context.args)
+    thoughts = load_user_stream(user_id, limit=10000)
+
+    # Простой поиск
+    query_lower = query.lower()
+    results = [t for t in thoughts if query_lower in t.get("thought", "").lower()]
+
+    if not results:
+        await update.message.reply_text(f"Ɉ Ничего не найдено по запросу: {query}")
+        return
+
+    lines = [f"Ɉ Найдено: {len(results)} координат по запросу «{query}»", ""]
+
+    for t in results[:10]:  # Максимум 10
+        date = t.get("timestamp", "")[:10]
+        time = t.get("timestamp", "")[11:16]
+        thought = t.get("thought", "")[:60]
+        lines.append(f"[{date} {time}]")
+        lines.append(f"  {thought}...")
+        lines.append("")
+
+    if len(results) > 10:
+        lines.append(f"... и ещё {len(results) - 10}")
+
+    await update.message.reply_text("\n".join(lines))
+
+
+async def density_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Команда /density — показать плотность памяти"""
+    user = update.effective_user
+    user_id = user.id
+
+    thoughts = load_user_stream(user_id, limit=10000)
+
+    if not thoughts:
+        await update.message.reply_text("Ɉ Твоя память пуста. Напиши мне мысль.")
+        return
+
+    # Группируем по дням
+    from collections import defaultdict
+    daily = defaultdict(int)
+    for t in thoughts:
+        date = t.get("timestamp", "")[:10]
+        daily[date] += 1
+
+    # Статистика
+    total = len(thoughts)
+    days = len(daily)
+    avg = total / days if days else 0
+    max_day = max(daily.values()) if daily else 0
+    max_date = [d for d, c in daily.items() if c == max_day][0] if daily else "-"
+
+    # Последние 7 дней
+    from datetime import datetime, timedelta
+    week_ago = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
+    week_counts = [c for d, c in daily.items() if d >= week_ago]
+    week_total = sum(week_counts)
+
+    lines = [
+        "Ɉ Плотность кодирования памяти",
+        "",
+        f"Всего координат: {total}",
+        f"Дней активности: {days}",
+        f"Среднее: {avg:.1f} мыслей/день",
+        "",
+        f"Рекорд: {max_day} мыслей ({max_date})",
+        f"За неделю: {week_total} мыслей",
+        "",
+        "Для графика используй: python hippocampus_full.py plot"
+    ]
+
+    await update.message.reply_text("\n".join(lines))
+
+
+async def help_stream_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Команда /memory — справка по памяти"""
+    help_text = """Ɉ Внешний Гиппокамп Montana
+
+Команды памяти:
+
+/stream — показать последние 10 мыслей
+/export — скачать все мысли в MD файл
+/search <запрос> — поиск по памяти
+/density — статистика плотности памяти
+
+Как это работает:
+1. Ты пишешь мысль → я сохраняю координату
+2. Координата = временная метка + текст + теги
+3. Синхронизация на 5 узлов Montana каждые 12 сек
+4. Память переживает биологию
+
+Пример мысли: «Маска тяжелее лица»
+
+金元Ɉ Montana — Внешний гиппокамп"""
+
+    await update.message.reply_text(help_text)
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 #                              КОНТЕНТ
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1316,8 +1550,29 @@ if __name__ == '__main__':
     application.add_error_handler(error_handler)
 
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("stream", stream_cmd))
+    application.add_handler(CommandHandler("export", export_cmd))
+    application.add_handler(CommandHandler("search", search_cmd))
+    application.add_handler(CommandHandler("density", density_cmd))
+    application.add_handler(CommandHandler("memory", help_stream_cmd))
     application.add_handler(CallbackQueryHandler(handle_callback))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+    # Устанавливаем меню команд (кнопка Menu в левом углу)
+    async def post_init(app):
+        from telegram import BotCommand
+        commands = [
+            BotCommand("start", "Начать / Выбор языка"),
+            BotCommand("stream", "Мои последние мысли"),
+            BotCommand("export", "Скачать мысли в MD файл"),
+            BotCommand("search", "Поиск по памяти"),
+            BotCommand("density", "Статистика плотности"),
+            BotCommand("memory", "Справка по гиппокампу"),
+        ]
+        await app.bot.set_my_commands(commands)
+        logger.info("Ɉ Меню команд установлено")
+
+    application.post_init = post_init
 
     logger.info("Ɉ Юнона — инициация сказкой")
     application.run_polling()

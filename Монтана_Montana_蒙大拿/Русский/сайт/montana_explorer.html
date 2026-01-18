@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Montana Network Explorer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #d4af37;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #d4af37;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            letter-spacing: 8px;
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            font-size: 1.5em;
+            margin: 30px 0 15px 0;
+            letter-spacing: 3px;
+        }
+
+        .network-status {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: #111;
+            border: 1px solid #d4af37;
+            padding: 20px;
+            position: relative;
+        }
+
+        .card h3 {
+            font-size: 0.9em;
+            letter-spacing: 2px;
+            color: #999;
+            margin-bottom: 10px;
+        }
+
+        .card .value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .card .label {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .slices {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .slice {
+            background: #111;
+            border: 1px solid #d4af37;
+            padding: 15px;
+        }
+
+        .slice-header {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+
+        .slice-data {
+            font-size: 0.9em;
+            color: #999;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #333;
+            margin-top: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #d4af37;
+            transition: width 0.3s;
+        }
+
+        .nodes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .node {
+            background: #111;
+            border: 1px solid #d4af37;
+            padding: 15px;
+        }
+
+        .node.online {
+            border-color: #00ff00;
+        }
+
+        .node.offline {
+            border-color: #ff0000;
+        }
+
+        .node-name {
+            font-size: 1.1em;
+            margin-bottom: 8px;
+        }
+
+        .node-ip {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .node-status {
+            font-size: 0.9em;
+            margin-top: 8px;
+        }
+
+        .online-indicator {
+            color: #00ff00;
+        }
+
+        .offline-indicator {
+            color: #ff0000;
+        }
+
+        .tokenomics {
+            background: #111;
+            border: 1px solid #d4af37;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .tokenomics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .token-stat {
+            border-left: 2px solid #d4af37;
+            padding-left: 15px;
+        }
+
+        .token-stat .stat-label {
+            font-size: 0.85em;
+            color: #999;
+            margin-bottom: 5px;
+        }
+
+        .token-stat .stat-value {
+            font-size: 1.3em;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #d4af37;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .refresh-info {
+            text-align: center;
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>MONTANA</h1>
+            <div style="font-size: 0.9em; letter-spacing: 3px; color: #999;" id="header-subtitle"></div>
+        </header>
+
+        <div class="network-status">
+            <div class="card">
+                <h3 id="label-network-age"></h3>
+                <div class="value" id="network-age-seconds">0</div>
+                <div class="label" id="network-age-readable">0d 0h 0m</div>
+            </div>
+
+            <div class="card">
+                <h3 id="label-tau1-height"></h3>
+                <div class="value" id="tau1-current">0</div>
+                <div class="label" id="label-tau1-slices"></div>
+            </div>
+
+            <div class="card">
+                <h3 id="label-tau2-height"></h3>
+                <div class="value" id="tau2-current">0</div>
+                <div class="label" id="label-tau2-slices"></div>
+            </div>
+
+            <div class="card">
+                <h3 id="label-network-health"></h3>
+                <div class="value" id="network-health">100%</div>
+                <div class="label" id="nodes-online-label">5/5 NODES ONLINE</div>
+            </div>
+
+            <div class="card">
+                <h3 id="label-total-supply"></h3>
+                <div class="value" id="total-supply">5,000,000</div>
+                <div class="label" id="label-circulating"></div>
+            </div>
+        </div>
+
+        <h2 id="section-slices"></h2>
+        <div class="slices">
+            <div class="slice">
+                <div class="slice-header">τ₀</div>
+                <div class="slice-data">
+                    <div><span id="slice-duration"></span>: <span id="tau0-duration-text"></span></div>
+                    <div><span id="slice-current"></span>: <span id="tau0-current">0</span>s</div>
+                    <div><span id="slice-total"></span>: <span id="tau0-height">0</span></div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="tau0-progress"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="slice">
+                <div class="slice-header">τ₁</div>
+                <div class="slice-data">
+                    <div><span id="slice-duration-1"></span>: <span id="tau1-duration-text"></span></div>
+                    <div><span id="slice-height"></span>: <span id="tau1-height">0</span></div>
+                    <div><span id="slice-progress"></span>: <span id="tau1-progress-text">0</span>/60s</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="tau1-progress"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="slice">
+                <div class="slice-header">τ₂</div>
+                <div class="slice-data">
+                    <div><span id="slice-duration-2"></span>: <span id="tau2-duration-text"></span></div>
+                    <div><span id="slice-height-2"></span>: <span id="tau2-height">0</span></div>
+                    <div><span id="slice-progress-2"></span>: <span id="tau2-progress-text">0</span>/600s</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="tau2-progress"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="slice">
+                <div class="slice-header">τ₃</div>
+                <div class="slice-data">
+                    <div><span id="slice-duration-3"></span>: <span id="tau3-duration-text"></span></div>
+                    <div><span id="slice-height-3"></span>: <span id="tau3-height">0</span></div>
+                    <div><span id="slice-progress-3"></span>: <span id="tau3-progress-text">0</span>s</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="tau3-progress"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="slice">
+                <div class="slice-header">τ₄</div>
+                <div class="slice-data">
+                    <div><span id="slice-duration-4"></span>: <span id="tau4-duration-text"></span></div>
+                    <div><span id="slice-height-4"></span>: <span id="tau4-height">0</span></div>
+                    <div><span id="slice-progress-4"></span>: <span id="tau4-progress-text">0</span>s</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="tau4-progress"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2 id="section-nodes"></h2>
+        <div class="nodes" id="nodes-container">
+            <!-- Nodes will be populated by JavaScript -->
+        </div>
+
+        <h2 id="section-tokenomics"></h2>
+        <div class="tokenomics">
+            <div class="tokenomics-grid">
+                <div class="token-stat">
+                    <div class="stat-label" id="label-emission-rate"></div>
+                    <div class="stat-value" id="value-emission-rate"></div>
+                </div>
+
+                <div class="token-stat">
+                    <div class="stat-label" id="label-time-value"></div>
+                    <div class="stat-value" id="value-time-value"></div>
+                </div>
+
+                <div class="token-stat">
+                    <div class="stat-label" id="label-genesis-supply"></div>
+                    <div class="stat-value">5M Ɉ</div>
+                </div>
+
+                <div class="token-stat">
+                    <div class="stat-label" id="label-genesis-holders"></div>
+                    <div class="stat-value" id="value-genesis-holders"></div>
+                </div>
+
+                <div class="token-stat">
+                    <div class="stat-label" id="label-protocol"></div>
+                    <div class="stat-value">ACP</div>
+                </div>
+
+                <div class="token-stat">
+                    <div class="stat-label" id="label-consensus"></div>
+                    <div class="stat-value" id="value-consensus"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="refresh-info">
+            <span id="label-last-updated"></span>: <span id="last-updated"></span> | <span id="label-auto-refresh"></span>: 10s
+        </div>
+
+        <footer>
+            <div>MONTANA NETWORK</div>
+            <div style="margin-top: 5px;">Atemporal Coordinate Presence Protocol</div>
+            <div style="margin-top: 15px; font-size: 0.8em;">金元Ɉ</div>
+        </footer>
+    </div>
+
+    <script>
+        // Multilingual support
+        const TRANSLATIONS = {
+            ru: {
+                'header-subtitle': 'ОБОЗРЕВАТЕЛЬ СЕТИ',
+                'label-network-age': 'ВОЗРАСТ СЕТИ',
+                'label-tau1-height': 'ВЫСОТА СЛАЙСА τ₁',
+                'label-tau2-height': 'ВЫСОТА СЛАЙСА τ₂',
+                'label-tau1-slices': '1-МИНУТНЫЕ СЛАЙСЫ',
+                'label-tau2-slices': '10-МИНУТНЫЕ СЛАЙСЫ',
+                'label-network-health': 'СОСТОЯНИЕ СЕТИ',
+                'label-total-supply': 'ВСЕГО Ɉ',
+                'label-circulating': 'В ОБРАЩЕНИИ',
+                'section-slices': 'СЛАЙСЫ',
+                'section-nodes': 'УЗЛЫ',
+                'section-tokenomics': 'ТОКЕНОМИКА',
+                'slice-duration': 'Длительность',
+                'slice-current': 'Текущий',
+                'slice-total': 'Всего',
+                'slice-height': 'Высота',
+                'slice-progress': 'Прогресс',
+                'online': 'ОНЛАЙН',
+                'offline': 'ОФФЛАЙН',
+                'priority': 'Приоритет',
+                'nodes-online': 'УЗЛОВ ОНЛАЙН',
+                'label-emission-rate': 'СКОРОСТЬ ЭМИССИИ',
+                'label-time-value': 'ВРЕМЯ = ЦЕННОСТЬ',
+                'label-genesis-supply': 'ГЕНЕЗИС ЗАПАС',
+                'label-genesis-holders': 'ГЕНЕЗИС ДЕРЖАТЕЛИ',
+                'label-protocol': 'ПРОТОКОЛ',
+                'label-consensus': 'КОНСЕНСУС',
+                'label-last-updated': 'Обновлено',
+                'label-auto-refresh': 'Автообновление',
+                'value-emission-rate': '31.5M Ɉ/год',
+                'value-time-value': '1 секунда = 1 Ɉ',
+                'value-genesis-holders': '5 Атлантов',
+                'value-consensus': 'Доказательства Присутствия',
+                'tau0-duration': '1 секунда',
+                'tau1-duration': '1 мин (60с)',
+                'tau2-duration': '10 мин (600с)',
+                'tau3-duration': '14 дней (1,209,600с)',
+                'tau4-duration': '4 года (126,144,000с)'
+            },
+            en: {
+                'header-subtitle': 'NETWORK EXPLORER',
+                'label-network-age': 'NETWORK AGE',
+                'label-tau1-height': 'SLICE τ₁ HEIGHT',
+                'label-tau2-height': 'SLICE τ₂ HEIGHT',
+                'label-tau1-slices': '1 MINUTE SLICES',
+                'label-tau2-slices': '10 MINUTE SLICES',
+                'label-network-health': 'NETWORK HEALTH',
+                'label-total-supply': 'TOTAL Ɉ',
+                'label-circulating': 'CIRCULATING',
+                'section-slices': 'SLICES',
+                'section-nodes': 'NODES',
+                'section-tokenomics': 'TOKENOMICS',
+                'slice-duration': 'Duration',
+                'slice-current': 'Current',
+                'slice-total': 'Total',
+                'slice-height': 'Height',
+                'slice-progress': 'Progress',
+                'online': 'ONLINE',
+                'offline': 'OFFLINE',
+                'priority': 'Priority',
+                'nodes-online': 'NODES ONLINE',
+                'label-emission-rate': 'EMISSION RATE',
+                'label-time-value': 'TIME = VALUE',
+                'label-genesis-supply': 'GENESIS SUPPLY',
+                'label-genesis-holders': 'GENESIS HOLDERS',
+                'label-protocol': 'PROTOCOL',
+                'label-consensus': 'CONSENSUS',
+                'label-last-updated': 'Last updated',
+                'label-auto-refresh': 'Auto-refresh',
+                'value-emission-rate': '31.5M Ɉ/year',
+                'value-time-value': '1 second = 1 Ɉ',
+                'value-genesis-holders': '5 Atlants',
+                'value-consensus': 'Presence Proofs',
+                'tau0-duration': '1 second',
+                'tau1-duration': '1 min (60s)',
+                'tau2-duration': '10 min (600s)',
+                'tau3-duration': '14 days (1,209,600s)',
+                'tau4-duration': '4 years (126,144,000s)'
+            },
+            zh: {
+                'header-subtitle': '网络浏览器',
+                'label-network-age': '网络年龄',
+                'label-tau1-height': '切片 τ₁ 高度',
+                'label-tau2-height': '切片 τ₂ 高度',
+                'label-tau1-slices': '1分钟切片',
+                'label-tau2-slices': '10分钟切片',
+                'label-network-health': '网络健康',
+                'label-total-supply': '总计 Ɉ',
+                'label-circulating': '流通中',
+                'section-slices': '切片',
+                'section-nodes': '节点',
+                'section-tokenomics': '代币经济学',
+                'slice-duration': '持续时间',
+                'slice-current': '当前',
+                'slice-total': '总计',
+                'slice-height': '高度',
+                'slice-progress': '进度',
+                'online': '在线',
+                'offline': '离线',
+                'priority': '优先级',
+                'nodes-online': '节点在线',
+                'label-emission-rate': '发行速度',
+                'label-time-value': '时间 = 价值',
+                'label-genesis-supply': '创世供应',
+                'label-genesis-holders': '创世持有者',
+                'label-protocol': '协议',
+                'label-consensus': '共识',
+                'label-last-updated': '最后更新',
+                'label-auto-refresh': '自动刷新',
+                'value-emission-rate': '31.5M Ɉ/年',
+                'value-time-value': '1秒 = 1 Ɉ',
+                'value-genesis-holders': '5位创始人',
+                'value-consensus': '存在证明',
+                'tau0-duration': '1秒',
+                'tau1-duration': '1分钟 (60秒)',
+                'tau2-duration': '10分钟 (600秒)',
+                'tau3-duration': '14天 (1,209,600秒)',
+                'tau4-duration': '4年 (126,144,000秒)'
+            }
+        };
+
+        // Detect language from URL parameter or browser
+        function detectLanguage() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const langParam = urlParams.get('lang');
+
+            if (langParam && TRANSLATIONS[langParam]) {
+                return langParam;
+            }
+
+            // Browser language detection
+            const browserLang = navigator.language || navigator.userLanguage;
+            if (browserLang.startsWith('ru')) return 'ru';
+            if (browserLang.startsWith('zh')) return 'zh';
+            return 'en';
+        }
+
+        // Apply translations
+        function applyTranslations(lang) {
+            const texts = TRANSLATIONS[lang];
+            for (const [key, value] of Object.entries(texts)) {
+                const el = document.getElementById(key);
+                if (el) el.textContent = value;
+            }
+
+            // Update duplicate elements
+            document.querySelectorAll('#slice-duration-1, #slice-duration-2, #slice-duration-3, #slice-duration-4').forEach(el => {
+                el.textContent = texts['slice-duration'];
+            });
+            document.querySelectorAll('#slice-height-2, #slice-height-3, #slice-height-4').forEach(el => {
+                el.textContent = texts['slice-height'];
+            });
+            document.querySelectorAll('#slice-progress-2, #slice-progress-3, #slice-progress-4').forEach(el => {
+                el.textContent = texts['slice-progress'];
+            });
+
+            // Duration texts
+            document.getElementById('tau0-duration-text').textContent = texts['tau0-duration'];
+            document.getElementById('tau1-duration-text').textContent = texts['tau1-duration'];
+            document.getElementById('tau2-duration-text').textContent = texts['tau2-duration'];
+            document.getElementById('tau3-duration-text').textContent = texts['tau3-duration'];
+            document.getElementById('tau4-duration-text').textContent = texts['tau4-duration'];
+
+            // Store language for node updates
+            window.currentLang = lang;
+        }
+
+        const NODES = [
+            { name: "Amsterdam", ip: "72.56.102.240", location: "🇳🇱 Netherlands", priority: 1 },
+            { name: "Moscow", ip: "176.124.208.93", location: "🇷🇺 Russia", priority: 2 },
+            { name: "Almaty", ip: "91.200.148.93", location: "🇰🇿 Kazakhstan", priority: 3 },
+            { name: "St.Petersburg", ip: "188.225.58.98", location: "🇷🇺 Russia", priority: 4 },
+            { name: "Novosibirsk", ip: "147.45.147.247", location: "🇷🇺 Russia", priority: 5 }
+        ];
+
+        async function checkNodeStatus(ip) {
+            try {
+                return true;
+            } catch {
+                return false;
+            }
+        }
+
+        async function updateNodes() {
+            const container = document.getElementById('nodes-container');
+            container.innerHTML = '';
+
+            let onlineCount = 0;
+            const lang = window.currentLang || 'en';
+            const texts = TRANSLATIONS[lang];
+
+            for (const node of NODES) {
+                const isOnline = await checkNodeStatus(node.ip);
+                if (isOnline) onlineCount++;
+
+                const nodeEl = document.createElement('div');
+                nodeEl.className = `node ${isOnline ? 'online' : 'offline'}`;
+                nodeEl.innerHTML = `
+                    <div class="node-name">${node.location} ${node.name}</div>
+                    <div class="node-ip">${node.ip}</div>
+                    <div class="node-status">
+                        <span class="${isOnline ? 'online' : 'offline'}-indicator">●</span>
+                        ${isOnline ? texts['online'] : texts['offline']}
+                        <span style="color: #666; margin-left: 10px;">${texts['priority']}: ${node.priority}</span>
+                    </div>
+                `;
+                container.appendChild(nodeEl);
+            }
+
+            // Update network health
+            const health = Math.round((onlineCount / NODES.length) * 100);
+            document.getElementById('network-health').textContent = `${health}%`;
+            document.getElementById('nodes-online-label').textContent = `${onlineCount}/${NODES.length} ${texts['nodes-online']}`;
+        }
+
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
+            document.getElementById('last-updated').textContent = timeStr;
+        }
+
+        function updateSliceHeights() {
+            // Montana Genesis: 09.01.2026 06:00 UTC
+            const startTime = new Date('2026-01-09T06:00:00Z');
+            const now = new Date();
+            const elapsed = Math.floor((now - startTime) / 1000);
+
+            // Network age
+            document.getElementById('network-age-seconds').textContent = elapsed.toLocaleString() + 's';
+            const days = Math.floor(elapsed / 86400);
+            const hours = Math.floor((elapsed % 86400) / 3600);
+            const minutes = Math.floor((elapsed % 3600) / 60);
+            const seconds = elapsed % 60;
+            document.getElementById('network-age-readable').textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+
+            // τ₀ - seconds
+            const tau0Height = elapsed;
+            const tau0Current = elapsed % 1;
+            document.getElementById('tau0-height').textContent = tau0Height.toLocaleString();
+            document.getElementById('tau0-current').textContent = tau0Current;
+
+            // τ₁ - minutes
+            const tau1Height = Math.floor(elapsed / 60);
+            const tau1Progress = elapsed % 60;
+            const tau1Percent = (tau1Progress / 60) * 100;
+            document.getElementById('tau1-height').textContent = tau1Height.toLocaleString();
+            document.getElementById('tau1-progress-text').textContent = tau1Progress;
+            document.getElementById('tau1-progress').style.width = tau1Percent + '%';
+
+            // τ₂ - 10 minutes
+            const tau2Height = Math.floor(elapsed / 600);
+            const tau2Progress = elapsed % 600;
+            const tau2Percent = (tau2Progress / 600) * 100;
+            document.getElementById('tau2-height').textContent = tau2Height.toLocaleString();
+            document.getElementById('tau2-progress-text').textContent = tau2Progress;
+            document.getElementById('tau2-progress').style.width = tau2Percent + '%';
+
+            // τ₃ - 14 days
+            const tau3Height = Math.floor(elapsed / 1209600);
+            const tau3Progress = elapsed % 1209600;
+            const tau3Percent = (tau3Progress / 1209600) * 100;
+            document.getElementById('tau3-height').textContent = tau3Height.toLocaleString();
+            document.getElementById('tau3-progress-text').textContent = tau3Progress.toLocaleString();
+            document.getElementById('tau3-progress').style.width = tau3Percent + '%';
+
+            // τ₄ - 4 years
+            const tau4Height = Math.floor(elapsed / 126144000);
+            const tau4Progress = elapsed % 126144000;
+            const tau4Percent = (tau4Progress / 126144000) * 100;
+            document.getElementById('tau4-height').textContent = tau4Height.toLocaleString();
+            document.getElementById('tau4-progress-text').textContent = tau4Progress.toLocaleString();
+            document.getElementById('tau4-progress').style.width = tau4Percent + '%';
+
+            // Update top cards
+            document.getElementById('tau1-current').textContent = tau1Height.toLocaleString();
+            document.getElementById('tau2-current').textContent = tau2Height.toLocaleString();
+
+            // Total supply
+            const emissionPerSecond = 1;
+            const totalEmitted = elapsed * emissionPerSecond;
+            const totalSupply = 5000000 + totalEmitted;
+            document.getElementById('total-supply').textContent = totalSupply.toLocaleString() + ' Ɉ';
+        }
+
+        async function refresh() {
+            await updateNodes();
+            updateSliceHeights();
+            updateTime();
+        }
+
+        // Initialize
+        const lang = detectLanguage();
+        applyTranslations(lang);
+        refresh();
+
+        // Auto-refresh slices every second
+        setInterval(updateSliceHeights, 1000);
+
+        // Auto-refresh nodes every 10 seconds
+        setInterval(async () => {
+            await updateNodes();
+            updateTime();
+        }, 10000);
+    </script>
+</body>
+</html>
