@@ -18,6 +18,34 @@ AUDIO_DIR.mkdir(exist_ok=True)
 VOICE = "alena"  # alena, marina, omazh
 
 
+def convert_numbers_to_text(text: str) -> str:
+    """Конвертирует римские и арабские цифры в текст"""
+
+    # Римские цифры на текст
+    roman_map = {
+        r'\bI\b': 'первая',
+        r'\bII\b': 'вторая',
+        r'\bIII\b': 'третья',
+        r'\bIV\b': 'четвёртая',
+        r'\bV\b': 'пятая',
+        r'\bVI\b': 'шестая',
+        r'\bVII\b': 'седьмая',
+        r'\bVIII\b': 'восьмая',
+        r'\bIX\b': 'девятая',
+        r'\bX\b': 'десятая'
+    }
+
+    for roman, word in roman_map.items():
+        text = re.sub(roman, word, text)
+
+    # Если есть "Часть I" -> "Часть первая"
+    text = re.sub(r'Часть\s+первая', 'Часть первая', text)
+    text = re.sub(r'Часть\s+вторая', 'Часть вторая', text)
+    text = re.sub(r'Часть\s+третья', 'Часть третья', text)
+
+    return text
+
+
 def clean_text_for_audio(md_content: str) -> str:
     """
     УМНАЯ фильтрация: убираем ТОЛЬКО криво читаемое (ссылки, код, символы).
@@ -106,6 +134,9 @@ def clean_text_for_audio(md_content: str) -> str:
         text = re.sub(r'^[-•]\s+', '', text)
         text = re.sub(r'^\d+\.\s+', '', text)
 
+        # Конвертируем цифры в текст
+        text = convert_numbers_to_text(text)
+
         # Множественные пробелы
         text = re.sub(r'\s+', ' ', text).strip()
 
@@ -181,7 +212,7 @@ def generate_audio_chunk(api_key: str, voice: str, text: str) -> bytes | None:
         "text": text,
         "lang": "ru-RU",
         "voice": voice,
-        "speed": "1.0",
+        "speed": "0.9",  # Как в оригинале
         "format": "mp3"
     }
 
