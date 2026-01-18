@@ -10,6 +10,7 @@ from .code import KNOWLEDGE_CODE
 from .thoughts import KNOWLEDGE_THOUGHTS
 from .connect import KNOWLEDGE_CONNECT
 from .base import KNOWLEDGE_BASE
+from .hippocampus import KNOWLEDGE_HIPPOCAMPUS
 
 # Ключевые слова для определения темы
 TOPIC_KEYWORDS = {
@@ -20,6 +21,7 @@ TOPIC_KEYWORDS = {
     'code': ['функци', 'def ', 'class ', 'import', 'код', 'handler', 'callback', 'промпт', 'prompt', 'state', 'keyboard'],
     'thoughts': ['мысл', 'благаявесть', 'генезис', 'когнитивн', 'подпись', 'любовь', 'унижени', 'эксперимент', '172', '173', '174'],
     'connect': ['подключ', 'api', 'токен', 'token', 'botfather', 'синхрониз', '.env', 'сервер', 'ip'],
+    'hippocampus': ['гиппокамп', 'hippocampus', 'памят', 'memory', 'поток', 'stream', 'паттерн', 'pattern', 'новизн', 'дефрагмент', 'консолидац', 'днк', 'dna', 'внешний', 'external', 'биолог', 'детектор'],
 }
 
 def detect_topic(message: str) -> list:
@@ -53,6 +55,7 @@ def get_knowledge(message: str) -> str:
         'thoughts': KNOWLEDGE_THOUGHTS,
         'connect': KNOWLEDGE_CONNECT,
         'base': KNOWLEDGE_BASE,
+        'hippocampus': KNOWLEDGE_HIPPOCAMPUS,
     }
 
     # Собираем знания по темам (макс 3 темы)
