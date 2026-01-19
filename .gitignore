@@ -107,3 +107,14 @@ pantheon/*/*.state
 target/
 Cargo.lock
 Ничто_Nothing_无/Монтана_Montana_蒙大拿/target/
+
+# Media files (stored on nodes, not GitHub)
+*.mp3
+*.mp4
+*.wav
+*.avi
+*.mov
+*.webm
+*.ogg
+*.flac
+*.m4a
