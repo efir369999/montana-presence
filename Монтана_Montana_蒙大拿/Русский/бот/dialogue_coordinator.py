@@ -30,8 +30,8 @@ class DialogueCoordinator:
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
         # Путь к главам Montana
-        self.chapters_dir = data_dir.parent / "English" / "Gospel" / "«Book One ☝️» ☀️"
-        self.chapters_audio_dir = data_dir.parent / "аудио"
+        # Из бот/data нужно подняться на 2 уровня: бот -> Русский -> Монтана_Montana_蒙大拿
+        self.chapters_dir = data_dir.parent.parent / "English" / "Gospel" / "«Book One ☝️» ☀️"
 
     def _get_user_file(self, user_id: int) -> Path:
         """Путь к файлу координации пользователя"""
@@ -181,16 +181,16 @@ class DialogueCoordinator:
         }
         """
         chapter_map = {
-            0: ("00. Prelude.md", "00_Prelude.mp3"),
-            1: ("01. Simulation.md", "01_Simulation.mp3"),
-            2: ("02. Humiliation.md", "02_Humiliation.mp3"),
-            3: ("03. Flow.md", "03_Flow.mp3"),
-            4: ("04. Traces.md", "04_Traces.mp3"),
-            5: ("05. Anxieties.md", "05_Anxieties.mp3"),
-            6: ("06. Junos Day.md", "06_Junos_Day.mp3"),
-            7: ("07. Seal of Time.md", "07_Seal_of_Time.mp3"),
-            8: ("08. Five Nodes.md", "08_Five_Nodes.mp3"),
-            9: ("09. Comedy.md", "09_Comedy.mp3"),
+            0: ("00. Prelude.md", "00. Prelude.mp3"),
+            1: ("01. Simulation.md", "01. Simulation.mp3"),
+            2: ("02. Humiliation.md", "02. Humiliation.mp3"),
+            3: ("03. Flow.md", "03. Flow.mp3"),
+            4: ("04. Traces.md", "04. Traces.mp3"),
+            5: ("05. Anxieties.md", "05. Anxieties.mp3"),
+            6: ("06. Junos Day.md", "06. Junos Day.mp3"),
+            7: ("07. Seal of Time.md", "07. Seal of Time.mp3"),
+            8: ("08. Five Nodes.md", "08. Five Nodes.mp3"),
+            9: ("09. Comedy.md", "09. Comedy.mp3"),
         }
 
         if chapter_num not in chapter_map:
@@ -198,7 +198,7 @@ class DialogueCoordinator:
 
         text_file, audio_file = chapter_map[chapter_num]
         text_path = self.chapters_dir / text_file
-        audio_path = self.chapters_audio_dir / audio_file
+        audio_path = self.chapters_dir / audio_file
 
         return {
             "number": chapter_num,
