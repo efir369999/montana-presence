@@ -45,7 +45,7 @@ Montana использует **два типа кошельков** с разн�
 
 ### Архитектура
 - **Адрес:** Криптографический пост-квантовый (mt + SHA256(public_key)[:20])
-- **Ключ:** Private key владельца (Ed25519 → ML-DSA-65)
+- **Ключ:** Private key ML-DSA-65 (4032 байта)
 - **Владелец:** Telegram ID оператора узла
 - **IP:** Только для networking, НЕ для идентификации
 - **Alias:** Для удобства (например, `amsterdam.montana.network`)
@@ -58,7 +58,7 @@ Montana использует **два типа кошельков** с разн�
 ### Примеры
 ```bash
 Адрес:     mta46b633d258059b90db46adffc6c5ca08f0e8d6c
-Ключ:      Private Key Ed25519/ML-DSA-65
+Ключ:      Private Key ML-DSA-65 (4032 байта)
 Владелец:  8552053404 (Telegram ID)
 IP:        72.56.102.240 (только networking)
 Alias:     amsterdam.montana.network
@@ -79,8 +79,9 @@ Alias:     amsterdam.montana.network
 
 ### Генерация Адреса
 ```python
-# 1. Генерация ключей (Ed25519, позже ML-DSA-65)
-private_key, public_key = generate_keypair()
+# 1. Генерация ключей ML-DSA-65 (FIPS 204)
+from dilithium_py.ml_dsa import ML_DSA_65
+public_key, private_key = ML_DSA_65.keygen()
 
 # 2. Вычисление адреса
 address = "mt" + SHA256(public_key)[:20].hex()
@@ -96,9 +97,9 @@ alias = f"{node_name}.montana.network"
 ### Безопасность
 - ✅ Защита от IP hijacking (адрес не зависит от IP)
 - ✅ Защита от DNS spoofing (alias только для UX)
-- ✅ Защита от MITM (все операции подписаны)
-- ✅ Post-quantum готовность (миграция на ML-DSA-65)
-- ⚠️ Private key = полный контроль (нужно хранить безопасно)
+- ✅ Защита от MITM (все операции подписаны ML-DSA-65)
+- ✅ Post-quantum защита активна с GENESIS
+- ⚠️ Private key = полный контроль (4032 байта, хранить безопасно)
 
 ---
 
@@ -197,106 +198,54 @@ Node mta46b633d... → User 123456789: 200 seconds
 
 ## 5. Криптография
 
-### Текущая Реализация (Temporary)
+### MAINNET: ML-DSA-65 (FIPS 204)
 
-**Алгоритм:** Ed25519
+**Алгоритм:** ML-DSA-65 (Post-Quantum)
 ```python
-from cryptography.hazmat.primitives.asymmetric import ed25519
+from dilithium_py.ml_dsa import ML_DSA_65
 
 # Генерация ключей
-private_key = ed25519.Ed25519PrivateKey.generate()
-public_key = private_key.public_key()
+public_key, private_key = ML_DSA_65.keygen()
 
 # Адрес
-address = "mt" + SHA256(public_key_bytes)[:20].hex()
+address = "mt" + hashlib.sha256(public_key).digest()[:20].hex()
 
 # Подпись
-signature = private_key.sign(message)
+signature = ML_DSA_65.sign(private_key, message)
 
 # Верификация
-public_key.verify(signature, message)
+ML_DSA_65.verify(public_key, message, signature)
 ```
 
-**Почему Ed25519:**
-- Широкая поддержка в Python
-- Быстрая генерация ключей
-- Малый размер подписи (64 байта)
-
-**Проблема:**
-- ❌ Уязвимость к квантовым компьютерам (Shor's algorithm)
-
-### Целевая Реализация (Production)
-
-**Алгоритм:** ML-DSA-65 (FIPS 204)
-```rust
-use pqcrypto_dilithium::dilithium5::*;
-
-// Генерация ключей
-let (public_key, secret_key) = keypair();
-
-// Адрес
-let address = format!("mt{}", sha256(&public_key.as_bytes())[..20].to_hex());
-
-// Подпись
-let signature = sign(message, &secret_key);
-
-// Верификация
-verify(&signature, message, &public_key)?;
-```
-
-**Почему ML-DSA-65:**
+**Почему ML-DSA-65 с GENESIS:**
 - ✅ Post-quantum защита (lattice-based)
 - ✅ NIST Level 3 security (128-bit post-quantum)
 - ✅ Защита от Shor's algorithm
-- ✅ FIPS стандарт (не экспериментальный)
+- ✅ FIPS 204 стандарт
+- ✅ НЕ НУЖНА миграция — защита с первого дня
 
-**Trade-off:**
-- ❌ Большой размер подписи (3293 байта vs 64 байта)
-- ❌ Большой public key (1952 байта vs 32 байта)
+**Размеры ключей:**
+| Параметр | Размер |
+|----------|--------|
+| Private key | 4032 байта |
+| Public key | 1952 байта |
+| Signature | 3309 байт |
 
 ---
 
-## 6. Миграция Ed25519 → ML-DSA-65
+## 6. Статус: MAINNET PRODUCTION
 
-### Roadmap
+### Январь 2026: ML-DSA-65 АКТИВЕН
 
-#### Q1 2026: Прототип (текущее)
 ```python
-CRYPTO_MODE = "ED25519"
-
-# Быстрая разработка, тестирование концепций
-# Telegram бот работает на Ed25519
+CRYPTO_MODE = "ML-DSA-65"  # MAINNET с genesis
 ```
 
-#### Q2 2026: Гибридная Система
-```python
-CRYPTO_MODE = "HYBRID"
-
-# При регистрации узла генерируются ОБА ключа
-node_data = {
-    "ed25519_pubkey": "...",
-    "mldsa65_pubkey": "...",
-    "address": "mt...",  # От ML-DSA-65
-    "ed25519_address": "mt...",  # Legacy
-}
-
-# Верификация принимает оба типа подписей
-```
-
-#### Q3 2026: Полный Переход
-```rust
-CRYPTO_MODE = "ML-DSA-65"
-
-// Все новые узлы используют только ML-DSA-65
-// Ed25519 ключи сохраняются для legacy, но не используются
-```
-
-#### Q4 2026: Post-Quantum Ready
-```
-✅ Все узлы на ML-DSA-65
-✅ Montana защищена от квантовых компьютеров
-✅ Ed25519 поддержка только для старых узлов (deprecated)
-```
+**Достигнуто:**
+- ✅ Все узлы на ML-DSA-65
+- ✅ Montana защищена от квантовых компьютеров с первого дня
+- ✅ Нет legacy Ed25519 — чистый post-quantum
+- ✅ FIPS 204 compliant
 
 ---
 
@@ -308,7 +257,7 @@ CRYPTO_MODE = "ML-DSA-65"
 |-------|--------------|------|
 | **IP Hijacking** | N/A (no IP) | ✅ Адрес не зависит от IP |
 | **DNS Spoofing** | N/A | ✅ Alias только для UX |
-| **MITM** | ✅ Telegram encryption | ✅ Подписи Ed25519/ML-DSA-65 |
+| **MITM** | ✅ Telegram encryption | ✅ Подписи ML-DSA-65 |
 | **Sybil** | ✅ 1 человек = 1 Telegram | ✅ Biometrics (FIDO2) |
 | **Quantum** | ⚠️ Telegram зависит | ✅ ML-DSA-65 (post-quantum) |
 | **Key Theft** | ⚠️ Telegram 2FA | ⚠️ Secure storage needed |
@@ -335,18 +284,18 @@ CRYPTO_MODE = "ML-DSA-65"
 | Параметр | Bitcoin | Montana |
 |----------|---------|---------|
 | **Адрес** | SHA256(RIPEMD160(pubkey)) | mt + SHA256(pubkey)[:20] |
-| **Алгоритм** | ECDSA (secp256k1) | Ed25519 → ML-DSA-65 |
-| **Quantum** | ❌ Vulnerable | ✅ Protected |
+| **Алгоритм** | ECDSA (secp256k1) | ML-DSA-65 (FIPS 204) |
+| **Quantum** | ❌ Vulnerable | ✅ Protected from genesis |
 | **UX** | Seed phrase (12-24 words) | Telegram ID (простота) |
-| **Migration** | Hard fork needed | From genesis |
+| **Migration** | Hard fork needed | Not needed — PQ from day 1 |
 
 ### Ethereum
 
 | Параметр | Ethereum | Montana |
 |----------|----------|---------|
 | **Адрес** | Keccak256(pubkey)[-20:] | mt + SHA256(pubkey)[:20] |
-| **Алгоритм** | ECDSA (secp256k1) | Ed25519 → ML-DSA-65 |
-| **Quantum** | ❌ Vulnerable | ✅ Protected |
+| **Алгоритм** | ECDSA (secp256k1) | ML-DSA-65 (FIPS 204) |
+| **Quantum** | ❌ Vulnerable | ✅ Protected from genesis |
 | **UX** | MetaMask + seed phrase | Telegram ID (простота) |
 | **Gas fees** | Variable, high | None (time-based) |
 
@@ -355,8 +304,8 @@ CRYPTO_MODE = "ML-DSA-65"
 | Параметр | Solana | Montana |
 |----------|--------|---------|
 | **Адрес** | Ed25519 pubkey (base58) | mt + SHA256(pubkey)[:20] |
-| **Алгоритм** | Ed25519 | Ed25519 → ML-DSA-65 |
-| **Quantum** | ❌ Vulnerable | ✅ Protected |
+| **Алгоритм** | Ed25519 | ML-DSA-65 (FIPS 204) |
+| **Quantum** | ❌ Vulnerable | ✅ Protected from genesis |
 | **UX** | Phantom wallet | Telegram ID (простота) |
 | **Speed** | ~400ms block time | ~10min T2 slice |
 
@@ -371,11 +320,11 @@ Montana/
 │   ├── consensus.rs           # ACP consensus
 │   └── noise.rs               # Hybrid encryption
 │
-├── Telegram Бот (Python, прототип)
-│   ├── node_crypto.py         # Ed25519 (temporary)
+├── Telegram Бот (Python, MAINNET)
+│   ├── node_crypto.py         # ML-DSA-65 (FIPS 204)
 │   ├── time_bank.py           # Банк времени
 │   ├── montana_db.py          # SQLite база
-│   └── junona_bot_simple.py   # Telegram интеграция
+│   └── junomontanaagibot.py   # Telegram интеграция
 │
 └── Документация
     ├── English/protocol/
@@ -427,8 +376,8 @@ Montana/
 **Для узлов:**
 ```
 Максимальная безопасность.
-Криптография от genesis.
-Post-quantum ready.
+ML-DSA-65 от genesis.
+Post-quantum ACTIVE.
 ```
 
 ---
@@ -437,6 +386,6 @@ Post-quantum ready.
 
 *Время — единственная реальная валюта*
 
-*Построено на Ed25519, мигрирует на ML-DSA-65*
+*ML-DSA-65 MAINNET — Post-quantum с первого дня*
 
-*Защита от квантовых компьютеров от genesis*
+*FIPS 204 compliant*

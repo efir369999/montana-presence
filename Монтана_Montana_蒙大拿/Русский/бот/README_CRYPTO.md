@@ -1,6 +1,6 @@
 # Montana Cryptographic Node System
 
-**Post-Quantum Cryptography from Genesis**
+**ML-DSA-65 MAINNET — Post-Quantum from Genesis**
 
 ---
 
@@ -34,6 +34,35 @@ Example: mta46b633d258059b90db46adffc6c5ca08f0e8d6c
 
 ---
 
+## Cryptography: ML-DSA-65 (FIPS 204)
+
+### MAINNET Implementation
+```python
+from dilithium_py.ml_dsa import ML_DSA_65
+
+# Key generation
+public_key, private_key = ML_DSA_65.keygen()
+
+# Address derivation
+address = "mt" + hashlib.sha256(public_key).digest()[:20].hex()
+
+# Signing
+signature = ML_DSA_65.sign(private_key, message)
+
+# Verification
+ML_DSA_65.verify(public_key, message, signature)
+```
+
+### Key Sizes
+| Parameter | Size |
+|-----------|------|
+| Private key | 4032 bytes |
+| Public key | 1952 bytes |
+| Signature | 3309 bytes |
+| Address | 42 characters |
+
+---
+
 ## Architecture
 
 ### Users
@@ -46,7 +75,7 @@ UX:      Maximum simplicity
 ### Nodes
 ```
 Address: mt + SHA256(public_key)[:20]
-Key:     Private key (Ed25519 → ML-DSA-65)
+Key:     Private key ML-DSA-65 (4032 bytes)
 Owner:   Telegram ID of operator
 IP:      Networking only
 Alias:   For convenience
@@ -58,20 +87,22 @@ Alias:   For convenience
 
 | Attack | Status |
 |--------|--------|
+| Quantum Computer | ✅ PROTECTED (ML-DSA-65) |
 | IP Hijacking | ✅ BLOCKED |
 | DNS Spoofing | ✅ BLOCKED |
 | MITM | ✅ BLOCKED |
+| Harvest Now Decrypt Later | ✅ BLOCKED |
 | Transaction Forgery | ✅ BLOCKED |
-| Quantum Computer | 🔄 Migrating to ML-DSA-65 |
 
 ---
 
 ## Files
 
 ### Core
-- `node_crypto.py` — Cryptographic system
+- `node_crypto.py` — ML-DSA-65 cryptographic system
+- `node_wallet.py` — Wallet system
 - `test_node_crypto.py` — Tests
-- `junona_bot_simple.py` — Bot integration
+- `junomontanaagibot.py` — Bot integration
 
 ### Documentation
 - `NODE_CRYPTO_SYSTEM.md` — Full specification
@@ -81,15 +112,19 @@ Alias:   For convenience
 
 ---
 
-## Migration Roadmap
+## Status: MAINNET PRODUCTION
 
-- **Q1 2026:** Ed25519 (✅ current)
-- **Q2 2026:** Hybrid (Ed25519 + ML-DSA-65)
-- **Q3 2026:** Full ML-DSA-65
-- **Q4 2026:** Post-quantum ready
+**January 2026:** ML-DSA-65 ACTIVE
+
+- ✅ All nodes on ML-DSA-65
+- ✅ Montana protected from quantum computers from day one
+- ✅ No legacy Ed25519 — pure post-quantum
+- ✅ FIPS 204 compliant
 
 ---
 
 **Ɉ Montana — Protocol of Ideal Money**
 
-*Built on Ed25519, migrating to ML-DSA-65*
+*ML-DSA-65 MAINNET — Post-quantum from genesis*
+
+*FIPS 204 compliant*

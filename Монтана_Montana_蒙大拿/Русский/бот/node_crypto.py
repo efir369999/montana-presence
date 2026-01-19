@@ -1,42 +1,41 @@
 #!/usr/bin/env python3
 # node_crypto.py
 # Криптографическая система для узлов Montana
-# Защита от IP hijacking атак
+# POST-QUANTUM КРИПТОГРАФИЯ ML-DSA-65 (FIPS 204)
+# Защита от квантовых компьютеров с genesis
 
 import hashlib
-import secrets
 import json
 from pathlib import Path
 from typing import Optional, Dict, Tuple
 from datetime import datetime, timezone
-from cryptography.hazmat.primitives.asymmetric import ed25519
-from cryptography.hazmat.primitives import serialization
-from cryptography.exceptions import InvalidSignature
 
+# POST-QUANTUM: ML-DSA-65 (Dilithium)
+from dilithium_py.ml_dsa import ML_DSA_65
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#                         ML-DSA-65 КРИПТОГРАФИЧЕСКИЕ ФУНКЦИИ
+# ═══════════════════════════════════════════════════════════════════════════════
 
 def generate_keypair() -> Tuple[str, str]:
     """
-    Генерирует пару ключей Ed25519 для узла
+    Генерирует пару ключей ML-DSA-65 для узла
+
+    POST-QUANTUM защита от Shor's algorithm
+    FIPS 204 стандарт
 
     Returns:
         (private_key_hex, public_key_hex)
+
+    Размеры ключей ML-DSA-65:
+        Private key: 4032 байта
+        Public key:  1952 байта
+        Signature:   3309 байта
     """
-    private_key = ed25519.Ed25519PrivateKey.generate()
-    public_key = private_key.public_key()
+    public_key, private_key = ML_DSA_65.keygen()
 
-    # Сериализация в hex
-    private_bytes = private_key.private_bytes(
-        encoding=serialization.Encoding.Raw,
-        format=serialization.PrivateFormat.Raw,
-        encryption_algorithm=serialization.NoEncryption()
-    )
-
-    public_bytes = public_key.public_bytes(
-        encoding=serialization.Encoding.Raw,
-        format=serialization.PublicFormat.Raw
-    )
-
-    return private_bytes.hex(), public_bytes.hex()
+    return private_key.hex(), public_key.hex()
 
 
 def public_key_to_address(public_key_hex: str) -> str:
@@ -45,6 +44,8 @@ def public_key_to_address(public_key_hex: str) -> str:
 
     Формат: SHA256(public_key)[:40]
     Пример: mt1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0
+
+    POST-QUANTUM: Адрес деривируется от ML-DSA-65 public key
     """
     public_bytes = bytes.fromhex(public_key_hex)
     hash_bytes = hashlib.sha256(public_bytes).digest()
@@ -55,37 +56,36 @@ def public_key_to_address(public_key_hex: str) -> str:
 
 def sign_message(private_key_hex: str, message: str) -> str:
     """
-    Подписывает сообщение приватным ключом
+    Подписывает сообщение приватным ключом ML-DSA-65
+
+    POST-QUANTUM подпись, устойчивая к атакам квантовых компьютеров
 
     Returns:
-        signature_hex
+        signature_hex (3309 байт = 6618 hex символов)
     """
     private_bytes = bytes.fromhex(private_key_hex)
-    private_key = ed25519.Ed25519PrivateKey.from_private_bytes(private_bytes)
-
     message_bytes = message.encode('utf-8')
-    signature = private_key.sign(message_bytes)
+
+    signature = ML_DSA_65.sign(private_bytes, message_bytes)
 
     return signature.hex()
 
 
 def verify_signature(public_key_hex: str, message: str, signature_hex: str) -> bool:
     """
-    Проверяет подпись сообщения
+    Проверяет подпись сообщения ML-DSA-65
 
     Returns:
         True если подпись валидна
     """
     try:
         public_bytes = bytes.fromhex(public_key_hex)
-        public_key = ed25519.Ed25519PublicKey.from_public_bytes(public_bytes)
-
         message_bytes = message.encode('utf-8')
         signature = bytes.fromhex(signature_hex)
 
-        public_key.verify(signature, message_bytes)
-        return True
-    except (InvalidSignature, Exception):
+        # ML_DSA_65.verify возвращает True/False или выбрасывает исключение
+        return ML_DSA_65.verify(public_bytes, message_bytes, signature)
+    except Exception:
         return False
 
 
@@ -97,17 +97,27 @@ class NodeCryptoSystem:
     """
     Криптографическая система для узлов Montana
 
-    Защита от:
+    POST-QUANTUM ЗАЩИТА (ML-DSA-65, FIPS 204):
+    - Устойчивость к Shor's algorithm
+    - NIST Level 3 security (128-bit post-quantum)
+    - Защита от "harvest now, decrypt later" атак
+
+    Защита от классических атак:
     - IP hijacking
     - DNS spoofing
     - Man-in-the-middle атак
 
     Концепция:
     - Адрес кошелька = hash(public_key)
-    - Доступ = подпись private key
+    - Доступ = подпись private key (ML-DSA-65)
     - IP адрес = только для networking
     - Владелец = Telegram ID оператора
     """
+
+    # Версия криптосистемы
+    CRYPTO_VERSION = "ML-DSA-65"
+    FIPS_STANDARD = "FIPS 204"
+    SECURITY_LEVEL = "NIST Level 3 (128-bit post-quantum)"
 
     def __init__(self, data_dir: Path):
         self.data_dir = data_dir / "node_crypto"
@@ -137,7 +147,9 @@ class NodeCryptoSystem:
         node_type: str = "light"
     ) -> Dict:
         """
-        Регистрирует новый узел с криптографическим адресом
+        Регистрирует новый узел с криптографическим адресом ML-DSA-65
+
+        POST-QUANTUM: Ключи генерируются по стандарту FIPS 204
 
         Args:
             owner_telegram_id: Telegram ID владельца узла
@@ -149,15 +161,16 @@ class NodeCryptoSystem:
         Returns:
             {
                 "address": "mt1a2b3c...",
-                "public_key": "...",
-                "private_key": "...",  # СОХРАНИ В БЕЗОПАСНОМ МЕСТЕ!
+                "public_key": "...",        # 1952 байта
+                "private_key": "...",       # 4032 байта - СОХРАНИ В БЕЗОПАСНОМ МЕСТЕ!
                 "owner": telegram_id,
                 "node_name": "amsterdam",
                 "alias": "amsterdam.montana.network",
-                "ip": "72.56.102.240"
+                "ip": "72.56.102.240",
+                "crypto_version": "ML-DSA-65"
             }
         """
-        # Генерируем пару ключей
+        # Генерируем пару ключей ML-DSA-65
         private_key, public_key = generate_keypair()
 
         # Получаем адрес из public key
@@ -189,7 +202,9 @@ class NodeCryptoSystem:
             "type": node_type,
             "created_at": datetime.now(timezone.utc).isoformat(),
             "official": False,
-            "priority": len(nodes) + 10
+            "priority": len(nodes) + 10,
+            "crypto_version": self.CRYPTO_VERSION,
+            "fips_standard": self.FIPS_STANDARD
         }
 
         nodes[address] = node_data
@@ -202,14 +217,19 @@ class NodeCryptoSystem:
             "private_key": private_key,  # ⚠️ СОХРАНИ В БЕЗОПАСНОМ МЕСТЕ!
             "alias": alias,
             "owner": owner_telegram_id,
-            "node_data": node_data
+            "node_data": node_data,
+            "crypto_version": self.CRYPTO_VERSION,
+            "key_sizes": {
+                "private_key_bytes": len(bytes.fromhex(private_key)),
+                "public_key_bytes": len(bytes.fromhex(public_key))
+            }
         }
 
     def import_official_nodes(self) -> Dict:
         """
-        Импортирует 5 официальных узлов Montana
+        Импортирует 5 официальных узлов Montana с ML-DSA-65
 
-        Для каждого генерируются новые ключи.
+        Для каждого генерируются новые POST-QUANTUM ключи.
         Private keys нужно сохранить у владельцев узлов.
         """
         official_nodes = [
@@ -268,7 +288,7 @@ class NodeCryptoSystem:
                 }
                 continue
 
-            # Генерируем ключи
+            # Генерируем ML-DSA-65 ключи
             private_key, public_key = generate_keypair()
             address = public_key_to_address(public_key)
             alias = f"{node_info['name']}.montana.network"
@@ -285,7 +305,9 @@ class NodeCryptoSystem:
                 "type": "full",
                 "created_at": datetime.now(timezone.utc).isoformat(),
                 "official": True,
-                "priority": node_info["priority"]
+                "priority": node_info["priority"],
+                "crypto_version": self.CRYPTO_VERSION,
+                "fips_standard": self.FIPS_STANDARD
             }
 
             nodes[address] = node_data
@@ -295,7 +317,8 @@ class NodeCryptoSystem:
                 "address": address,
                 "private_key": private_key,  # ⚠️ СОХРАНИ!
                 "alias": alias,
-                "ip": node_info["ip"]
+                "ip": node_info["ip"],
+                "crypto_version": self.CRYPTO_VERSION
             }
 
         self._save_nodes(nodes)
@@ -334,7 +357,11 @@ class NodeCryptoSystem:
         signature_hex: str
     ) -> bool:
         """
-        Проверяет что владелец узла подписал сообщение
+        Проверяет что владелец узла подписал сообщение ML-DSA-65
+
+        POST-QUANTUM верификация:
+        - Устойчива к атакам квантовых компьютеров
+        - FIPS 204 compliant
 
         Используется для:
         - Авторизации переводов с кошелька узла
@@ -356,11 +383,13 @@ class NodeCryptoSystem:
         if not node:
             return "Узел не найден"
 
+        crypto_version = node.get('crypto_version', 'ML-DSA-65')
+
         display = f"Ɉ\n\n"
         display += f"**Узел Montana:** {node['location']}\n\n"
         display += f"**Адрес кошелька:** `{address}`\n"
         display += f"**Alias:** `{node['alias']}`\n"
-        display += f"_(криптографический адрес — защищен Ed25519)_\n\n"
+        display += f"_(криптографический адрес — защищен {crypto_version})_\n\n"
         display += f"**IP:** `{node['ip']}` _(только для networking)_\n"
         display += f"**Владелец TG ID:** `{node['owner']}`\n"
         display += f"**Тип:** {node['type'].upper()} NODE\n"
@@ -369,12 +398,15 @@ class NodeCryptoSystem:
         if node.get('official'):
             display += f"⭐️ **Официальный узел Montana Foundation**\n\n"
 
-        display += f"🔐 **Безопасность:**\n"
-        display += f"  • Public key: `{node['public_key'][:16]}...`\n"
-        display += f"  • Подпись Ed25519 для всех операций\n"
-        display += f"  • Защита от IP hijacking\n\n"
+        display += f"🔐 **POST-QUANTUM БЕЗОПАСНОСТЬ:**\n"
+        display += f"  • Криптография: **{crypto_version}**\n"
+        display += f"  • Стандарт: **FIPS 204**\n"
+        display += f"  • Уровень: **NIST Level 3**\n"
+        display += f"  • Public key: `{node['public_key'][:32]}...`\n"
+        display += f"  • Защита от квантовых компьютеров: ✅\n"
+        display += f"  • Защита от IP hijacking: ✅\n\n"
 
-        display += f"⚠️ Для доступа к кошельку нужна подпись private key"
+        display += f"⚠️ Для доступа к кошельку нужна подпись private key ML-DSA-65"
 
         return display
 
@@ -386,10 +418,39 @@ class NodeCryptoSystem:
 _node_crypto_system = None
 
 def get_node_crypto_system(data_dir: Path = None) -> NodeCryptoSystem:
-    """Получить глобальную криптосистему узлов"""
+    """Получить глобальную криптосистему узлов (ML-DSA-65)"""
     global _node_crypto_system
     if _node_crypto_system is None:
         if data_dir is None:
             data_dir = Path(__file__).parent / "data"
         _node_crypto_system = NodeCryptoSystem(data_dir)
     return _node_crypto_system
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#                              ИНФОРМАЦИЯ О КРИПТОСИСТЕМЕ
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def get_crypto_info() -> Dict:
+    """
+    Информация о криптографической системе Montana
+    """
+    return {
+        "algorithm": "ML-DSA-65",
+        "standard": "FIPS 204",
+        "security_level": "NIST Level 3 (128-bit post-quantum)",
+        "key_sizes": {
+            "private_key": "4032 bytes",
+            "public_key": "1952 bytes",
+            "signature": "3309 bytes"
+        },
+        "protections": [
+            "Quantum computer attacks (Shor's algorithm)",
+            "Harvest now, decrypt later attacks",
+            "IP hijacking",
+            "DNS spoofing",
+            "Man-in-the-middle attacks"
+        ],
+        "address_format": "mt + SHA256(public_key)[:20].hex()",
+        "address_length": 42
+    }

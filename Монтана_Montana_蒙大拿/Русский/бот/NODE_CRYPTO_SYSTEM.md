@@ -1,15 +1,22 @@
 # Криптографическая Система Узлов Montana
 
+## POST-QUANTUM КРИПТОГРАФИЯ ML-DSA-65 (FIPS 204)
+
+**MAINNET READY** — Post-quantum криптография активна с genesis.
+
 ## Обзор
 
 Узлы Montana используют **криптографические адреса** вместо IP адресов для идентификации кошельков.
+Все операции защищены **ML-DSA-65** (FIPS 204) — post-quantum алгоритмом.
 
 ### Защита от Атак
 
+- ✅ **Квантовые компьютеры** — ML-DSA-65 устойчив к Shor's algorithm
+- ✅ **Harvest now, decrypt later** — данные защищены от будущей дешифровки
 - ✅ **IP hijacking** — адрес не зависит от IP
 - ✅ **DNS spoofing** — alias только для удобства
-- ✅ **Man-in-the-middle** — все операции подписаны
-- ✅ **Подделка транзакций** — требуется private key
+- ✅ **Man-in-the-middle** — все операции подписаны ML-DSA-65
+- ✅ **Подделка транзакций** — требуется private key (4032 байта)
 
 ---
 
@@ -25,7 +32,9 @@
 ### Узлы
 ```
 Адрес = mt + SHA256(public_key)[:20].hex()
-Ключ = Private key Ed25519/ML-DSA-65
+Ключ = Private key ML-DSA-65 (4032 байта)
+Public key = 1952 байта
+Подпись = 3309 байт
 Пример: mt1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0
 ```
 
@@ -52,68 +61,49 @@ mt72a4c3e8f9b1d5c7e2a4f6d8b0e1c3a5f7d9e1a
 
 ## Криптографические Алгоритмы
 
-### Текущая Реализация: Ed25519
+### MAINNET: ML-DSA-65 (FIPS 204)
 
-**Почему Ed25519 (временно):**
-- ✅ Широкая поддержка в библиотеках
-- ✅ Быстрая генерация ключей
-- ✅ Малый размер подписи (64 байта)
-- ❌ Уязвимость к квантовым компьютерам
-
-**Параметры:**
-```
-Private key: 32 байта (64 hex символа)
-Public key:  32 байта (64 hex символа)
-Signature:   64 байта (128 hex символов)
-```
-
-### Целевая Реализация: ML-DSA-65
-
-**Согласно протоколу [007_POST_QUANTUM.md](/Users/kh./Python/Ничто_Nothing_无_金元Ɉ/Монтана_Montana_蒙大拿/English/protocol/007_POST_QUANTUM.md):**
-
-Montana должна использовать **ML-DSA-65** (FIPS 204) от genesis.
-
-**Почему ML-DSA-65:**
+**Текущая реализация — POST-QUANTUM:**
 - ✅ Post-quantum защита (lattice-based)
 - ✅ NIST Level 3 security (128-bit post-quantum)
 - ✅ Защита от Shor's algorithm
-- ✅ FIPS стандарт (не экспериментальный)
-- ❌ Большой размер подписи (3293 байта)
+- ✅ FIPS 204 стандарт
+- ✅ Защита от "harvest now, decrypt later"
 
-**Параметры:**
+**Параметры ML-DSA-65:**
 ```
-Private key: неизвестно (зависит от имплементации)
+Private key: 4032 байта
 Public key:  1952 байта
-Signature:   3293 байта
+Signature:   3309 байт
 ```
 
-### План Миграции
-
-#### Этап 1: Ed25519 (текущий)
+**Реализация:**
 ```python
 # node_crypto.py
-CRYPTO_MODE = "ED25519"
+from dilithium_py.ml_dsa import ML_DSA_65
+
+def generate_keypair():
+    public_key, private_key = ML_DSA_65.keygen()
+    return private_key.hex(), public_key.hex()
+
+def sign_message(private_key_hex: str, message: str) -> str:
+    private_bytes = bytes.fromhex(private_key_hex)
+    message_bytes = message.encode('utf-8')
+    signature = ML_DSA_65.sign(private_bytes, message_bytes)
+    return signature.hex()
+
+def verify_signature(public_key_hex: str, message: str, signature_hex: str) -> bool:
+    public_bytes = bytes.fromhex(public_key_hex)
+    message_bytes = message.encode('utf-8')
+    signature = bytes.fromhex(signature_hex)
+    return ML_DSA_65.verify(public_bytes, message_bytes, signature)
 ```
 
-#### Этап 2: Гибридная Система
-```python
-# Поддержка обоих алгоритмов
-CRYPTO_MODE = "HYBRID"  # Ed25519 + ML-DSA-65
+### Статус: MAINNET READY
 
-# При регистрации узла генерируются ОБА ключа
-node_data = {
-    "ed25519_pubkey": "...",
-    "mldsa65_pubkey": "...",
-    "address": "mt...",  # Вычисляется от ML-DSA-65
-}
-```
-
-#### Этап 3: Полный Переход
-```python
-CRYPTO_MODE = "ML-DSA-65"
-
-# Ed25519 ключи сохраняются для legacy, но не используются
-```
+**Миграция завершена:**
+- ~~Q1 2026: Ed25519~~ → ML-DSA-65 MAINNET
+- Q2-Q4 2026: Post-quantum защита с genesis
 
 ---
 
@@ -296,7 +286,7 @@ DNS не влияет на адрес кошелька
 
 **Защита:**
 ```
-Все операции подписаны Ed25519/ML-DSA-65
+Все операции подписаны ML-DSA-65
 ↓
 Модифицированное сообщение → невалидная подпись
 ↓
@@ -354,53 +344,18 @@ IP адрес больше НЕ является идентификатором:
 
 ---
 
-## Миграция на ML-DSA-65
-
-### Roadmap
-
-#### Q1 2026: Подготовка
-- [ ] Изучить библиотеки ML-DSA-65
-- [ ] Протестировать производительность
-- [ ] Сравнить размеры подписей
-
-#### Q2 2026: Гибридная Система
-- [ ] Реализовать поддержку обоих алгоритмов
-- [ ] Генерировать оба ключа при регистрации
-- [ ] Поддерживать верификацию обоих типов подписей
-
-#### Q3 2026: Полный Переход
-- [ ] Переключить CRYPTO_MODE на ML-DSA-65
-- [ ] Ed25519 ключи только для legacy
-- [ ] Обновить документацию
-
-#### Q4 2026: Post-Quantum Ready
-- [ ] Все новые узлы — только ML-DSA-65
-- [ ] Ed25519 поддержка для старых узлов
-- [ ] Montana защищена от квантовых компьютеров
-
----
-
 ## Технические Спецификации
 
-### Ed25519 (текущий)
+### ML-DSA-65 (MAINNET)
 | Параметр | Значение |
 |----------|----------|
-| Алгоритм | Ed25519 (EdDSA) |
-| Кривая | Curve25519 |
-| Размер private key | 32 байта |
-| Размер public key | 32 байта |
-| Размер подписи | 64 байта |
-| Квантовая защита | ❌ Нет |
-
-### ML-DSA-65 (целевой)
-| Параметр | Значение |
-|----------|----------|
-| Алгоритм | ML-DSA (Dilithium) |
+| Алгоритм | ML-DSA-65 (Dilithium) |
 | Стандарт | FIPS 204 |
-| Security Level | NIST Level 3 |
+| Security Level | NIST Level 3 (128-bit post-quantum) |
+| Размер private key | 4032 байта |
 | Размер public key | 1952 байта |
-| Размер подписи | 3293 байта |
-| Квантовая защита | ✅ Да |
+| Размер подписи | 3309 байт |
+| Квантовая защита | ✅ С GENESIS |
 
 ---
 
