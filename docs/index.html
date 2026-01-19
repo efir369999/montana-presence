@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Montana Protocol - ML-DSA-65 MAINNET</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container { max-width: 800px; text-align: center; }
+        .logo { font-size: 80px; margin-bottom: 20px; }
+        h1 { font-size: 3em; margin-bottom: 10px; background: linear-gradient(90deg, #00d4ff, #7b2fff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .subtitle { font-size: 1.5em; color: #888; margin-bottom: 40px; }
+        .badge { display: inline-block; background: #00d4ff; color: #000; padding: 8px 16px; border-radius: 20px; font-weight: bold; margin: 10px 5px; }
+        .badge.quantum { background: #7b2fff; color: #fff; }
+        .stats { display: flex; justify-content: center; gap: 40px; margin: 40px 0; flex-wrap: wrap; }
+        .stat { text-align: center; }
+        .stat-value { font-size: 2em; font-weight: bold; color: #00d4ff; }
+        .stat-label { color: #888; font-size: 0.9em; }
+        .links { margin-top: 40px; }
+        .links a { color: #00d4ff; text-decoration: none; margin: 0 15px; font-size: 1.1em; }
+        .links a:hover { text-decoration: underline; }
+        .crypto-box { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; margin: 30px 0; text-align: left; }
+        .crypto-box h3 { color: #00d4ff; margin-bottom: 15px; }
+        .crypto-box code { background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+        table { width: 100%; border-collapse: collapse; }
+        td { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        td:first-child { color: #888; }
+        td:last-child { text-align: right; font-family: monospace; color: #00d4ff; }
+        footer { margin-top: 60px; color: #555; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">Ɉ</div>
+        <h1>Montana Protocol</h1>
+        <p class="subtitle">Protocol of Ideal Money</p>
+
+        <div>
+            <span class="badge">v9.0.0 MAINNET</span>
+            <span class="badge quantum">ML-DSA-65 Post-Quantum</span>
+            <span class="badge">FIPS 204</span>
+        </div>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value">4032</div>
+                <div class="stat-label">Private Key (bytes)</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">1952</div>
+                <div class="stat-label">Public Key (bytes)</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">3309</div>
+                <div class="stat-label">Signature (bytes)</div>
+            </div>
+        </div>
+
+        <div class="crypto-box">
+            <h3>Post-Quantum Cryptography</h3>
+            <table>
+                <tr><td>Algorithm</td><td>ML-DSA-65 (Dilithium)</td></tr>
+                <tr><td>Standard</td><td>FIPS 204</td></tr>
+                <tr><td>Security Level</td><td>NIST Level 3 (128-bit PQ)</td></tr>
+                <tr><td>Address Format</td><td><code>mt + SHA256(pubkey)[:20]</code></td></tr>
+                <tr><td>Quantum Safe</td><td>Yes, from genesis</td></tr>
+            </table>
+        </div>
+
+        <div class="links">
+            <a href="https://github.com/efir369999/-_Nothing_-">GitHub</a>
+            <a href="https://t.me/JunonaMontanaAGIBot">Telegram Bot</a>
+            <a href="https://github.com/efir369999/-_Nothing_-/releases/tag/v9.0.0">v9.0.0 Release</a>
+        </div>
+
+        <footer>
+            <p>Time is the only real currency</p>
+            <p>ML-DSA-65 MAINNET - Post-quantum from genesis</p>
+        </footer>
+    </div>
+</body>
+</html>
