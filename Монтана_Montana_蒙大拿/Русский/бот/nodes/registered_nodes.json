@@ -1,0 +1,62 @@
+{
+  "72.56.102.240": {
+    "name": "amsterdam",
+    "ip": "72.56.102.240",
+    "location": "🇳🇱 Amsterdam",
+    "type": "full",
+    "operator": "Montana Foundation",
+    "priority": 1,
+    "official": true,
+    "registered_at": "2026-01-19T12:05:44.772950+00:00"
+  },
+  "176.124.208.93": {
+    "name": "moscow",
+    "ip": "176.124.208.93",
+    "location": "🇷🇺 Moscow",
+    "type": "full",
+    "operator": "Montana Foundation",
+    "priority": 2,
+    "official": true,
+    "registered_at": "2026-01-19T12:05:44.773090+00:00"
+  },
+  "91.200.148.93": {
+    "name": "almaty",
+    "ip": "91.200.148.93",
+    "location": "🇰🇿 Almaty",
+    "type": "full",
+    "operator": "Montana Foundation",
+    "priority": 3,
+    "official": true,
+    "registered_at": "2026-01-19T12:05:44.773094+00:00"
+  },
+  "188.225.58.98": {
+    "name": "spb",
+    "ip": "188.225.58.98",
+    "location": "🇷🇺 St.Petersburg",
+    "type": "full",
+    "operator": "Montana Foundation",
+    "priority": 4,
+    "official": true,
+    "registered_at": "2026-01-19T12:05:44.773096+00:00"
+  },
+  "147.45.147.247": {
+    "name": "novosibirsk",
+    "ip": "147.45.147.247",
+    "location": "🇷🇺 Novosibirsk",
+    "type": "full",
+    "operator": "Montana Foundation",
+    "priority": 5,
+    "official": true,
+    "registered_at": "2026-01-19T12:05:44.773099+00:00"
+  },
+  "1.2.3.4": {
+    "name": "test_tokyo",
+    "ip": "1.2.3.4",
+    "location": "🇯🇵 Tokyo Test",
+    "type": "light",
+    "operator": "Test Operator",
+    "official": false,
+    "priority": 15,
+    "registered_at": "2026-01-19T12:05:44.773834+00:00"
+  }
+}

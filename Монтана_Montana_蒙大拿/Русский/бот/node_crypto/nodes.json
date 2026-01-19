@@ -1,0 +1,80 @@
+{
+  "mtb9498a702435b2443bd8461574b80d8ed435159b": {
+    "address": "mtb9498a702435b2443bd8461574b80d8ed435159b",
+    "public_key": "f0a494cb2305f955b84d512e107e4776291c1512a287765e23f8f61c939c5bcb",
+    "owner": 123456789,
+    "node_name": "tokyo",
+    "alias": "tokyo.montana.network",
+    "location": "🇯🇵 Tokyo",
+    "ip": "1.2.3.4",
+    "type": "light",
+    "created_at": "2026-01-19T12:19:41.861192+00:00",
+    "official": false,
+    "priority": 10
+  },
+  "mta46b633d258059b90db46adffc6c5ca08f0e8d6c": {
+    "address": "mta46b633d258059b90db46adffc6c5ca08f0e8d6c",
+    "public_key": "9051e8f4edb3e7eb04144ee65f6da0b09c464844ce2180d2e8080613802aea35",
+    "owner": 8552053404,
+    "node_name": "amsterdam",
+    "alias": "amsterdam.montana.network",
+    "location": "🇳🇱 Amsterdam",
+    "ip": "72.56.102.240",
+    "type": "full",
+    "created_at": "2026-01-19T12:19:41.861793+00:00",
+    "official": true,
+    "priority": 1
+  },
+  "mta8ae14f74c38294b24c2f1c20c6406e6be929c93": {
+    "address": "mta8ae14f74c38294b24c2f1c20c6406e6be929c93",
+    "public_key": "cfb9b6a3a494614d3c0757df575130a7c6ccc7a7d3803e454a322fc14c91e8d8",
+    "owner": 8552053404,
+    "node_name": "moscow",
+    "alias": "moscow.montana.network",
+    "location": "🇷🇺 Moscow",
+    "ip": "176.124.208.93",
+    "type": "full",
+    "created_at": "2026-01-19T12:19:41.861912+00:00",
+    "official": true,
+    "priority": 2
+  },
+  "mtd07b0d9bdab2cb592f509bc1304c368ac703c45e": {
+    "address": "mtd07b0d9bdab2cb592f509bc1304c368ac703c45e",
+    "public_key": "147d3e8a7d30e66161cfbd4637ed8111c4d385cb232c3aebe68731a913ec0739",
+    "owner": 8552053404,
+    "node_name": "almaty",
+    "alias": "almaty.montana.network",
+    "location": "🇰🇿 Almaty",
+    "ip": "91.200.148.93",
+    "type": "full",
+    "created_at": "2026-01-19T12:19:41.862027+00:00",
+    "official": true,
+    "priority": 3
+  },
+  "mtb397e136de69d92e5782f3fe14533a4a37b4ddec": {
+    "address": "mtb397e136de69d92e5782f3fe14533a4a37b4ddec",
+    "public_key": "821d3a41711e83f69e2568142460638805c77ee06b9f41020165c7cb799de3ba",
+    "owner": 8552053404,
+    "node_name": "spb",
+    "alias": "spb.montana.network",
+    "location": "🇷🇺 St.Petersburg",
+    "ip": "188.225.58.98",
+    "type": "full",
+    "created_at": "2026-01-19T12:19:41.862143+00:00",
+    "official": true,
+    "priority": 4
+  },
+  "mtf3f0254b405382de38494e753924b4b92692bd2c": {
+    "address": "mtf3f0254b405382de38494e753924b4b92692bd2c",
+    "public_key": "36692ab62b12f9ec05312d323dc91f33261ad8acd4aeffd324d1f1dbbb4c14e8",
+    "owner": 8552053404,
+    "node_name": "novosibirsk",
+    "alias": "novosibirsk.montana.network",
+    "location": "🇷🇺 Novosibirsk",
+    "ip": "147.45.147.247",
+    "type": "full",
+    "created_at": "2026-01-19T12:19:41.862253+00:00",
+    "official": true,
+    "priority": 5
+  }
+}
