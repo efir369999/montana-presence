@@ -50,14 +50,17 @@ cp .env.example .env
 Открой `.env` и вставь свои ключи:
 
 ```bash
-# Telegram
-TELEGRAM_TOKEN_JUNONA=123456789:ABC...
+# Все ключи из macOS Keychain:
+# security find-generic-password -a montana -s KEY_NAME -w
 
-# Claude API
-ANTHROPIC_API_KEY=sk-ant-api03-...
+# Telegram (keyring: TELEGRAM_TOKEN_JUNONA)
+TELEGRAM_TOKEN_JUNONA=
 
-# GPT API
-OPENAI_API_KEY=sk-proj-...
+# Claude API (keyring: ANTHROPIC_API_KEY)
+ANTHROPIC_API_KEY=
+
+# GPT API (keyring: OPENAI_API_KEY)
+OPENAI_API_KEY=
 
 # Montana Evolution
 ENABLE_PARALLEL_AGENTS=true
@@ -320,7 +323,7 @@ A: 1 уровень = 10 сырых мыслей. Орангутанг 100 ур�
 - Telegram: [@Montana_Support](https://t.me/Montana_Support)
 
 **Авторы:**
-- Алик (金元Ɉ) - концепция Montana
+- Montana Foundation - концепция Montana
 - Клод Монтана - Montana Evolution реализация
 
 18.01.2026

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Montana Menu</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--tg-theme-bg-color, #f5f5f5);
+            color: var(--tg-theme-text-color, #000);
+            padding: 16px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+            padding: 20px 0;
+        }
+        .logo { font-size: 48px; margin-bottom: 8px; }
+        h1 { font-size: 24px; margin-bottom: 4px; }
+        .subtitle { font-size: 14px; color: var(--tg-theme-hint-color, #999); }
+        .section-title {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--tg-theme-hint-color, #999);
+            margin: 20px 0 12px 8px;
+            letter-spacing: 0.5px;
+        }
+        .menu-item {
+            background: var(--tg-theme-secondary-bg-color, #fff);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .menu-item:active { opacity: 0.7; }
+        .menu-icon {
+            font-size: 28px;
+            min-width: 32px;
+            text-align: center;
+        }
+        .menu-content { flex: 1; }
+        .menu-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+        .menu-desc {
+            font-size: 13px;
+            color: var(--tg-theme-hint-color, #999);
+        }
+        .badge {
+            background: #34C759;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">🏔</div>
+        <h1>Montana Protocol</h1>
+        <p class="subtitle">Меню команд</p>
+    </div>
+
+    <div class="section-title">Безопасность</div>
+    <div class="menu-item" onclick="open('/miniapp/verify.html')">
+        <div class="menu-icon">🔐</div>
+        <div class="menu-content">
+            <div class="menu-title">Верификация <span class="badge">NEW</span></div>
+            <div class="menu-desc">Face ID / Touch ID</div>
+        </div>
+    </div>
+
+    <div class="section-title">Кошелек</div>
+    <div class="menu-item" onclick="open('/miniapp/wallet.html')">
+        <div class="menu-icon">💰</div>
+        <div class="menu-content">
+            <div class="menu-title">Баланс</div>
+            <div class="menu-desc">Секунды времени</div>
+        </div>
+    </div>
+    <div class="menu-item" onclick="open('/miniapp/transfer.html')">
+        <div class="menu-icon">💸</div>
+        <div class="menu-content">
+            <div class="menu-title">Перевод</div>
+            <div class="menu-desc">Отправить время</div>
+        </div>
+    </div>
+
+    <div class="section-title">Сеть</div>
+    <div class="menu-item" onclick="open('/miniapp/nodes.html')">
+        <div class="menu-icon">🌐</div>
+        <div class="menu-content">
+            <div class="menu-title">Узлы</div>
+            <div class="menu-desc">Список узлов Montana</div>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        function open(url) {
+            window.location.href = 'http://192.168.0.127:5001' + url;
+        }
+    </script>
+</body>
+</html>

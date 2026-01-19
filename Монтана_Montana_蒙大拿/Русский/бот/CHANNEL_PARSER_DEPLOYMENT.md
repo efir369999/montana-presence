@@ -47,20 +47,21 @@
 ### .env настройки
 
 ```bash
+# Все ключи в macOS Keychain (security find-generic-password -a montana -s KEY_NAME -w)
 # Telegram Bot
-TELEGRAM_TOKEN_JUNONA=8418301240:AAHR***
+TELEGRAM_TOKEN_JUNONA=$(security find-generic-password -a montana -s TELEGRAM_TOKEN_JUNONA -w)
 
 # AI Providers
-OPENAI_API_KEY=sk-proj-***
-ANTHROPIC_API_KEY=(empty)
+OPENAI_API_KEY=$(security find-generic-password -a montana -s OPENAI_API_KEY -w)
+ANTHROPIC_API_KEY=  # если нужно, добавить в keychain
 
 # Montana Evolution
 ENABLE_PARALLEL_AGENTS=true
 AGENT_MODE=synthesize
 
-# Channel Parser (Telethon)
-TELEGRAM_API_ID=26183956
-TELEGRAM_API_HASH=8d6a***
+# Channel Parser (Telethon) — получить на https://my.telegram.org/apps
+TELEGRAM_API_ID=  # в keychain: TELEGRAM_API_ID
+TELEGRAM_API_HASH=  # в keychain: TELEGRAM_API_HASH
 CHANNEL_USERNAME=@mylifesound369
 ```
 

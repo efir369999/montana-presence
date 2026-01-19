@@ -564,6 +564,87 @@ async def feed_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+#                              MINI APPS КОМАНДЫ
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# URL для Mini Apps (меняй на production URL)
+MINIAPP_BASE_URL = "http://192.168.0.127:5001/miniapp"
+
+
+async def menu_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Команда /menu — меню всех функций через Mini App"""
+    webapp_url = f"{MINIAPP_BASE_URL}/menu.html"
+
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton(
+            text="📱 Открыть меню Montana",
+            web_app=WebAppInfo(url=webapp_url)
+        )
+    ]])
+
+    await update.message.reply_text(
+        "🏔 **Montana Protocol**\n\n"
+        "Меню всех функций Montana в одном месте.\n\n"
+        "Нажми кнопку ниже 👇",
+        reply_markup=keyboard,
+        parse_mode="Markdown"
+    )
+
+
+async def verify_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Команда /verify — верификация через Face ID"""
+    webapp_url = f"{MINIAPP_BASE_URL}/verify.html"
+
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton(
+            text="🔐 Верифицировать Face ID",
+            web_app=WebAppInfo(url=webapp_url)
+        )
+    ]])
+
+    await update.message.reply_text(
+        "🏔 **Montana Verification**\n\n"
+        "Подтверди присутствие через Face ID / Touch ID\n\n"
+        "📱 Proof of Presence — доказательство реального человека\n"
+        "✅ ML-DSA-65 (Post-Quantum)\n"
+        "✅ WebAuthn биометрия\n\n"
+        "Нажми кнопку ниже 👇",
+        reply_markup=keyboard,
+        parse_mode="Markdown"
+    )
+
+
+async def webapp_data_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик данных от Mini App"""
+    try:
+        data = json.loads(update.effective_message.web_app_data.data)
+
+        if data.get('action') == 'verified':
+            user_id = data.get('telegram_id')
+            success = data.get('success')
+
+            if success:
+                await update.effective_message.reply_text(
+                    "✅ **Присутствие подтверждено!**\n\n"
+                    "📱 Face ID верифицирован\n"
+                    "🔐 ML-DSA-65 подпись сохранена\n\n"
+                    "Юнона Montana благодарит за подтверждение.",
+                    parse_mode="Markdown"
+                )
+            else:
+                await update.effective_message.reply_text(
+                    "❌ **Верификация не удалась**\n\n"
+                    "Попробуй еще раз или обратись к администратору."
+                )
+
+    except Exception as e:
+        logger.error(f"WebApp data handler error: {e}")
+        await update.effective_message.reply_text(
+            "❌ Ошибка обработки данных от Mini App"
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 #                              ГЛАВЫ MONTANA
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -982,6 +1063,8 @@ async def setup_bot_commands(application):
     """Настройка кнопки меню с командами"""
     commands = [
         BotCommand("start", "🏠 Главная — баланс и команды"),
+        BotCommand("menu", "📱 Меню Montana"),
+        BotCommand("verify", "🔐 Верификация Face ID"),
         BotCommand("balance", "💰 Баланс кошелька"),
         BotCommand("transfer", "💸 Перевод времени"),
         BotCommand("tx", "📊 История транзакций"),
@@ -1026,6 +1109,12 @@ if __name__ == '__main__':
     application.add_handler(CommandHandler("transfer", transfer_cmd))
     application.add_handler(CommandHandler("tx", tx_cmd))
     application.add_handler(CommandHandler("feed", feed_cmd))
+
+    # Mini Apps команды
+    application.add_handler(CommandHandler("menu", menu_cmd))
+    application.add_handler(CommandHandler("verify", verify_cmd))
+    application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, webapp_data_handler))
+
     application.add_handler(CallbackQueryHandler(handle_chapter_choice, pattern="^chapter_"))
     application.add_handler(CallbackQueryHandler(handle_user_approval, pattern="^(approve|reject)_"))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))

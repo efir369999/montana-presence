@@ -2,7 +2,7 @@
 
 **Дата завершения:** 18.01.2026
 **Автор:** Клод Монтана
-**Для:** Алик (金元Ɉ)
+**Для:** Montana Foundation
 **Статус:** ✓ PRODUCTION READY
 
 ---
@@ -262,12 +262,15 @@ Reasoning logs: 24 записи
 #                    MONTANA EVOLUTION
 # ═══════════════════════════════════════════════════════════
 
-# Telegram Bot Token
-TELEGRAM_TOKEN_JUNONA=123456789:ABC...
+# Все ключи в macOS Keychain:
+# security find-generic-password -a montana -s KEY_NAME -w
 
-# API Keys для агентов
-ANTHROPIC_API_KEY=sk-ant-api03-...
-OPENAI_API_KEY=sk-proj-...
+# Telegram Bot Token (keyring: TELEGRAM_TOKEN_JUNONA)
+TELEGRAM_TOKEN_JUNONA=
+
+# API Keys для агентов (keyring: OPENAI_API_KEY, ANTHROPIC_API_KEY)
+ANTHROPIC_API_KEY=
+OPENAI_API_KEY=
 
 # Montana Evolution Settings
 ENABLE_PARALLEL_AGENTS=true

@@ -1,3 +1,6 @@
 .env
 *.pyc
 __pycache__/
+data/agent_keys.json
+data/node_keys.json
+data/mock_fido2.json

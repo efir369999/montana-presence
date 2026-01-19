@@ -8,7 +8,7 @@
 ## 📋 Основная информация
 
 **Бот:** @junomontanaagibot
-**Токен:** 8418301240:***
+**Токен:** см. keyring: TELEGRAM_TOKEN_JUNONA
 **Сервер:** Amsterdam (72.56.102.240)
 **Директория:** `/root/junona_bot/`
 **Процесс:** `junona_bot_full.py`
@@ -100,7 +100,7 @@ import asyncio
 from telegram import Bot, BotCommand
 
 async def update():
-    bot = Bot('8418301240:AAHR7Nu7QgIGM1rBC8le9mMbO5TPi6qQJFE')
+    bot = Bot(os.popen('security find-generic-password -a montana -s TELEGRAM_TOKEN_JUNONA -w').read().strip())
     await bot.set_my_commands([
         BotCommand('start', 'Montana Full Edition'),
         BotCommand('network', 'Network Status'),

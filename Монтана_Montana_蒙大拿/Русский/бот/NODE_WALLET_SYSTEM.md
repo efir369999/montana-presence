@@ -89,7 +89,7 @@ _(криптографический адрес — защита от IP hijacki
 
 **IP:** 72.56.102.240 _(только для networking)_
 **Тип:** FULL NODE
-**Владелец:** Montana Foundation (TG ID: 8552053404)
+**Владелец:** Montana Foundation (см. keyring: ADMIN_TELEGRAM_ID)
 **Приоритет:** #1
 
 💰 **Баланс:** XXX.XX секунд
@@ -241,7 +241,7 @@ data/
   "mta46b633d258059b90db46adffc6c5ca08f0e8d6c": {
     "address": "mta46b633d258059b90db46adffc6c5ca08f0e8d6c",
     "public_key": "a3f8b2c1d4e5f6789...",
-    "owner": 8552053404,
+    "owner": "ADMIN_TELEGRAM_ID",
     "node_name": "amsterdam",
     "alias": "amsterdam.montana.network",
     "location": "🇳🇱 Amsterdam",

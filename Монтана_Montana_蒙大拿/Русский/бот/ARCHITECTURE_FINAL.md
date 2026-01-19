@@ -59,7 +59,7 @@ Montana использует **два типа кошельков** с разн�
 ```bash
 Адрес:     mta46b633d258059b90db46adffc6c5ca08f0e8d6c
 Ключ:      Private Key ML-DSA-65 (4032 байта)
-Владелец:  8552053404 (Telegram ID)
+Владелец:  ADMIN_ID (keyring) (Telegram ID)
 IP:        72.56.102.240 (только networking)
 Alias:     amsterdam.montana.network
 Баланс:    5000 секунд
@@ -109,7 +109,7 @@ alias = f"{node_name}.montana.network"
 🇳🇱 Amsterdam
    Адрес:     mta46b633d258059b90db46adffc6c5ca08f0e8d6c
    Alias:     amsterdam.montana.network
-   Владелец:  8552053404
+   Владелец:  ADMIN_ID (keyring)
    IP:        72.56.102.240 (networking only)
    Тип:       FULL NODE
    Приоритет: #1
@@ -117,7 +117,7 @@ alias = f"{node_name}.montana.network"
 🇷🇺 Moscow
    Адрес:     mta8ae14f74c38294b24c2f1c20c6406e6be929c93
    Alias:     moscow.montana.network
-   Владелец:  8552053404
+   Владелец:  ADMIN_ID (keyring)
    IP:        176.124.208.93 (networking only)
    Тип:       FULL NODE
    Приоритет: #2
@@ -125,7 +125,7 @@ alias = f"{node_name}.montana.network"
 🇰🇿 Almaty
    Адрес:     mtd07b0d9bdab2cb592f509bc1304c368ac703c45e
    Alias:     almaty.montana.network
-   Владелец:  8552053404
+   Владелец:  ADMIN_ID (keyring)
    IP:        91.200.148.93 (networking only)
    Тип:       FULL NODE
    Приоритет: #3
@@ -133,7 +133,7 @@ alias = f"{node_name}.montana.network"
 🇷🇺 St.Petersburg
    Адрес:     mtb397e136de69d92e5782f3fe14533a4a37b4ddec
    Alias:     spb.montana.network
-   Владелец:  8552053404
+   Владелец:  ADMIN_ID (keyring)
    IP:        188.225.58.98 (networking only)
    Тип:       FULL NODE
    Приоритет: #4
@@ -141,7 +141,7 @@ alias = f"{node_name}.montana.network"
 🇷🇺 Novosibirsk
    Адрес:     mtf3f0254b405382de38494e753924b4b92692bd2c
    Alias:     novosibirsk.montana.network
-   Владелец:  8552053404
+   Владелец:  ADMIN_ID (keyring)
    IP:        147.45.147.247 (networking only)
    Тип:       FULL NODE
    Приоритет: #5
