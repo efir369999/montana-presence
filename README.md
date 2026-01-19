@@ -1,5 +1,11 @@
 # Ничто_Nothing_无_金元Ɉ
 
+[![Release](https://img.shields.io/github/v/release/efir369999/-_Nothing_-?style=for-the-badge&color=00d4ff)](https://github.com/efir369999/-_Nothing_-/releases/latest)
+[![ML-DSA-65](https://img.shields.io/badge/Crypto-ML--DSA--65-7b2fff?style=for-the-badge)](https://csrc.nist.gov/publications/detail/fips/204/final)
+[![FIPS 204](https://img.shields.io/badge/FIPS-204-00d4ff?style=for-the-badge)](https://csrc.nist.gov/publications/detail/fips/204/final)
+[![Post-Quantum](https://img.shields.io/badge/Post--Quantum-MAINNET-brightgreen?style=for-the-badge)](Монтана_Montana_蒙大拿/English/protocol/007_POST_QUANTUM.md)
+[![Telegram](https://img.shields.io/badge/Bot-@JunonaMontanaAGIBot-blue?style=for-the-badge&logo=telegram)](https://t.me/JunonaMontanaAGIBot)
+
 ```
      ███╗   ███╗ ██████╗ ███╗   ██╗████████╗ █████╗ ███╗   ██╗ █████╗
      ████╗ ████║██╔═══██╗████╗  ██║╚══██╔══╝██╔══██╗████╗  ██║██╔══██╗
@@ -8,6 +14,8 @@
      ██║ ╚═╝ ██║╚██████╔╝██║ ╚████║   ██║   ██║  ██║██║ ╚████║██║  ██║
      ╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝
 ```
+
+> **Ɉ Montana Protocol v9.0.0** — Post-Quantum Cryptography from Genesis
 
 ---
 
