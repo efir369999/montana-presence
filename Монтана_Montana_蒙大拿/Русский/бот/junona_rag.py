@@ -153,6 +153,133 @@ class JunonaRAG:
 
         return files
 
+    def _index_jsonl_stream(self, filepath: Path, doc_type: str = "thought"):
+        """Индексировать JSONL поток (публичные мысли или диалоги)"""
+        if not filepath.exists():
+            return 0
+
+        if not self.collection or not self.embedder:
+            return 0
+
+        indexed = 0
+
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                for line_num, line in enumerate(f):
+                    try:
+                        data = json.loads(line.strip())
+
+                        # Формируем документ в зависимости от типа
+                        if doc_type == "thought":
+                            # Публичная мысль
+                            content = data.get('content', '')
+                            metadata = {
+                                "source": str(filepath),
+                                "type": "thought",
+                                "timestamp": data.get('timestamp', ''),
+                                "user_id": str(data.get('user_id', 'unknown')),
+                                "lang": "ru"
+                            }
+                        elif doc_type == "dialogue":
+                            # Сообщение из диалога координации
+                            content = data.get('content', '')
+                            metadata = {
+                                "source": str(filepath),
+                                "type": "dialogue",
+                                "role": data.get('role', 'unknown'),
+                                "timestamp": data.get('timestamp', ''),
+                                "lang": "ru"
+                            }
+                        else:
+                            continue
+
+                        if len(content) < 10:
+                            continue
+
+                        # Создаем уникальный ID
+                        doc_id = f"{doc_type}_{filepath.stem}_{line_num}"
+
+                        # Эмбеддинг
+                        embedding = self.embedder.encode(content).tolist()
+
+                        # Добавляем в коллекцию
+                        self.collection.upsert(
+                            ids=[doc_id],
+                            embeddings=[embedding],
+                            documents=[content],
+                            metadatas=[metadata]
+                        )
+
+                        indexed += 1
+
+                    except json.JSONDecodeError:
+                        continue
+                    except Exception as e:
+                        print(f"⚠️ Ошибка строки {line_num}: {e}")
+                        continue
+
+        except Exception as e:
+            print(f"⚠️ Ошибка чтения {filepath}: {e}")
+
+        return indexed
+
+    def index_streams(self):
+        """Индексировать потоки данных (мысли и диалоги)"""
+        if not self.collection or not self.embedder:
+            print("⚠️ RAG не инициализирован")
+            return
+
+        total_indexed = 0
+
+        # Публичные мысли
+        stream_file = BOT_DIR / "data" / "stream.jsonl"
+        if stream_file.exists():
+            count = self._index_jsonl_stream(stream_file, doc_type="thought")
+            print(f"✓ Проиндексировано {count} публичных мыслей")
+            total_indexed += count
+
+        # Файлы координации диалогов
+        dialogues_dir = BOT_DIR / "data" / "dialogues"
+        if dialogues_dir.exists():
+            for user_file in dialogues_dir.glob("user_*.json"):
+                try:
+                    user_data = json.loads(user_file.read_text())
+                    dialogue = user_data.get("dialogue", [])
+
+                    # Индексируем каждое сообщение
+                    for i, msg in enumerate(dialogue):
+                        content = msg.get("content", "")
+                        if len(content) < 10:
+                            continue
+
+                        doc_id = f"dialogue_{user_file.stem}_{i}"
+                        metadata = {
+                            "source": str(user_file),
+                            "type": "dialogue",
+                            "role": msg.get("role", "unknown"),
+                            "timestamp": msg.get("timestamp", ""),
+                            "user_id": user_data.get("user_id", "unknown"),
+                            "lang": "ru"
+                        }
+
+                        embedding = self.embedder.encode(content).tolist()
+
+                        self.collection.upsert(
+                            ids=[doc_id],
+                            embeddings=[embedding],
+                            documents=[content],
+                            metadatas=[metadata]
+                        )
+
+                        total_indexed += 1
+
+                except Exception as e:
+                    print(f"⚠️ Ошибка диалога {user_file}: {e}")
+
+            print(f"✓ Проиндексировано диалогов из {dialogues_dir}")
+
+        return total_indexed
+
     def index(self, force: bool = False):
         """Проиндексировать все документы Montana"""
         if not self.collection or not self.embedder:
@@ -215,8 +342,13 @@ class JunonaRAG:
 
         self._save_metadata(metadata)
 
-        print(f"✓ Индексация завершена: +{new_docs} новых, ~{updated_docs} обновлено")
-        print(f"  Всего в базе: {self.collection.count()} чанков")
+        print(f"✓ Индексация файлов завершена: +{new_docs} новых, ~{updated_docs} обновлено")
+
+        # Индексируем потоки (мысли и диалоги)
+        streams_count = self.index_streams()
+
+        print(f"✓ Полная индексация завершена")
+        print(f"  Всего в базе: {self.collection.count()} документов")
 
     def search(self, query: str, n_results: int = 5, lang: str = None) -> List[Dict]:
         """Найти релевантные документы"""

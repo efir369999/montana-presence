@@ -21,6 +21,7 @@ from telegram.error import TelegramError, NetworkError, Conflict, TimedOut, Retr
 
 from junona_ai import junona
 from dialogue_coordinator import get_coordinator
+from junona_rag import init_and_index
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #                              КОНФИГУРАЦИЯ
@@ -491,6 +492,13 @@ if __name__ == '__main__':
     if not TELEGRAM_TOKEN:
         logger.error("TELEGRAM_TOKEN_JUNONA not set")
         exit(1)
+
+    # Инициализация RAG базы знаний (в фоне)
+    try:
+        logger.info("🧠 Инициализация базы знаний Montana...")
+        init_and_index(background=True)
+    except Exception as e:
+        logger.warning(f"⚠️ RAG инициализация: {e}")
 
     application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     application.add_error_handler(error_handler)

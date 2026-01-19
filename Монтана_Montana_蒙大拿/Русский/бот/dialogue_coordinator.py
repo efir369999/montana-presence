@@ -30,8 +30,36 @@ class DialogueCoordinator:
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
         # Путь к главам Montana
-        # Из бот/data нужно подняться на 2 уровня: бот -> Русский -> Монтана_Montana_蒙大拿
-        self.chapters_dir = data_dir.parent.parent / "English" / "Gospel" / "«Book One ☝️» ☀️"
+        # Определяем корневую папку Montana
+        # Локально: бот находится в Montana/Русский/бот/
+        # На сервере: бот в /root/junona_bot/, а Montana в /root/ACP_1/Ничто_Nothing_无/
+
+        # Пытаемся найти Montana корень автоматически
+        montana_root = None
+
+        # Проверяем локальную структуру (бот внутри Montana)
+        local_montana = data_dir.parent.parent.parent  # data -> бот -> Русский -> Монтана
+        if (local_montana / "English" / "Gospel").exists():
+            montana_root = local_montana
+
+        # Если не локально, ищем на сервере
+        if not montana_root:
+            server_paths = [
+                Path("/root/ACP_1/Ничто_Nothing_无/Монтана_Montana_蒙大拿"),
+                Path("/root/montana_knowledge/Монтана_Montana_蒙大拿"),
+                Path("/root/Ничто_Nothing_无_金元Ɉ/Монтана_Montana_蒙大拿"),
+            ]
+            for path in server_paths:
+                if path.exists() and (path / "English" / "Gospel").exists():
+                    montana_root = path
+                    break
+
+        # Формируем путь к главам
+        if montana_root:
+            self.chapters_dir = montana_root / "English" / "Gospel" / "«Book One ☝️» ☀️"
+        else:
+            # Fallback
+            self.chapters_dir = Path("/root/ACP_1/Ничто_Nothing_无/Монтана_Montana_蒙大拿/English/Gospel/«Book One ☝️» ☀️")
 
     def _get_user_file(self, user_id: int) -> Path:
         """Путь к файлу координации пользователя"""
