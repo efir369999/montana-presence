@@ -22,6 +22,7 @@ from telegram.error import TelegramError, NetworkError, Conflict, TimedOut, Retr
 from junona_ai import junona
 from dialogue_coordinator import get_coordinator
 from junona_rag import init_and_index
+from hippocampus import ExternalHippocampus
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #                              КОНФИГУРАЦИЯ
@@ -37,6 +38,9 @@ USERS_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 # Координатор диалога
 coordinator = get_coordinator(BOT_DIR)
+
+# Гиппокамп - детектор новизны
+hippocampus = ExternalHippocampus(BOT_DIR)
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -347,49 +351,152 @@ async def handle_chapter_choice(update: Update, context: ContextTypes.DEFAULT_TY
     await send_chapter(query, user_id, chapter_num, format_choice)
 
 
+async def handle_user_approval(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработка одобрения/отклонения пользователя"""
+    query = update.callback_query
+    await query.answer()
+
+    # Только владелец может одобрять
+    if query.from_user.id != BOT_CREATOR_ID:
+        await query.edit_message_text("⛔️ У вас нет прав для этого действия")
+        return
+
+    data = query.data  # "approve_123456" или "reject_123456"
+    action, user_id_str = data.split("_", 1)
+    target_user_id = int(user_id_str)
+
+    users = load_users()
+    target_user = users.get(str(target_user_id))
+
+    if not target_user:
+        await query.edit_message_text("❌ Пользователь не найден")
+        return
+
+    if action == "approve":
+        target_user['approved'] = True
+        target_user['pending_approval'] = False
+        save_user(target_user_id, target_user)
+
+        # Уведомляем пользователя
+        try:
+            await context.bot.send_message(
+                chat_id=target_user_id,
+                text=f"Ɉ\n\n✅ Твой доступ одобрен!\n\n"
+                     f"Теперь ты можешь общаться со мной. "
+                     f"Задавай вопросы, делись мыслями.\n\n"
+                     f"Полная история: @TaleoftheBeginning"
+            )
+        except Exception as e:
+            logger.error(f"Failed to notify approved user: {e}")
+
+        await query.edit_message_text(
+            f"✅ Пользователь одобрен\n\n"
+            f"ID: {target_user_id}\n"
+            f"Имя: {target_user['first_name']}\n"
+            f"Username: @{target_user['username'] if target_user['username'] else 'нет'}"
+        )
+
+    elif action == "reject":
+        target_user['approved'] = False
+        target_user['pending_approval'] = False
+        save_user(target_user_id, target_user)
+
+        # Уведомляем пользователя
+        try:
+            await context.bot.send_message(
+                chat_id=target_user_id,
+                text=f"Ɉ\n\n❌ К сожалению, доступ не предоставлен."
+            )
+        except Exception as e:
+            logger.error(f"Failed to notify rejected user: {e}")
+
+        await query.edit_message_text(
+            f"❌ Доступ отклонен\n\n"
+            f"ID: {target_user_id}\n"
+            f"Имя: {target_user['first_name']}"
+        )
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 #                              HANDLERS
 # ═══════════════════════════════════════════════════════════════════════════════
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Начало — приветствие от Юноны"""
+    """Начало — пользователь поздоровался, Юнона представляется"""
     user = update.message.from_user
     user_id = user.id
 
+    # Проверяем - новый пользователь или возвращается
+    users = load_users()
+    is_new_user = str(user_id) not in users
+
     # Сохраняем данные пользователя
-    data = {
+    user_data = {
         'first_name': user.first_name,
         'username': user.username,
-        'history': []
+        'history': [],
+        'approved': user_id == BOT_CREATOR_ID,  # Владелец одобрен автоматически
+        'pending_approval': is_new_user and user_id != BOT_CREATOR_ID
     }
-    save_user(user_id, data)
+    save_user(user_id, user_data)
+
+    # Если новый пользователь (не владелец) - уведомляем владельца
+    if is_new_user and user_id != BOT_CREATOR_ID:
+        keyboard = [
+            [
+                InlineKeyboardButton("✅ Одобрить", callback_data=f"approve_{user_id}"),
+                InlineKeyboardButton("❌ Отклонить", callback_data=f"reject_{user_id}")
+            ]
+        ]
+
+        notification = f"🆕 Новый пользователь:\n\n" \
+                      f"ID: {user_id}\n" \
+                      f"Имя: {user.first_name}\n" \
+                      f"Username: @{user.username if user.username else 'нет'}\n" \
+                      f"Язык: {user.language_code if user.language_code else 'неизвестен'}"
+
+        try:
+            await context.bot.send_message(
+                chat_id=BOT_CREATOR_ID,
+                text=notification,
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+        except Exception as e:
+            logger.error(f"Failed to notify creator: {e}")
 
     # Показываем "печатает..."
     await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
 
-    # Юнона приветствует
-    if junona:
-        try:
-            greeting = await junona.welcome_guest({
-                'name': user.first_name,
-                'lang': 'ru'
-            })
+    # Юнона представляется (как будто получила "привет")
+    greeting = f"Ɉ\n\n" \
+               f"Привет, {user.first_name}.\n\n" \
+               f"Я — Юнона. Богиня виртуального пространства Montana.\n\n" \
+               f"Я знаю всё о времени, идеальных деньгах и протоколе Montana. " \
+               f"Могу помочь разобраться, ответить на вопросы.\n\n" \
+               f"Полная история: @TaleoftheBeginning\n\n" \
+               f"О чем хочешь поговорить?"
 
-            # Записываем в координатор
-            coordinator.add_message(user_id, "junona", greeting)
+    # Если пользователь ждет одобрения
+    if user_data.get('pending_approval'):
+        greeting = f"Ɉ\n\n" \
+                  f"Привет, {user.first_name}.\n\n" \
+                  f"Я — Юнона. Твой запрос отправлен на модерацию.\n\n" \
+                  f"Скоро ты получишь доступ к общению."
 
-            await update.message.reply_text(f"Ɉ\n\n{greeting}")
-        except Exception as e:
-            logger.error(f"Junona error: {e}")
-            greeting = "Ɉ Привет. Я Юнона.\n\n" \
-                      "Зачем ты тут? О чем хочешь поговорить?"
-            coordinator.add_message(user_id, "junona", greeting)
-            await update.message.reply_text(greeting)
-    else:
-        greeting = "Ɉ Привет. Я Юнона.\n\n" \
-                  "Зачем ты тут? О чем хочешь поговорить?"
-        coordinator.add_message(user_id, "junona", greeting)
-        await update.message.reply_text(greeting)
+    coordinator.add_message(user_id, "junona", greeting)
+    await update.message.reply_text(greeting)
+
+
+def is_asking_for_materials(text: str) -> bool:
+    """Проверяет явный запрос материалов от пользователя"""
+    text_lower = text.lower()
+    keywords = [
+        "что почитать", "дай материал", "есть ссылк", "где про это",
+        "хочу изучить", "можешь дать", "покажи главу", "материалы для изучения",
+        "что читать", "дай ссылк", "скинь материал", "что есть по",
+        "например что", "можешь дать ссылки", "дай книгу", "есть книга"
+    ]
+    return any(kw in text_lower for kw in keywords)
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -399,13 +506,32 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
 
     user_data = get_user(user_id)
+
+    # Проверка одобрения - только одобренные могут общаться
+    if not user_data.get('approved', False):
+        if user_data.get('pending_approval', False):
+            await update.message.reply_text(
+                f"Ɉ\n\n⏳ Твой запрос на модерации.\n\n"
+                f"Скоро получишь ответ."
+            )
+        else:
+            # Пользователь был отклонен
+            await update.message.reply_text(
+                f"Ɉ\n\n❌ Доступ не предоставлен."
+            )
+        return
+
     history = user_data.get('history', [])
 
-    # Сохраняем мысль в поток
-    save_to_stream(user_id, user.username or "аноним", text)
-    logger.info(f"💭 {user.first_name}: {text[:50]}...")
+    # Используем детектор новизны гиппокампа
+    is_thought = hippocampus.is_raw_thought(text)
 
-    # Записываем сообщение в координатор
+    # Сохраняем в поток только если это мысль
+    if is_thought:
+        save_to_stream(user_id, user.username or "аноним", text)
+        logger.info(f"💭 {user.first_name}: {text[:50]}...")
+
+    # Записываем все сообщения в координатор
     coordinator.add_message(user_id, "user", text)
 
     # Проверяем контекст - может ждем впечатления о главе?
@@ -455,15 +581,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             await update.message.reply_text(f"Ɉ\n\n{response}")
 
-            # Анализируем — пора ли предложить главу?
-            dialogue_history = coordinator.get_dialogue_history(user_id, limit=10)
-            recent_messages = [msg["content"] for msg in dialogue_history if msg["role"] == "user"]
-
-            chapter_to_offer = coordinator.should_offer_chapter(user_id, recent_messages)
-            if chapter_to_offer is not None:
-                # Небольшая пауза, потом предлагаем
-                await asyncio.sleep(2)
-                await offer_chapter(update, user_id, chapter_to_offer)
+            # Проверяем - просил ли пользователь материалы ЯВНО?
+            if is_asking_for_materials(text):
+                # Пользователь явно попросил материалы - предлагаем следующую главу
+                next_chapter = coordinator.get_next_chapter(user_id)
+                if next_chapter is not None:
+                    await asyncio.sleep(1)
+                    await offer_chapter(update, user_id, next_chapter)
 
         except Exception as e:
             logger.error(f"Junona error: {e}")
@@ -507,6 +631,7 @@ if __name__ == '__main__':
     application.add_handler(CommandHandler("stream", stream_cmd))
     application.add_handler(CommandHandler("export", export_cmd))
     application.add_handler(CallbackQueryHandler(handle_chapter_choice, pattern="^chapter_"))
+    application.add_handler(CallbackQueryHandler(handle_user_approval, pattern="^(approve|reject)_"))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     logger.info("Ɉ Юнона — живое общение + элегантное изучение Montana")
