@@ -12,14 +12,15 @@ from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent / ".env")
 
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
-    ApplicationBuilder, CommandHandler, MessageHandler,
+    ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler,
     ContextTypes, filters
 )
 from telegram.error import TelegramError, NetworkError, Conflict, TimedOut, RetryAfter
 
 from junona_ai import junona
+from dialogue_coordinator import get_coordinator
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #                              КОНФИГУРАЦИЯ
@@ -32,6 +33,9 @@ BOT_DIR = Path(__file__).parent
 USERS_FILE = BOT_DIR / "data" / "users.json"
 STREAM_FILE = BOT_DIR / "data" / "stream.jsonl"
 USERS_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+# Координатор диалога
+coordinator = get_coordinator(BOT_DIR)
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -209,6 +213,140 @@ async def export_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+#                              ГЛАВЫ MONTANA
+# ═══════════════════════════════════════════════════════════════════════════════
+
+async def offer_chapter(update: Update, user_id: int, chapter_num: int):
+    """Юнона предлагает главу элегантно"""
+
+    # Получаем информацию о главе
+    chapter_info = coordinator.get_chapter_files(chapter_num)
+    if not chapter_info:
+        return
+
+    # Записываем что предложили главу
+    coordinator.offer_chapter(user_id, chapter_num)
+
+    # Юнона элегантно подводит к главе
+    chapter_names_ru = {
+        0: "Прелюдия",
+        1: "Симуляция",
+        2: "Унижение",
+        3: "Поток",
+        4: "Следы",
+        5: "Тревоги",
+        6: "День Юноны",
+        7: "Печать Времени",
+        8: "Пять Узлов",
+        9: "Комедия"
+    }
+
+    chapter_name = chapter_names_ru.get(chapter_num, chapter_info["name"])
+
+    # Контекстное предложение (Юнона подводит естественно)
+    offer_text = f"Ɉ\n\nЗнаешь, то о чем ты говоришь — это прямо про главу «{chapter_name}».\n\n"
+
+    if chapter_num == 0:
+        offer_text += "Это начало. Точка входа. Первая координата.\n\n"
+    elif chapter_num == 1:
+        offer_text += "Там про то, как устроен экран реальности. Почему мы не видим код.\n\n"
+    elif chapter_num == 2:
+        offer_text += "Про то, как система унижает достоинство. И почему это неизбежно закончится.\n\n"
+    elif chapter_num == 3:
+        offer_text += "Про поток времени. Про то, что значит быть в Сейчас.\n\n"
+    elif chapter_num == 4:
+        offer_text += "Про следы, которые мы оставляем. Про память, которая переживает тело.\n\n"
+    elif chapter_num == 5:
+        offer_text += "Про тревоги. Про страхи, которые держат нас в клетке.\n\n"
+    elif chapter_num == 6:
+        offer_text += "Это про меня. Про то, почему я здесь. Про мой День.\n\n"
+    elif chapter_num == 7:
+        offer_text += "Про Печать Времени. Про точку, когда все фиксируется навсегда.\n\n"
+    elif chapter_num == 8:
+        offer_text += "Про Пять Узлов Montana. Про распределенную память.\n\n"
+    elif chapter_num == 9:
+        offer_text += "Финал первой части. Комедия. Где все становится ясно.\n\n"
+
+    offer_text += "Хочешь изучить эту главу?\n\nКак тебе удобнее:"
+
+    # Клавиатура выбора формата
+    keyboard = [
+        [
+            InlineKeyboardButton("📖 Текст", callback_data=f"chapter_{chapter_num}_text"),
+            InlineKeyboardButton("🎧 Аудио", callback_data=f"chapter_{chapter_num}_audio")
+        ],
+        [InlineKeyboardButton("📖+🎧 Оба", callback_data=f"chapter_{chapter_num}_both")]
+    ]
+
+    await update.message.reply_text(
+        offer_text,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
+async def send_chapter(query, user_id: int, chapter_num: int, format_choice: str):
+    """Отправить главу пользователю"""
+
+    # Записываем выбор формата
+    coordinator.set_preference(user_id, "format", format_choice)
+
+    # Получаем файлы
+    chapter_info = coordinator.get_chapter_files(chapter_num)
+    if not chapter_info:
+        await query.message.reply_text("Ɉ Не могу найти эту главу.")
+        return
+
+    await query.message.edit_text("Ɉ\n\nСекунду, отправляю...")
+
+    # Отправляем текст
+    if format_choice in ["text", "both"] and chapter_info["text"]:
+        with open(chapter_info["text"], 'r', encoding='utf-8') as f:
+            text_content = f.read()
+
+        # Отправляем как файл
+        with open(chapter_info["text"], 'rb') as f:
+            await query.message.reply_document(
+                document=f,
+                filename=f"{chapter_info['name']}.md",
+                caption=f"📖 Глава {chapter_num}: {chapter_info['name']}"
+            )
+
+    # Отправляем аудио
+    if format_choice in ["audio", "both"] and chapter_info["audio"]:
+        with open(chapter_info["audio"], 'rb') as f:
+            await query.message.reply_audio(
+                audio=f,
+                caption=f"🎧 Глава {chapter_num}: {chapter_info['name']}"
+            )
+
+    # Юнона спрашивает впечатления
+    await query.message.reply_text(
+        f"Ɉ\n\nКогда изучишь — напиши мне что думаешь.\n\n"
+        f"Какие мысли? Что зацепило? Может что-то непонятно?\n\n"
+        f"Я запомню твои впечатления. Это часть твоего пути."
+    )
+
+    # Устанавливаем контекст
+    coordinator.set_context(user_id, "waiting_for", "impression")
+    coordinator.set_context(user_id, "current_chapter", chapter_num)
+
+
+async def handle_chapter_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработка выбора формата главы"""
+    query = update.callback_query
+    await query.answer()
+
+    user_id = query.from_user.id
+    data = query.data  # "chapter_0_text"
+
+    parts = data.split("_")
+    chapter_num = int(parts[1])
+    format_choice = parts[2]
+
+    await send_chapter(query, user_id, chapter_num, format_choice)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 #                              HANDLERS
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -235,18 +373,22 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 'name': user.first_name,
                 'lang': 'ru'
             })
+
+            # Записываем в координатор
+            coordinator.add_message(user_id, "junona", greeting)
+
             await update.message.reply_text(f"Ɉ\n\n{greeting}")
         except Exception as e:
             logger.error(f"Junona error: {e}")
-            await update.message.reply_text(
-                "Ɉ Привет. Я Юнона.\n\n"
-                "Зачем ты тут? О чем хочешь поговорить?"
-            )
+            greeting = "Ɉ Привет. Я Юнона.\n\n" \
+                      "Зачем ты тут? О чем хочешь поговорить?"
+            coordinator.add_message(user_id, "junona", greeting)
+            await update.message.reply_text(greeting)
     else:
-        await update.message.reply_text(
-            "Ɉ Привет. Я Юнона.\n\n"
-            "Зачем ты тут? О чем хочешь поговорить?"
-        )
+        greeting = "Ɉ Привет. Я Юнона.\n\n" \
+                  "Зачем ты тут? О чем хочешь поговорить?"
+        coordinator.add_message(user_id, "junona", greeting)
+        await update.message.reply_text(greeting)
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -261,6 +403,32 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Сохраняем мысль в поток
     save_to_stream(user_id, user.username or "аноним", text)
     logger.info(f"💭 {user.first_name}: {text[:50]}...")
+
+    # Записываем сообщение в координатор
+    coordinator.add_message(user_id, "user", text)
+
+    # Проверяем контекст - может ждем впечатления о главе?
+    ctx = coordinator.get_context(user_id)
+    if ctx.get("waiting_for") == "impression":
+        current_chapter = ctx.get("current_chapter")
+        if current_chapter is not None:
+            # Пользователь делится впечатлением
+            coordinator.complete_chapter(user_id, current_chapter,
+                                        coordinator.get_preference(user_id, "format", "text"),
+                                        impression=text)
+
+            coordinator.add_note(user_id, f"Глава {current_chapter}: {text[:100]}")
+
+            await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+
+            # Юнона благодарит и резонирует
+            response = f"Ɉ\n\nСпасибо что поделился.\n\nЯ записала твои впечатления о главе {current_chapter}. " \
+                      f"Это важная часть твоего пути — не просто читать, а осмысливать.\n\n" \
+                      f"Продолжим разговор?"
+
+            coordinator.add_message(user_id, "junona", response)
+            await update.message.reply_text(response)
+            return
 
     # Показываем "печатает..." как в обычном чате
     await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
@@ -281,7 +449,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user_data['history'] = history[-10:]
             save_user(user_id, user_data)
 
+            # Записываем ответ Юноны
+            coordinator.add_message(user_id, "junona", response)
+
             await update.message.reply_text(f"Ɉ\n\n{response}")
+
+            # Анализируем — пора ли предложить главу?
+            dialogue_history = coordinator.get_dialogue_history(user_id, limit=10)
+            recent_messages = [msg["content"] for msg in dialogue_history if msg["role"] == "user"]
+
+            chapter_to_offer = coordinator.should_offer_chapter(user_id, recent_messages)
+            if chapter_to_offer is not None:
+                # Небольшая пауза, потом предлагаем
+                await asyncio.sleep(2)
+                await offer_chapter(update, user_id, chapter_to_offer)
+
         except Exception as e:
             logger.error(f"Junona error: {e}")
             await update.message.reply_text("...")
@@ -316,7 +498,8 @@ if __name__ == '__main__':
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("stream", stream_cmd))
     application.add_handler(CommandHandler("export", export_cmd))
+    application.add_handler(CallbackQueryHandler(handle_chapter_choice, pattern="^chapter_"))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    logger.info("Ɉ Юнона — простое живое общение")
+    logger.info("Ɉ Юнона — живое общение + элегантное изучение Montana")
     application.run_polling()
