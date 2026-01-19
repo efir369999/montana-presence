@@ -225,6 +225,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     }
     save_user(user_id, data)
 
+    # Показываем "печатает..."
+    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+
     # Юнона приветствует
     if junona:
         try:
@@ -258,6 +261,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Сохраняем мысль в поток
     save_to_stream(user_id, user.username or "аноним", text)
     logger.info(f"💭 {user.first_name}: {text[:50]}...")
+
+    # Показываем "печатает..." как в обычном чате
+    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
 
     # Юнона отвечает
     if junona:
