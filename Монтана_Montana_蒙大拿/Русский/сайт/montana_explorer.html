@@ -109,8 +109,16 @@
 
         .progress-fill {
             height: 100%;
-            background: #d4af37;
+            background: #ff0000;
             transition: width 0.3s;
+        }
+
+        /* Live updating elements - RED */
+        .card .value,
+        .slice-data span:last-child,
+        #network-age-seconds,
+        #network-age-readable {
+            color: #ff0000 !important;
         }
 
         .nodes {
@@ -240,6 +248,27 @@
                 <h3 id="label-total-supply"></h3>
                 <div class="value" id="total-supply">5,000,000</div>
                 <div class="label" id="label-circulating"></div>
+            </div>
+        </div>
+
+        <!-- Economics Section -->
+        <div class="network-status">
+            <div class="card">
+                <h3 id="label-second-price"></h3>
+                <div class="value" id="second-price">1.00</div>
+                <div class="label" id="label-second-price-unit"></div>
+            </div>
+
+            <div class="card">
+                <h3 id="label-genesis-forecast"></h3>
+                <div class="value" id="genesis-forecast">0.00</div>
+                <div class="label" id="label-genesis-forecast-date">09.01.2027</div>
+            </div>
+
+            <div class="card">
+                <h3 id="label-fiat-value"></h3>
+                <div class="value" id="fiat-value">0</div>
+                <div class="label" id="label-fiat-unit"></div>
             </div>
         </div>
 
@@ -398,7 +427,12 @@
                 'tau1-duration': '1 мин (60с)',
                 'tau2-duration': '10 мин (600с)',
                 'tau3-duration': '14 дней (1,209,600с)',
-                'tau4-duration': '4 года (126,144,000с)'
+                'tau4-duration': '4 года (126,144,000с)',
+                'label-second-price': 'ЦЕНА СЕКУНДЫ',
+                'label-second-price-unit': 'Ɉ / секунда',
+                'label-genesis-forecast': 'ПРОГНОЗ НА ГЕНЕЗИС',
+                'label-fiat-value': 'КУРС В РУБЛЯХ',
+                'label-fiat-unit': '₽ / Ɉ'
             },
             en: {
                 'header-subtitle': 'NETWORK EXPLORER',
@@ -438,7 +472,12 @@
                 'tau1-duration': '1 min (60s)',
                 'tau2-duration': '10 min (600s)',
                 'tau3-duration': '14 days (1,209,600s)',
-                'tau4-duration': '4 years (126,144,000s)'
+                'tau4-duration': '4 years (126,144,000s)',
+                'label-second-price': 'SECOND PRICE',
+                'label-second-price-unit': 'Ɉ / second',
+                'label-genesis-forecast': 'GENESIS FORECAST',
+                'label-fiat-value': 'USD RATE',
+                'label-fiat-unit': '$ / Ɉ'
             },
             zh: {
                 'header-subtitle': '网络浏览器',
@@ -478,7 +517,12 @@
                 'tau1-duration': '1分钟 (60秒)',
                 'tau2-duration': '10分钟 (600秒)',
                 'tau3-duration': '14天 (1,209,600秒)',
-                'tau4-duration': '4年 (126,144,000秒)'
+                'tau4-duration': '4年 (126,144,000秒)',
+                'label-second-price': '秒价',
+                'label-second-price-unit': 'Ɉ / 秒',
+                'label-genesis-forecast': '创世预测',
+                'label-fiat-value': '人民币汇率',
+                'label-fiat-unit': '¥ / Ɉ'
             }
         };
 
@@ -589,12 +633,12 @@
             const elapsed = Math.floor((now - startTime) / 1000);
 
             // Network age
-            document.getElementById('network-age-seconds').textContent = elapsed.toLocaleString() + 's';
             const days = Math.floor(elapsed / 86400);
             const hours = Math.floor((elapsed % 86400) / 3600);
             const minutes = Math.floor((elapsed % 3600) / 60);
             const seconds = elapsed % 60;
-            document.getElementById('network-age-readable').textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+            document.getElementById('network-age-seconds').textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+            document.getElementById('network-age-readable').textContent = elapsed.toLocaleString() + 's';
 
             // τ₀ - seconds
             const tau0Height = elapsed;
@@ -638,11 +682,93 @@
             document.getElementById('tau1-current').textContent = tau1Height.toLocaleString();
             document.getElementById('tau2-current').textContent = tau2Height.toLocaleString();
 
-            // Total supply
-            const emissionPerSecond = 1;
-            const totalEmitted = elapsed * emissionPerSecond;
-            const totalSupply = 5000000 + totalEmitted;
+            // Total supply - Montana Tokenomics (MONTANA.md v11.4)
+            // Total cap: 1,260,000,000 Ɉ = 21 million minutes
+            const TOTAL_CAP = 1260000000;
+
+            // Emission: 3000 Ɉ every τ₂ (10 minutes)
+            const TAU2_EMISSION = 3000;
+
+            // Halving: every 210,000 τ₂ (~4 years)
+            const HALVING_INTERVAL = 210000; // τ₂ slices
+
+            // Calculate which halving epoch we're in
+            const halvingEpoch = Math.floor(tau2Height / HALVING_INTERVAL);
+
+            // Calculate current emission per τ₂ (halving every epoch)
+            const currentEmission = TAU2_EMISSION / Math.pow(2, halvingEpoch);
+
+            // Total emitted = sum of all epochs
+            let totalEmitted = 0;
+            for (let epoch = 0; epoch <= halvingEpoch; epoch++) {
+                const epochEmission = TAU2_EMISSION / Math.pow(2, epoch);
+                if (epoch < halvingEpoch) {
+                    // Complete epoch
+                    totalEmitted += HALVING_INTERVAL * epochEmission;
+                } else {
+                    // Current partial epoch
+                    const tau2InCurrentEpoch = tau2Height % HALVING_INTERVAL;
+                    totalEmitted += tau2InCurrentEpoch * epochEmission;
+                }
+            }
+
+            // Cap at maximum supply
+            totalEmitted = Math.min(totalEmitted, TOTAL_CAP);
+
+            // Distribution: 80% nodes, 20% users (from spec)
+            const nodesShare = totalEmitted * 0.80;
+            const usersShare = totalEmitted * 0.20;
+
+            // Total supply (no pre-allocation, no genesis supply)
+            const totalSupply = totalEmitted;
             document.getElementById('total-supply').textContent = totalSupply.toLocaleString() + ' Ɉ';
+
+            // Second price (daily calculation by Juno)
+            // Formula: totalEmitted / total_network_seconds
+            // Recalculated daily, voted on Genesis Day (Jan 9) by 5 Atlants
+            const secondPrice = (totalEmitted / elapsed).toFixed(2);
+            document.getElementById('second-price').textContent = secondPrice;
+
+            // Genesis Day forecast (Juno calculates every second)
+            // Formula: projected totalEmitted on next Genesis Day / projected total seconds
+            const nextGenesisDay = new Date('2027-01-09T06:00:00Z');
+            const secondsUntilGenesis = Math.floor((nextGenesisDay - now) / 1000);
+            const projectedSecondsAtGenesis = elapsed + secondsUntilGenesis;
+            const projectedTau2AtGenesis = Math.floor(projectedSecondsAtGenesis / 600);
+
+            // Calculate projected emission at Genesis Day
+            let projectedEmission = 0;
+            const projectedHalvingEpoch = Math.floor(projectedTau2AtGenesis / HALVING_INTERVAL);
+            for (let epoch = 0; epoch <= projectedHalvingEpoch; epoch++) {
+                const epochEmission = TAU2_EMISSION / Math.pow(2, epoch);
+                if (epoch < projectedHalvingEpoch) {
+                    projectedEmission += HALVING_INTERVAL * epochEmission;
+                } else {
+                    const tau2InEpoch = projectedTau2AtGenesis % HALVING_INTERVAL;
+                    projectedEmission += tau2InEpoch * epochEmission;
+                }
+            }
+            projectedEmission = Math.min(projectedEmission, TOTAL_CAP);
+
+            // Genesis Day forecast price
+            const genesisForecast = (projectedEmission / projectedSecondsAtGenesis).toFixed(2);
+            document.getElementById('genesis-forecast').textContent = genesisForecast + ' Ɉ';
+
+            // Update Genesis Day date label
+            document.getElementById('label-genesis-forecast-date').textContent = '09.01.2027';
+
+            // Fiat conversion (3 currencies for 3 languages)
+            // Exchange rates (hardcoded, updated by Juno daily)
+            const RATES = {
+                'ru': { rate: 100, symbol: '₽' },  // RUB
+                'en': { rate: 1.05, symbol: '$' }, // USD
+                'zh': { rate: 7.5, symbol: '¥' }   // CNY
+            };
+
+            const currentLang = detectLanguage();
+            const fiatRate = RATES[currentLang];
+            const fiatValue = (parseFloat(secondPrice) * fiatRate.rate).toFixed(2);
+            document.getElementById('fiat-value').textContent = fiatValue + ' ' + fiatRate.symbol;
         }
 
         async function refresh() {
