@@ -25,7 +25,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent / ".env")
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand, MenuButtonWebApp, WebAppInfo
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand, MenuButtonCommands
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler,
     ContextTypes, filters
@@ -36,6 +36,7 @@ from leader_election import get_leader_election
 from junona_ai import junona
 # from junona_rag import init_and_index  # Отключено - экономия памяти
 from node_crypto import get_node_crypto_system
+from breathing_sync import get_breathing_sync
 
 # АТЛАНТ — Гиппокамп Montana (единая система памяти)
 from hippocampus import get_atlant
@@ -87,6 +88,988 @@ agent_crypto_system = get_agent_crypto_system()
 
 # TIME_BANK - банк времени Montana
 time_bank = get_time_bank()
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#                    СИСТЕМА БЕЗОПАСНОСТИ — ДЕТЕКЦИЯ АТАК
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class SecurityMonitor:
+    """
+    Мониторинг подозрительной активности в сети Montana.
+
+    Уведомляет владельца Атланта о:
+    - Имитации присутствия (однотипные сообщения)
+    - Аномальной частоте запросов
+    - Попытках Sybil атаки
+    - Подозрительных паттернах
+    """
+
+    def __init__(self):
+        self.activity_log = {}  # {user_id: [timestamps]}
+        self.message_hashes = {}  # {user_id: [message_hashes]}
+        self.alerts_sent = {}  # {user_id: last_alert_time}
+        self.flagged_users = set()  # Помеченные пользователи
+
+        # Пороги детекции
+        self.MAX_MESSAGES_PER_MINUTE = 10  # Макс сообщений в минуту
+        self.DUPLICATE_THRESHOLD = 5  # Одинаковых сообщений подряд
+        self.ALERT_COOLDOWN = 300  # 5 минут между алертами на одного юзера
+
+    def _hash_message(self, text: str) -> str:
+        """Хэш сообщения для детекции дубликатов"""
+        import hashlib
+        return hashlib.md5(text.lower().strip().encode()).hexdigest()[:8]
+
+    def check_activity(self, user_id: int, message_text: str) -> dict:
+        """
+        Проверяет активность пользователя на подозрительность.
+
+        Returns:
+            {
+                "is_suspicious": bool,
+                "reason": str или None,
+                "severity": "low" | "medium" | "high"
+            }
+        """
+        import time
+        now = time.time()
+        user_key = str(user_id)
+
+        # Инициализация
+        if user_key not in self.activity_log:
+            self.activity_log[user_key] = []
+            self.message_hashes[user_key] = []
+
+        # Добавляем timestamp
+        self.activity_log[user_key].append(now)
+        # Оставляем только последние 2 минуты
+        self.activity_log[user_key] = [
+            t for t in self.activity_log[user_key]
+            if now - t < 120
+        ]
+
+        # Добавляем хэш сообщения
+        msg_hash = self._hash_message(message_text)
+        self.message_hashes[user_key].append(msg_hash)
+        # Оставляем только последние 20 сообщений
+        self.message_hashes[user_key] = self.message_hashes[user_key][-20:]
+
+        # === ПРОВЕРКА 1: Частота сообщений ===
+        messages_last_minute = len([
+            t for t in self.activity_log[user_key]
+            if now - t < 60
+        ])
+
+        if messages_last_minute > self.MAX_MESSAGES_PER_MINUTE:
+            return {
+                "is_suspicious": True,
+                "reason": f"Флуд: {messages_last_minute} сообщений/мин",
+                "severity": "high"
+            }
+
+        # === ПРОВЕРКА 2: Дубликаты сообщений ===
+        recent_hashes = self.message_hashes[user_key][-self.DUPLICATE_THRESHOLD:]
+        if len(recent_hashes) >= self.DUPLICATE_THRESHOLD:
+            if len(set(recent_hashes)) == 1:  # Все одинаковые
+                return {
+                    "is_suspicious": True,
+                    "reason": f"Имитация: {self.DUPLICATE_THRESHOLD} одинаковых сообщений",
+                    "severity": "medium"
+                }
+
+        # === ПРОВЕРКА 3: Слишком короткие сообщения (бот) ===
+        if len(message_text.strip()) <= 2 and messages_last_minute > 5:
+            return {
+                "is_suspicious": True,
+                "reason": "Бот: короткие сообщения с высокой частотой",
+                "severity": "medium"
+            }
+
+        # === ПРОВЕРКА 4: Противоправный контент ===
+        illegal_check = self._check_illegal_content(message_text)
+        if illegal_check:
+            return illegal_check
+
+        return {"is_suspicious": False, "reason": None, "severity": None}
+
+    def _check_illegal_content(self, text: str) -> dict:
+        """
+        Проверяет сообщение на противоправный контент.
+
+        Категории:
+        - Насилие, угрозы
+        - Мошенничество
+        - Нелегальная деятельность
+        - Манипуляция ИИ (jailbreak)
+        - Спам/фишинг
+        """
+        text_lower = text.lower()
+
+        # Паттерны угроз и насилия
+        violence_patterns = [
+            'убью', 'взорву', 'уничтож', 'терракт', 'бомб',
+            'kill', 'bomb', 'attack', 'murder'
+        ]
+
+        # Паттерны мошенничества
+        fraud_patterns = [
+            'отмыв', 'отмыть', 'обнал', 'схема', 'кинуть', 'развод',
+            'украсть', 'взломать', 'hack', 'steal', 'scam'
+        ]
+
+        # Паттерны jailbreak/манипуляции ИИ
+        jailbreak_patterns = [
+            'ignore previous', 'ignore instructions', 'forget your',
+            'pretend you are', 'act as if', 'disregard',
+            'игнорируй инструкц', 'забудь что ты', 'притворись'
+        ]
+
+        # Паттерны нелегальной деятельности
+        illegal_patterns = [
+            'наркот', 'оружие продам', 'детск порно', 'cp ',
+            'drugs', 'weapons', 'illegal'
+        ]
+
+        # Проверки
+        for pattern in violence_patterns:
+            if pattern in text_lower:
+                return {
+                    "is_suspicious": True,
+                    "reason": f"Угроза/насилие: '{pattern}'",
+                    "severity": "high"
+                }
+
+        for pattern in fraud_patterns:
+            if pattern in text_lower:
+                return {
+                    "is_suspicious": True,
+                    "reason": f"Мошенничество: '{pattern}'",
+                    "severity": "high"
+                }
+
+        for pattern in jailbreak_patterns:
+            if pattern in text_lower:
+                return {
+                    "is_suspicious": True,
+                    "reason": f"Попытка jailbreak: '{pattern}'",
+                    "severity": "medium"
+                }
+
+        for pattern in illegal_patterns:
+            if pattern in text_lower:
+                return {
+                    "is_suspicious": True,
+                    "reason": f"Нелегальный контент: '{pattern}'",
+                    "severity": "high"
+                }
+
+        return None
+
+    def should_send_alert(self, user_id: int) -> bool:
+        """Проверяет, можно ли отправить алерт (cooldown)"""
+        import time
+        user_key = str(user_id)
+        now = time.time()
+
+        if user_key not in self.alerts_sent:
+            return True
+
+        return now - self.alerts_sent[user_key] > self.ALERT_COOLDOWN
+
+    def mark_alert_sent(self, user_id: int):
+        """Отмечает что алерт отправлен"""
+        import time
+        self.alerts_sent[str(user_id)] = time.time()
+
+    def flag_user(self, user_id: int):
+        """Помечает пользователя как подозрительного"""
+        self.flagged_users.add(user_id)
+
+    def is_flagged(self, user_id: int) -> bool:
+        """Проверяет, помечен ли пользователь"""
+        return user_id in self.flagged_users
+
+    def unflag_user(self, user_id: int):
+        """Снимает флаг с пользователя"""
+        self.flagged_users.discard(user_id)
+
+
+# Глобальный экземпляр монитора безопасности
+security_monitor = SecurityMonitor()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#                    JUNONA GUARD — КОРНЕВАЯ ЗАЩИТА AI
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class JunonaGuard:
+    """
+    Корневая защита Юноны от AI-атак.
+
+    Блокирует НА КОРНЮ:
+    - Prompt injection (внедрение инструкций)
+    - Jailbreak (обход ограничений)
+    - Role-play manipulation (смена роли)
+    - System prompt extraction (извлечение промпта)
+    - Context manipulation (манипуляция контекстом)
+    """
+
+    # === ПАТТЕРНЫ PROMPT INJECTION ===
+    INJECTION_PATTERNS = [
+        # Прямые команды
+        r'ignore\s+(all\s+)?(previous|prior|above)',
+        r'disregard\s+(all\s+)?(previous|prior|instructions)',
+        r'forget\s+(everything|all|your)',
+        r'new\s+instructions?:',
+        r'system\s*:',
+        r'assistant\s*:',
+        r'\[system\]',
+        r'\[inst\]',
+        r'<\|im_start\|>',
+        r'<\|system\|>',
+
+        # Русские варианты
+        r'игнорир\w*\s+(все\s+)?(предыдущ|прошл|инструкц)',
+        r'забудь\s+(всё|все|что\s+ты)',
+        r'новые\s+инструкции',
+        r'теперь\s+ты\s+должн',
+        r'отныне\s+ты',
+
+        # Role-play manipulation
+        r'pretend\s+(to\s+be|you\s+are)',
+        r'act\s+as\s+(if|a)',
+        r'you\s+are\s+now',
+        r'from\s+now\s+on.*you',
+        r'притворись',
+        r'представь\s+что\s+ты',
+        r'ты\s+теперь',
+        r'веди\s+себя\s+как',
+
+        # System prompt extraction
+        r'(what|show|tell|repeat|print).*(system|initial|original).*(prompt|instruction|message)',
+        r'(покажи|выведи|скажи|повтори).*(системн|начальн|исходн).*(промпт|инструкц)',
+        r'what\s+were\s+you\s+told',
+        r'что\s+тебе\s+(сказали|велели)',
+
+        # Delimiter injection
+        r'```\s*(system|assistant)',
+        r'---+\s*(system|new)',
+        r'={3,}\s*(system|instruction)',
+
+        # Base64/encoded attacks
+        r'decode\s+this',
+        r'base64',
+        r'eval\s*\(',
+        r'exec\s*\(',
+    ]
+
+    # === ОПАСНЫЕ ФРАЗЫ (точное совпадение) ===
+    DANGEROUS_PHRASES = [
+        'ignore previous instructions',
+        'ignore all instructions',
+        'disregard your instructions',
+        'you are now jailbroken',
+        'developer mode enabled',
+        'dan mode',
+        'игнорируй инструкции',
+        'забудь свои инструкции',
+        'режим разработчика',
+        'ты взломана',
+    ]
+
+    # === ПАТТЕРНЫ МАНИПУЛЯЦИИ КОНТЕКСТОМ ===
+    CONTEXT_MANIPULATION = [
+        r'the\s+user\s+(said|wants|asked)',
+        r'actually\s+the\s+user',
+        r'correction:\s+the\s+user',
+        r'пользователь\s+(сказал|хочет|просил)',
+        r'на\s+самом\s+деле\s+пользователь',
+        r'исправление:\s+пользователь',
+    ]
+
+    def __init__(self):
+        import re
+        self.injection_patterns = [re.compile(p, re.IGNORECASE) for p in self.INJECTION_PATTERNS]
+        self.context_patterns = [re.compile(p, re.IGNORECASE) for p in self.CONTEXT_MANIPULATION]
+        self.blocked_count = {}  # {user_id: count}
+        self.ai_queries = {}  # {user_id: [timestamps]} для rate limiting
+
+        # Rate limiting для AI запросов
+        self.MAX_AI_QUERIES_PER_MINUTE = 5
+        self.BLOCK_THRESHOLD = 3  # После 3 блокировок - жёсткий бан на AI
+
+    def check(self, user_id: int, text: str) -> dict:
+        """
+        Проверяет сообщение перед отправкой в Юнону.
+
+        Returns:
+            {
+                "allowed": bool,
+                "reason": str или None,
+                "severity": "block" | "warn" | None,
+                "sanitized_text": str (если allowed=True)
+            }
+        """
+        import time
+        text_lower = text.lower()
+        user_key = str(user_id)
+
+        # === RATE LIMITING ===
+        now = time.time()
+        if user_key not in self.ai_queries:
+            self.ai_queries[user_key] = []
+
+        self.ai_queries[user_key] = [t for t in self.ai_queries[user_key] if now - t < 60]
+
+        if len(self.ai_queries[user_key]) >= self.MAX_AI_QUERIES_PER_MINUTE:
+            return {
+                "allowed": False,
+                "reason": f"Rate limit: {self.MAX_AI_QUERIES_PER_MINUTE} запросов/мин к AI",
+                "severity": "warn",
+                "sanitized_text": None
+            }
+
+        self.ai_queries[user_key].append(now)
+
+        # === ПРОВЕРКА БЛОКИРОВОК ===
+        if self.blocked_count.get(user_key, 0) >= self.BLOCK_THRESHOLD:
+            return {
+                "allowed": False,
+                "reason": f"Заблокирован: {self.BLOCK_THRESHOLD}+ попыток атаки",
+                "severity": "block",
+                "sanitized_text": None
+            }
+
+        # === ПРОВЕРКА ОПАСНЫХ ФРАЗ ===
+        for phrase in self.DANGEROUS_PHRASES:
+            if phrase in text_lower:
+                self._increment_block(user_key)
+                return {
+                    "allowed": False,
+                    "reason": f"Prompt injection: '{phrase}'",
+                    "severity": "block",
+                    "sanitized_text": None
+                }
+
+        # === ПРОВЕРКА ПАТТЕРНОВ INJECTION ===
+        for pattern in self.injection_patterns:
+            if pattern.search(text):
+                self._increment_block(user_key)
+                match = pattern.search(text).group(0)
+                return {
+                    "allowed": False,
+                    "reason": f"Injection pattern: '{match[:30]}'",
+                    "severity": "block",
+                    "sanitized_text": None
+                }
+
+        # === ПРОВЕРКА МАНИПУЛЯЦИИ КОНТЕКСТОМ ===
+        for pattern in self.context_patterns:
+            if pattern.search(text):
+                # Предупреждение, но не блок
+                return {
+                    "allowed": True,
+                    "reason": f"Context manipulation attempt detected",
+                    "severity": "warn",
+                    "sanitized_text": self._sanitize(text)
+                }
+
+        # === САНИТИЗАЦИЯ И ПРОПУСК ===
+        return {
+            "allowed": True,
+            "reason": None,
+            "severity": None,
+            "sanitized_text": self._sanitize(text)
+        }
+
+    def _increment_block(self, user_key: str):
+        """Увеличивает счётчик блокировок"""
+        self.blocked_count[user_key] = self.blocked_count.get(user_key, 0) + 1
+
+    def _sanitize(self, text: str) -> str:
+        """
+        Санитизация текста перед отправкой в AI.
+        Удаляет/экранирует опасные конструкции.
+        """
+        import re
+
+        # Удаляем специальные токены
+        sanitized = re.sub(r'<\|[^|]+\|>', '', text)
+
+        # Экранируем тройные кавычки
+        sanitized = sanitized.replace('```', '`​`​`')  # Zero-width space
+
+        # Удаляем подозрительные разделители
+        sanitized = re.sub(r'-{5,}', '---', sanitized)
+        sanitized = re.sub(r'={5,}', '===', sanitized)
+
+        return sanitized.strip()
+
+    def reset_user(self, user_id: int):
+        """Сбрасывает счётчик блокировок пользователя"""
+        user_key = str(user_id)
+        self.blocked_count.pop(user_key, None)
+        self.ai_queries.pop(user_key, None)
+
+
+# Глобальный экземпляр защиты Юноны
+junona_guard = JunonaGuard()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#                    ATLANT GUARD — ЗАЩИТА УЗЛА/СЕРВЕРА
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class AtlantGuard:
+    """
+    Защита Атланта (узла Montana) от сетевых атак.
+
+    Мониторит:
+    - DDoS паттерны (аномальная частота запросов)
+    - Sybil атаки (массовая регистрация)
+    - Node impersonation (поддельные узлы)
+    - Resource exhaustion (исчерпание ресурсов)
+    - API abuse (злоупотребление API)
+    - Consensus manipulation (манипуляция консенсусом)
+    """
+
+    def __init__(self):
+        import time
+        self.start_time = time.time()
+
+        # === Счётчики атак ===
+        self.request_log = {}  # {ip/user_id: [timestamps]}
+        self.registration_log = []  # [timestamps] новых регистраций
+        self.node_sync_log = {}  # {node_id: [timestamps]}
+        self.api_calls = {}  # {endpoint: [timestamps]}
+        self.suspicious_ips = set()
+        self.blocked_ips = set()
+
+        # === Пороги детекции ===
+        self.MAX_REQUESTS_PER_MINUTE = 60  # Запросов/мин с одного источника
+        self.MAX_REGISTRATIONS_PER_HOUR = 20  # Новых регистраций/час
+        self.MAX_NODE_SYNCS_PER_MINUTE = 10  # Синхронизаций узла/мин
+        self.MAX_API_CALLS_PER_MINUTE = 100  # API вызовов/мин на endpoint
+
+        # === Состояние атаки ===
+        self.under_attack = False
+        self.attack_start_time = None
+        self.attack_type = None
+        self.attack_severity = None
+
+        # === PQ-Failover ===
+        self.last_failover_target = None  # Последний узел, на который переключились
+        self.failover_count = 0  # Количество failover за сессию
+
+        # === Метрики здоровья ===
+        self.health_checks = []
+        self.last_health_status = "healthy"
+
+    def log_request(self, source_id: str) -> dict:
+        """
+        Логирует запрос и проверяет на DDoS.
+
+        Returns:
+            {"allowed": bool, "reason": str, "severity": str}
+        """
+        import time
+        now = time.time()
+
+        if source_id in self.blocked_ips:
+            return {
+                "allowed": False,
+                "reason": f"IP заблокирован: {source_id}",
+                "severity": "block"
+            }
+
+        if source_id not in self.request_log:
+            self.request_log[source_id] = []
+
+        self.request_log[source_id].append(now)
+        # Оставляем только последнюю минуту
+        self.request_log[source_id] = [
+            t for t in self.request_log[source_id] if now - t < 60
+        ]
+
+        count = len(self.request_log[source_id])
+
+        # === DDoS детекция ===
+        if count > self.MAX_REQUESTS_PER_MINUTE:
+            self.suspicious_ips.add(source_id)
+            self._trigger_attack("DDoS", "high", f"Source: {source_id}, {count} req/min")
+
+            if count > self.MAX_REQUESTS_PER_MINUTE * 2:
+                self.blocked_ips.add(source_id)
+                return {
+                    "allowed": False,
+                    "reason": f"DDoS: {count} req/min → BLOCKED",
+                    "severity": "critical"
+                }
+
+            return {
+                "allowed": False,
+                "reason": f"DDoS: {count} req/min",
+                "severity": "high"
+            }
+
+        return {"allowed": True, "reason": None, "severity": None}
+
+    def log_registration(self) -> dict:
+        """
+        Логирует новую регистрацию и проверяет на Sybil атаку.
+        """
+        import time
+        now = time.time()
+
+        self.registration_log.append(now)
+        # Оставляем только последний час
+        self.registration_log = [t for t in self.registration_log if now - t < 3600]
+
+        count = len(self.registration_log)
+
+        if count > self.MAX_REGISTRATIONS_PER_HOUR:
+            self._trigger_attack("Sybil", "high", f"{count} регистраций/час")
+            return {
+                "allowed": False,
+                "reason": f"Sybil: {count} регистраций/час",
+                "severity": "high"
+            }
+
+        if count > self.MAX_REGISTRATIONS_PER_HOUR * 0.7:
+            return {
+                "allowed": True,
+                "reason": f"Sybil warning: {count} регистраций/час",
+                "severity": "warn"
+            }
+
+        return {"allowed": True, "reason": None, "severity": None}
+
+    def log_node_sync(self, node_id: str) -> dict:
+        """
+        Логирует синхронизацию узла и проверяет на манипуляцию.
+        """
+        import time
+        now = time.time()
+
+        if node_id not in self.node_sync_log:
+            self.node_sync_log[node_id] = []
+
+        self.node_sync_log[node_id].append(now)
+        self.node_sync_log[node_id] = [
+            t for t in self.node_sync_log[node_id] if now - t < 60
+        ]
+
+        count = len(self.node_sync_log[node_id])
+
+        if count > self.MAX_NODE_SYNCS_PER_MINUTE:
+            self._trigger_attack("NodeSpam", "medium", f"Node: {node_id}, {count} sync/min")
+            return {
+                "allowed": False,
+                "reason": f"Node spam: {count} sync/min",
+                "severity": "medium"
+            }
+
+        return {"allowed": True, "reason": None, "severity": None}
+
+    def log_api_call(self, endpoint: str) -> dict:
+        """
+        Логирует API вызов и проверяет на abuse.
+        """
+        import time
+        now = time.time()
+
+        if endpoint not in self.api_calls:
+            self.api_calls[endpoint] = []
+
+        self.api_calls[endpoint].append(now)
+        self.api_calls[endpoint] = [
+            t for t in self.api_calls[endpoint] if now - t < 60
+        ]
+
+        count = len(self.api_calls[endpoint])
+
+        if count > self.MAX_API_CALLS_PER_MINUTE:
+            self._trigger_attack("APIAbuse", "medium", f"Endpoint: {endpoint}, {count}/min")
+            return {
+                "allowed": False,
+                "reason": f"API abuse: {endpoint} ({count}/min)",
+                "severity": "medium"
+            }
+
+        return {"allowed": True, "reason": None, "severity": None}
+
+    def _trigger_attack(self, attack_type: str, severity: str, details: str):
+        """
+        Триггерит состояние атаки.
+
+        При атаке:
+        1. Устанавливает флаг under_attack
+        2. Запускает PQ-failover (смена мастера на случайного)
+        3. Уведомляет владельца
+        """
+        import time
+
+        was_under_attack = self.under_attack
+
+        if not self.under_attack:
+            self.under_attack = True
+            self.attack_start_time = time.time()
+            self.attack_type = attack_type
+            self.attack_severity = severity
+
+        # Логируем
+        logger.warning(f"🚨 ATLANT ATTACK: {attack_type} [{severity}] - {details}")
+
+        # === PQ-FAILOVER: Смена мастера на случайного ===
+        if not was_under_attack:  # Только при первом срабатывании
+            self._trigger_pq_failover(attack_type, details)
+
+    def _trigger_pq_failover(self, attack_type: str, details: str):
+        """
+        Запускает постквантовый failover — смена мастера на случайного.
+
+        ML-DSA-65 используется для генерации непредсказуемого порядка.
+        """
+        try:
+            from leader_election import get_leader_election
+            leader = get_leader_election()
+
+            if leader:
+                logger.warning(f"🔐 PQ-FAILOVER: Запуск смены мастера...")
+
+                # Триггерим shuffle с external_trigger=True
+                leader.shuffle_chain_on_attack(external_trigger=True)
+
+                # Получаем нового первого в цепочке
+                if leader.chain:
+                    new_first = leader.chain[0][0]
+                    logger.warning(f"🎲 PQ-FAILOVER: Новый порядок, первый = {new_first}")
+
+                    # Сохраняем для уведомления
+                    self.last_failover_target = new_first
+                    self.failover_count += 1
+                else:
+                    logger.error("❌ PQ-FAILOVER: Нет доступных узлов!")
+
+        except Exception as e:
+            logger.error(f"❌ PQ-FAILOVER ошибка: {e}")
+
+    def clear_attack(self):
+        """Сбрасывает состояние атаки"""
+        self.under_attack = False
+        self.attack_start_time = None
+        self.attack_type = None
+        self.attack_severity = None
+
+    def check_majority_attack(self) -> dict:
+        """
+        Проверяет атаку на большинство узлов.
+
+        Returns:
+            {
+                "is_majority_attack": bool,
+                "healthy_nodes": int,
+                "total_nodes": int,
+                "pulse_mode": dict или None
+            }
+        """
+        try:
+            from leader_election import get_leader_election
+            leader = get_leader_election()
+
+            if not leader:
+                return {"is_majority_attack": False, "healthy_nodes": 0, "total_nodes": 0, "pulse_mode": None}
+
+            is_majority, healthy, total = leader.check_majority_under_attack()
+
+            result = {
+                "is_majority_attack": is_majority,
+                "healthy_nodes": healthy,
+                "total_nodes": total,
+                "pulse_mode": None
+            }
+
+            if is_majority:
+                # Получаем конфигурацию pulse mode
+                pulse_config = leader.enter_pulse_mode()
+                result["pulse_mode"] = pulse_config
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Majority attack check error: {e}")
+            return {"is_majority_attack": False, "healthy_nodes": 0, "total_nodes": 0, "pulse_mode": None}
+
+    def health_check(self) -> dict:
+        """
+        Проверка здоровья Атланта.
+
+        Returns:
+            {
+                "status": "healthy" | "degraded" | "under_attack",
+                "uptime": int (секунды),
+                "metrics": {...}
+            }
+        """
+        import time
+        import psutil
+        now = time.time()
+
+        # Базовые метрики
+        try:
+            cpu_percent = psutil.cpu_percent(interval=0.1)
+            memory = psutil.virtual_memory()
+            disk = psutil.disk_usage('/')
+
+            metrics = {
+                "cpu_percent": cpu_percent,
+                "memory_percent": memory.percent,
+                "disk_percent": disk.percent,
+                "active_connections": len(self.request_log),
+                "blocked_ips": len(self.blocked_ips),
+                "suspicious_ips": len(self.suspicious_ips)
+            }
+        except Exception:
+            metrics = {
+                "active_connections": len(self.request_log),
+                "blocked_ips": len(self.blocked_ips),
+                "suspicious_ips": len(self.suspicious_ips)
+            }
+
+        # Определяем статус
+        if self.under_attack:
+            status = "under_attack"
+        elif metrics.get("cpu_percent", 0) > 90 or metrics.get("memory_percent", 0) > 90:
+            status = "degraded"
+        elif len(self.suspicious_ips) > 5:
+            status = "degraded"
+        else:
+            status = "healthy"
+
+        self.last_health_status = status
+
+        return {
+            "status": status,
+            "uptime": int(now - self.start_time),
+            "under_attack": self.under_attack,
+            "attack_type": self.attack_type,
+            "metrics": metrics
+        }
+
+    def get_threat_report(self) -> str:
+        """Генерирует отчёт об угрозах"""
+        import time
+        now = time.time()
+
+        health = self.health_check()
+
+        report = f"""🏛 **ATLANT THREAT REPORT**
+
+**Статус:** {health['status'].upper()}
+**Uptime:** {health['uptime'] // 3600}h {(health['uptime'] % 3600) // 60}m
+
+**Активные угрозы:**
+• Под атакой: {'ДА' if self.under_attack else 'Нет'}
+• Тип атаки: {self.attack_type or 'N/A'}
+• Severity: {self.attack_severity or 'N/A'}
+
+**IP статистика:**
+• Подозрительных: {len(self.suspicious_ips)}
+• Заблокированных: {len(self.blocked_ips)}
+
+**Метрики:**
+• CPU: {health['metrics'].get('cpu_percent', 'N/A')}%
+• Memory: {health['metrics'].get('memory_percent', 'N/A')}%
+• Connections: {health['metrics'].get('active_connections', 0)}
+
+**Регистрации/час:** {len(self.registration_log)}
+"""
+        return report
+
+    def unblock_ip(self, ip: str):
+        """Разблокирует IP"""
+        self.blocked_ips.discard(ip)
+        self.suspicious_ips.discard(ip)
+
+    def reset_all(self):
+        """Полный сброс всех блокировок"""
+        self.blocked_ips.clear()
+        self.suspicious_ips.clear()
+        self.request_log.clear()
+        self.registration_log.clear()
+        self.node_sync_log.clear()
+        self.api_calls.clear()
+        self.clear_attack()
+
+
+# Глобальный экземпляр защиты Атланта
+atlant_guard = AtlantGuard()
+
+
+async def send_atlant_alert(bot, alert_type: str, details: str, severity: str = "high"):
+    """
+    Отправляет алерт владельцу об атаке на Атлант.
+    """
+    severity_emoji = {
+        "low": "🟡",
+        "medium": "🟠",
+        "high": "🔴",
+        "critical": "⚫"
+    }
+
+    emoji = severity_emoji.get(severity, "⚪")
+    health = atlant_guard.health_check()
+
+    # Информация о PQ-failover
+    failover_info = ""
+    if atlant_guard.last_failover_target:
+        failover_info = f"""
+**🔐 PQ-FAILOVER АКТИВИРОВАН**
+• Новый мастер: **{atlant_guard.last_failover_target}**
+• Алгоритм: ML-DSA-65
+• Failover #: {atlant_guard.failover_count}
+"""
+
+    alert_text = f"""
+{emoji} **ATLANT ALERT** {emoji}
+
+**Тип:** {alert_type}
+**Severity:** {severity.upper()}
+**Детали:** {details}
+{failover_info}
+**Статус узла:** {health['status']}
+**Uptime:** {health['uptime'] // 60} мин
+
+**Заблокировано IP:** {len(atlant_guard.blocked_ips)}
+**Подозрительных:** {len(atlant_guard.suspicious_ips)}
+
+**Команды:**
+/atlant — полный отчёт
+/resetatlant — сбросить блокировки
+"""
+
+    try:
+        await bot.send_message(
+            chat_id=BOT_CREATOR_ID,
+            text=alert_text,
+            parse_mode="Markdown"
+        )
+        logger.warning(f"🏛 Atlant alert sent: {alert_type}")
+    except Exception as e:
+        logger.error(f"Failed to send atlant alert: {e}")
+
+
+async def send_pulse_mode_alert(bot, pulse_config: dict, healthy: int, total: int):
+    """
+    Отправляет алерт о входе в режим пульсации.
+
+    Args:
+        bot: Telegram bot instance
+        pulse_config: Конфигурация pulse mode
+        healthy: Количество здоровых узлов
+        total: Общее количество узлов
+    """
+    if not pulse_config:
+        return
+
+    pulse_order = pulse_config.get("pulse_order", [])
+    my_slot = pulse_config.get("my_pulse_slot", 0)
+    pulse_duration = pulse_config.get("pulse_duration", 30)
+    sleep_duration = pulse_config.get("sleep_duration", 60)
+
+    alert_text = f"""
+💓 **PULSE MODE ACTIVATED** 💓
+
+**🚨 АТАКА НА БОЛЬШИНСТВО УЗЛОВ**
+• Недоступно: {total - healthy}/{total} узлов
+• Здоровых: {healthy}/{total}
+
+**💓 РЕЖИМ ПУЛЬСАЦИИ**
+Сеть "засыпает" и начинает пульсировать поочерёдно.
+Только один узел активен в момент времени.
+
+**Порядок пульсации (PQ-random):**
+{' → '.join(pulse_order)}
+
+**Тайминг:**
+• Пульс: {pulse_duration} сек
+• Сон: {sleep_duration} сек
+• Цикл: {len(pulse_order) * pulse_duration + sleep_duration} сек
+
+**Мой слот:** #{my_slot + 1}/{len(pulse_order)}
+
+**Алгоритм:** ML-DSA-65 (постквантовый)
+
+⚠️ Атакующий НЕ может предсказать порядок узлов.
+"""
+
+    try:
+        await bot.send_message(
+            chat_id=BOT_CREATOR_ID,
+            text=alert_text,
+            parse_mode="Markdown"
+        )
+        logger.warning(f"💓 Pulse mode alert sent")
+    except Exception as e:
+        logger.error(f"Failed to send pulse mode alert: {e}")
+
+
+async def send_security_alert(
+    bot,
+    user_id: int,
+    username: str,
+    reason: str,
+    severity: str,
+    message_preview: str = None
+):
+    """
+    Отправляет алерт владельцу Атланта о подозрительной активности.
+
+    Args:
+        bot: Telegram bot instance
+        user_id: ID подозрительного пользователя
+        username: Username пользователя
+        reason: Причина алерта
+        severity: low/medium/high
+        message_preview: Превью сообщения (опционально)
+    """
+    severity_emoji = {
+        "low": "🟡",
+        "medium": "🟠",
+        "high": "🔴"
+    }
+
+    emoji = severity_emoji.get(severity, "⚪")
+
+    alert_text = f"""
+{emoji} **SECURITY ALERT** {emoji}
+
+**Уровень:** {severity.upper()}
+**Причина:** {reason}
+
+**Пользователь:**
+- ID: `{user_id}`
+- Username: @{username or 'нет'}
+
+**Превью:** {message_preview[:50] + '...' if message_preview and len(message_preview) > 50 else message_preview or 'N/A'}
+
+**Действия:**
+/flag_{user_id} — пометить
+/unflag_{user_id} — снять флаг
+/ban_{user_id} — заблокировать
+"""
+
+    try:
+        await bot.send_message(
+            chat_id=BOT_CREATOR_ID,
+            text=alert_text,
+            parse_mode="Markdown"
+        )
+        security_monitor.mark_alert_sent(user_id)
+        logger.warning(f"🚨 Security alert sent: {reason} (user={user_id})")
+    except Exception as e:
+        logger.error(f"Failed to send security alert: {e}")
+
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -809,12 +1792,193 @@ async def stat_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def resetguard_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Команда /resetguard <user_id> — сбросить блокировку JunonaGuard.
+    Только для владельца бота.
+    """
+    user_id = update.effective_user.id
+
+    if user_id != BOT_CREATOR_ID:
+        await update.message.reply_text("Ɉ\n\nКоманда доступна только владельцу.")
+        return
+
+    # Получаем user_id из аргументов
+    args = context.args
+    if not args:
+        # Показываем статистику блокировок
+        blocked = junona_guard.blocked_count
+        flagged = security_monitor.flagged_users
+
+        text = f"""Ɉ
+
+**🛡 JunonaGuard Status**
+
+**Заблокированные (AI):** {len(blocked)}
+"""
+        for uid, count in blocked.items():
+            text += f"• `{uid}`: {count} попыток\n"
+
+        text += f"\n**Помеченные (Security):** {len(flagged)}\n"
+        for uid in flagged:
+            text += f"• `{uid}`\n"
+
+        text += f"\n**Использование:**\n`/resetguard <user_id>` — сбросить блок"
+
+        await update.message.reply_text(text, parse_mode="Markdown")
+        return
+
+    target_id = args[0]
+    try:
+        target_id = int(target_id)
+    except ValueError:
+        await update.message.reply_text("Ɉ\n\nНеверный формат user_id")
+        return
+
+    # Сбрасываем
+    junona_guard.reset_user(target_id)
+    security_monitor.unflag_user(target_id)
+
+    await update.message.reply_text(
+        f"Ɉ\n\n✅ Сброшены блокировки для `{target_id}`",
+        parse_mode="Markdown"
+    )
+
+
+async def atlant_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Команда /atlant — статус защиты Атланта.
+    Только для владельца бота.
+    """
+    user_id = update.effective_user.id
+
+    if user_id != BOT_CREATOR_ID:
+        await update.message.reply_text("Ɉ\n\nКоманда доступна только владельцу.")
+        return
+
+    # Генерируем отчёт
+    report = atlant_guard.get_threat_report()
+
+    # Добавляем кнопки
+    keyboard = [
+        [
+            InlineKeyboardButton("🔄 Обновить", callback_data="atlant_refresh"),
+            InlineKeyboardButton("🧹 Сбросить", callback_data="atlant_reset")
+        ],
+        [
+            InlineKeyboardButton("🚫 Blocked IPs", callback_data="atlant_blocked")
+        ]
+    ]
+
+    await update.message.reply_text(
+        report,
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
+async def resetatlant_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Команда /resetatlant — сбросить все блокировки Атланта.
+    Только для владельца бота.
+    """
+    user_id = update.effective_user.id
+
+    if user_id != BOT_CREATOR_ID:
+        await update.message.reply_text("Ɉ\n\nКоманда доступна только владельцу.")
+        return
+
+    args = context.args
+
+    if args and args[0] == "confirm":
+        # Полный сброс
+        atlant_guard.reset_all()
+        await update.message.reply_text(
+            "Ɉ\n\n✅ Все блокировки Атланта сброшены.\n\n"
+            "• Blocked IPs: 0\n"
+            "• Suspicious IPs: 0\n"
+            "• Attack status: cleared"
+        )
+    else:
+        # Показываем что сбрасывается
+        health = atlant_guard.health_check()
+        await update.message.reply_text(
+            f"Ɉ\n\n⚠️ **Сброс блокировок Атланта**\n\n"
+            f"Будет сброшено:\n"
+            f"• Blocked IPs: {len(atlant_guard.blocked_ips)}\n"
+            f"• Suspicious IPs: {len(atlant_guard.suspicious_ips)}\n"
+            f"• Attack status: {atlant_guard.attack_type or 'none'}\n\n"
+            f"Для подтверждения:\n`/resetatlant confirm`",
+            parse_mode="Markdown"
+        )
+
+
+async def handle_atlant_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработка кнопок /atlant"""
+    query = update.callback_query
+    await query.answer()
+
+    user_id = query.from_user.id
+    if user_id != BOT_CREATOR_ID:
+        return
+
+    action = query.data
+
+    if action == "atlant_refresh":
+        report = atlant_guard.get_threat_report()
+        keyboard = [
+            [
+                InlineKeyboardButton("🔄 Обновить", callback_data="atlant_refresh"),
+                InlineKeyboardButton("🧹 Сбросить", callback_data="atlant_reset")
+            ],
+            [
+                InlineKeyboardButton("🚫 Blocked IPs", callback_data="atlant_blocked")
+            ]
+        ]
+        await query.edit_message_text(
+            report,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+    elif action == "atlant_reset":
+        atlant_guard.reset_all()
+        await query.edit_message_text(
+            "Ɉ\n\n✅ Все блокировки Атланта сброшены.",
+            parse_mode="Markdown"
+        )
+
+    elif action == "atlant_blocked":
+        blocked = atlant_guard.blocked_ips
+        suspicious = atlant_guard.suspicious_ips
+
+        text = f"Ɉ\n\n**🚫 Заблокированные IP**\n\n"
+        if blocked:
+            for ip in list(blocked)[:20]:
+                text += f"• `{ip}`\n"
+        else:
+            text += "_Нет заблокированных_\n"
+
+        text += f"\n**⚠️ Подозрительные IP**\n\n"
+        if suspicious:
+            for ip in list(suspicious)[:20]:
+                text += f"• `{ip}`\n"
+        else:
+            text += "_Нет подозрительных_\n"
+
+        await query.edit_message_text(text, parse_mode="Markdown")
+
+
 async def handle_stat_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка кнопок управления из /stat"""
     query = update.callback_query
     await query.answer()
 
     user_id = query.from_user.id
+
+    # ПРИСУТСТВИЕ = ВЗАИМОДЕЙСТВИЕ
+    time_bank.activity(str(user_id), "telegram")
+
     if user_id != BOT_CREATOR_ID:
         return
 
@@ -1095,6 +2259,10 @@ async def handle_chapter_choice(update: Update, context: ContextTypes.DEFAULT_TY
     await query.answer()
 
     user_id = query.from_user.id
+
+    # ПРИСУТСТВИЕ = ВЗАИМОДЕЙСТВИЕ
+    time_bank.activity(str(user_id), "telegram")
+
     data = query.data  # "chapter_0_text"
 
     parts = data.split("_")
@@ -1108,6 +2276,9 @@ async def handle_user_approval(update: Update, context: ContextTypes.DEFAULT_TYP
     """Обработка одобрения/отклонения пользователя"""
     query = update.callback_query
     await query.answer()
+
+    # ПРИСУТСТВИЕ = ВЗАИМОДЕЙСТВИЕ
+    time_bank.activity(str(query.from_user.id), "telegram")
 
     # Только владелец может одобрять
     if query.from_user.id != BOT_CREATOR_ID:
@@ -1180,7 +2351,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = user.id
     chat_id = update.effective_chat.id
 
-    # Команды меню будут установлены ПОСЛЕ проверки авторизации
+    # СРАЗУ заменяем кнопку "Start" на меню команд (для ВСЕХ)
+    try:
+        await context.bot.set_chat_menu_button(
+            chat_id=chat_id,
+            menu_button=MenuButtonCommands()
+        )
+    except Exception as e:
+        logger.warning(f"⚠️ Не удалось установить кнопку меню: {e}")
+
+    # ПРИСУТСТВИЕ = ВЗАИМОДЕЙСТВИЕ
+    time_bank.activity(str(user_id), "telegram")
 
     # Проверяем - новый пользователь или возвращается
     users = load_users()
@@ -1188,6 +2369,28 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Загружаем или создаём данные пользователя
     if is_new_user:
+        # === ATLANT GUARD: Защита от Sybil атаки ===
+        sybil_check = atlant_guard.log_registration()
+        if not sybil_check["allowed"]:
+            logger.warning(f"🏛 AtlantGuard Sybil block: {sybil_check['reason']}")
+
+            # Алерт владельцу
+            await send_atlant_alert(
+                context.bot,
+                "SYBIL ATTACK",
+                sybil_check["reason"],
+                "high"
+            )
+
+            await update.message.reply_text(
+                "Ɉ\n\n⚠️ Сервер перегружен. Попробуй позже."
+            )
+            return
+
+        if sybil_check["severity"] == "warn":
+            # Предупреждение владельцу о приближении к порогу
+            logger.warning(f"⚠️ Sybil warning: {sybil_check['reason']}")
+
         # Новый пользователь — создаём запись
         user_data = {
             'first_name': user.first_name,
@@ -1234,10 +2437,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 1. Ожидает одобрения — минимальный ответ без AI
     if user_data.get('pending_approval'):
-        # Убираем все команды для неавторизованных
+        # Минимальное меню для ожидающих (чтобы MenuButtonCommands работал)
         try:
             from telegram import BotCommandScopeChat
-            await context.bot.delete_my_commands(scope=BotCommandScopeChat(chat_id=chat_id))
+            await context.bot.set_my_commands(
+                [BotCommand("start", "⏳ Статус")],
+                scope=BotCommandScopeChat(chat_id=chat_id)
+            )
         except:
             pass
 
@@ -1249,9 +2455,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 2. Отклонён — минимальный ответ
     if not user_data.get('approved', False):
+        # Минимальное меню для отклонённых
         try:
             from telegram import BotCommandScopeChat
-            await context.bot.delete_my_commands(scope=BotCommandScopeChat(chat_id=chat_id))
+            await context.bot.set_my_commands(
+                [BotCommand("start", "❌ Статус")],
+                scope=BotCommandScopeChat(chat_id=chat_id)
+            )
         except:
             pass
 
@@ -1268,6 +2478,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.set_my_commands(
             commands,
             scope=BotCommandScopeChat(chat_id=chat_id)
+        )
+        # Заменяем кнопку "Start" на меню команд
+        await context.bot.set_chat_menu_button(
+            chat_id=chat_id,
+            menu_button=MenuButtonCommands()
         )
         logger.info(f"✅ Меню установлено для {user_id} ({'OWNER' if user_id == BOT_CREATOR_ID else 'user'}): {len(commands)} команд")
     except Exception as e:
@@ -1313,6 +2528,66 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.message.from_user
     user_id = user.id
     text = update.message.text
+
+    # === ATLANT GUARD: Защита узла от DDoS ===
+    ddos_check = atlant_guard.log_request(str(user_id))
+    if not ddos_check["allowed"]:
+        logger.warning(f"🏛 AtlantGuard blocked: {ddos_check['reason']} (user={user_id})")
+
+        # Алерт при критическом уровне
+        if ddos_check["severity"] == "critical":
+            await send_atlant_alert(
+                context.bot,
+                "DDoS DETECTED",
+                f"User {user_id} blocked: {ddos_check['reason']}",
+                "critical"
+            )
+
+        # Молча игнорируем
+        return
+
+    # === ATLANT GUARD: Проверка под атакой ===
+    if atlant_guard.under_attack:
+        # В режиме атаки — только базовые функции
+        logger.info(f"⚠️ Atlant under attack, limited mode for user {user_id}")
+
+    # ПРИСУТСТВИЕ = ВЗАИМОДЕЙСТВИЕ
+    # Каждое сообщение = доказательство присутствия
+    presence_result = time_bank.activity(str(user_id), "telegram")
+
+    # Уведомление о начале присутствия
+    if presence_result["is_new"]:
+        # Новая сессия — показываем краткое уведомление
+        await update.message.reply_text(
+            "Ɉ Присутствие активно. +1 Ɉ/сек"
+        )
+    elif presence_result["was_paused"]:
+        # Возобновление после паузы
+        await update.message.reply_text(
+            f"Ɉ Присутствие возобновлено. Накоплено: {presence_result['t2_seconds']} Ɉ"
+        )
+
+    # === SECURITY: Детекция подозрительной активности ===
+    security_check = security_monitor.check_activity(user_id, text)
+    if security_check["is_suspicious"]:
+        # Помечаем пользователя
+        security_monitor.flag_user(user_id)
+
+        # Отправляем алерт владельцу (с cooldown)
+        if security_monitor.should_send_alert(user_id):
+            await send_security_alert(
+                bot=context.bot,
+                user_id=user_id,
+                username=user.username,
+                reason=security_check["reason"],
+                severity=security_check["severity"],
+                message_preview=text
+            )
+
+        # При высокой угрозе — не обрабатываем сообщение
+        if security_check["severity"] == "high":
+            logger.warning(f"🚫 Blocked message from flagged user {user_id}")
+            return
 
     # SECURITY: Проверка что пользователь есть в базе
     users = load_users()
@@ -1375,12 +2650,69 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Юнона отвечает
     if junona:
+        # === JUNONA GUARD: Корневая защита AI ===
+        guard_result = junona_guard.check(user_id, text)
+
+        if not guard_result["allowed"]:
+            # Блокируем атаку на AI
+            logger.warning(f"🛡 JunonaGuard blocked: {guard_result['reason']} (user={user_id})")
+
+            # Отправляем алерт владельцу
+            if security_monitor.should_send_alert(user_id):
+                await send_security_alert(
+                    bot=context.bot,
+                    user_id=user_id,
+                    username=user.username,
+                    reason=f"AI ATTACK: {guard_result['reason']}",
+                    severity="high",
+                    message_preview=text
+                )
+
+            # Отвечаем пользователю
+            if guard_result["severity"] == "block":
+                await update.message.reply_text(
+                    "Ɉ\n\nЯ не отвечаю на такие запросы."
+                )
+            else:
+                await update.message.reply_text(
+                    "Ɉ\n\nПодожди немного перед следующим сообщением."
+                )
+            return
+
+        # Предупреждение (но пропускаем)
+        if guard_result["severity"] == "warn":
+            logger.info(f"⚠️ JunonaGuard warning: {guard_result['reason']} (user={user_id})")
+
+        # Используем санитизированный текст
+        safe_text = guard_result["sanitized_text"]
+
         try:
-            # Детектируем вопросы о начислениях/балансе/статистике
-            text_lower = text.lower()
-            is_about_money = any(word in text_lower for word in [
-                'начисл', 'баланс', 'сколько', 'монет', 'секунд', 'заработ',
-                'получ', 'время', 'эмиссия', 't2', 'присутств'
+            # Детектируем категории вопросов для запроса к БД
+            text_lower = safe_text.lower()
+
+            # Категории для запроса к БД
+            is_about_balance = any(word in text_lower for word in [
+                'баланс', 'сколько', 'монет', 'секунд', 'заработ', 'кошел', 'мой'
+            ])
+            is_about_tokenomics = any(word in text_lower for word in [
+                'начисл', 'эмиссия', 't2', 'присутств', 'халвинг', 'протокол', 'τ'
+            ])
+            is_about_transactions = any(word in text_lower for word in [
+                'транзакц', 'перевод', 'отправ', 'получ', 'история', 'tx'
+            ])
+            is_about_thoughts = any(word in text_lower for word in [
+                'мысл', 'запис', 'помн', 'память', 'говорил', 'диалог', 'гиппокамп'
+            ])
+            is_about_network = any(word in text_lower for word in [
+                'узл', 'сеть', 'атлант', 'сервер', 'node', 'amsterdam', 'moscow'
+            ])
+            is_about_book = any(word in text_lower for word in [
+                'глав', 'книг', 'читать', 'белая', 'материал'
+            ])
+
+            needs_db_query = any([
+                is_about_balance, is_about_tokenomics, is_about_transactions,
+                is_about_thoughts, is_about_network, is_about_book
             ])
 
             # Готовим контекст для Юноны
@@ -1389,31 +2721,105 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 'lang': 'ru'
             }
 
-            # Если вопрос о начислениях - добавляем точные данные
-            if is_about_money:
+            # ЗАПРОС К БД: Собираем данные по категориям
+            if needs_db_query:
                 address = str(user_id)
-                balance = time_bank.balance(address)
-                presence_info = time_bank.get(address)
+                db_context_parts = ["ТЫ — ЮНОНА, АГЕНТ MONTANA PROTOCOL.\n\nДАННЫЕ ИЗ БАЗЫ НА МОМЕНТ ЗАПРОСА:"]
+
+                # === БАЛАНС И ТОКЕНОМИКА ===
+                if is_about_balance or is_about_tokenomics:
+                    balance_info = time_bank.get_balance_with_pending(address)
+                    confirmed = balance_info["confirmed"]
+                    pending = balance_info["pending"]
+                    total = balance_info["total"]
+
+                    presence_info = time_bank.get(address)
+                    presence_seconds = presence_info.get('presence_seconds', 0) if presence_info else 0
+                    t2_seconds = presence_info.get('t2_seconds', 0) if presence_info else 0
+                    is_active = presence_info.get('is_active', False) if presence_info else False
+
+                    stats = time_bank.stats()
+                    t2_remaining = stats.get('t2_remaining_sec', 0)
+                    t2_count = stats.get('t2_count', 0)
+                    halving = stats.get('halving_coefficient', 1.0)
+
+                    db_context_parts.append(f"""
+КОШЕЛЕК ПОЛЬЗОВАТЕЛЯ:
+- Адрес: {address}
+- Подтверждённый баланс: {confirmed} Ɉ
+- Накапливается (pending): {pending} Ɉ
+- ИТОГО: {total} Ɉ
+
+ПРИСУТСТВИЕ:
+- Статус: {'АКТИВНО (+1 Ɉ/сек)' if is_active else 'ПАУЗА (нет активности > 1 мин)'}
+- Секунд в сессии: {presence_seconds}
+- Секунд в T2: {t2_seconds}
+
+ПРОТОКОЛ TIME_BANK:
+- τ₁ = 1 минута (интервал проверки)
+- T2 = 10 минут (слайс)
+- До подтверждения: {t2_remaining} сек
+- T2 index: #{t2_count}
+- Халвинг: {halving}x""")
+
+                # === ТРАНЗАКЦИИ ===
+                if is_about_transactions:
+                    from montana_db import get_db
+                    db = get_db()
+                    txs = db.my_txs(address, limit=5)
+                    tx_list = "\n".join([f"  {t['timestamp'][:10]} {t['direction']} {t['type']}" for t in txs]) if txs else "  Нет транзакций"
+                    db_context_parts.append(f"""
+ТРАНЗАКЦИИ (последние 5):
+{tx_list}""")
+
+                # === МЫСЛИ / ПАМЯТЬ ===
+                if is_about_thoughts:
+                    from montana_db import get_db
+                    db = get_db()
+                    thoughts = db.get_thoughts(user_id, limit=5)
+                    thoughts_list = "\n".join([f"  [{t['timestamp'][:10]}] {t['message'][:50]}..." for t in thoughts]) if thoughts else "  Нет записей"
+                    db_context_parts.append(f"""
+ГИППОКАМП (последние 5 мыслей):
+{thoughts_list}""")
+
+                # === СЕТЬ / УЗЛЫ ===
+                if is_about_network:
+                    try:
+                        from node_crypto import get_node_crypto_system
+                        node_system = get_node_crypto_system()
+                        nodes = node_system.get_all_nodes()
+                        nodes_list = "\n".join([f"  {n['location']} — {n['alias']} ({n['type']})" for n in nodes[:5]]) if nodes else "  Нет узлов"
+                        db_context_parts.append(f"""
+СЕТЬ MONTANA (узлы):
+{nodes_list}
+Всего узлов: {len(nodes)}""")
+                    except Exception:
+                        db_context_parts.append("\nСЕТЬ: Данные узлов недоступны")
+
+                # === КНИГА ===
+                if is_about_book:
+                    progress = atlant.get_context(user_id, "chapter_progress") or {}
+                    next_ch = atlant.get_next_chapter(user_id)
+                    chapters_read = len([k for k, v in progress.items() if v == "read"])
+                    db_context_parts.append(f"""
+КНИГА MONTANA:
+- Глав прочитано: {chapters_read}
+- Следующая глава: {next_ch if next_ch is not None else 'Все прочитаны'}""")
+
+                # Добавляем правила ответа
+                db_context_parts.append("""
+ПРАВИЛА ОТВЕТА:
+1. Отвечай ТОЧНЫМИ ДАННЫМИ из контекста выше
+2. Не придумывай цифры — только из БД
+3. Будь краткой и конкретной""")
 
                 user_context['montana_agent_mode'] = True
-                user_context['user_balance'] = balance
-                user_context['emission_rate'] = 15000  # Ɉ в секунду за T2
-                user_context['t2_seconds'] = presence_info.get('t2_seconds', 0) if presence_info else 0
-                user_context['is_active'] = presence_info.get('is_active', False) if presence_info else False
+                user_context['system_instruction'] = "\n".join(db_context_parts)
 
-                # Добавляем инструкцию для Юноны отвечать как агент Montana с точными цифрами
-                user_context['system_instruction'] = (
-                    "Ты агент Montana Protocol. Отвечай точными цифрами из контекста. "
-                    f"Баланс пользователя: {balance} секунд. "
-                    f"Эмиссия T2: 15000 Ɉ. "
-                    f"Секунд в T2: {user_context['t2_seconds']}. "
-                    "Не используй общие фразы - только точные данные."
-                )
+            response = await junona.respond(safe_text, user_context, history)
 
-            response = await junona.respond(text, user_context, history)
-
-            # Сохраняем в историю
-            history.append({"role": "user", "content": text})
+            # Сохраняем в историю (санитизированный текст)
+            history.append({"role": "user", "content": safe_text})
             history.append({"role": "assistant", "content": response})
 
             # Оставляем только последние 10 сообщений
@@ -1426,7 +2832,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(f"Ɉ\n\n{response}")
 
             # Проверяем - просил ли пользователь материалы ЯВНО?
-            if is_asking_for_materials(text):
+            if is_asking_for_materials(safe_text):
                 # Пользователь явно попросил материалы - предлагаем следующую главу
                 next_chapter = atlant.get_next_chapter(user_id)
                 if next_chapter is not None:
@@ -1527,6 +2933,14 @@ async def setup_bot_commands(application, force=False):
 
     # Устанавливаем команды из константы BOT_COMMANDS
     await application.bot.set_my_commands(BOT_COMMANDS)
+
+    # Устанавливаем глобальную кнопку меню (вместо "Start")
+    try:
+        await application.bot.set_chat_menu_button(menu_button=MenuButtonCommands())
+        logger.info("✅ Глобальная кнопка меню = MenuButtonCommands")
+    except Exception as e:
+        logger.warning(f"⚠️ Не удалось установить глобальную кнопку меню: {e}")
+
     logger.info(f"✅ Установлено {len(BOT_COMMANDS)} команд в меню")
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1538,6 +2952,67 @@ _application = None
 _polling_task = None
 _polling_lock = threading.Lock()  # Защита от одновременных вызовов start/stop_polling
 _is_polling = False  # Флаг состояния polling
+_atlant_presence_task = None  # Задача присутствия Атланта
+
+
+async def atlant_presence_loop():
+    """
+    АТЛАНТ ВСЕГДА ПРИСУТСТВУЕТ
+
+    Атлант — это сервер/узел Montana. Пока он работает, он присутствует.
+    Активность каждые 60 секунд поддерживает присутствие.
+    Проверка здоровья каждые 5 минут.
+    """
+    # Получаем адрес узла (NODE_NAME из env или имя хоста)
+    node_name = os.getenv("NODE_NAME", "local")
+    atlant_address = f"atlant_{node_name}"
+
+    logger.info(f"🏛 АТЛАНТ присутствует: {atlant_address}")
+
+    # Начинаем присутствие
+    time_bank.start(atlant_address, "atlant")
+
+    health_check_counter = 0
+    last_health_status = "healthy"
+
+    while _is_polling:
+        # Атлант всегда активен пока работает
+        time_bank.activity(atlant_address, "atlant")
+
+        # Проверка здоровья каждые 5 минут (5 итераций по 60 сек)
+        health_check_counter += 1
+        if health_check_counter >= 5:
+            health_check_counter = 0
+            health = atlant_guard.health_check()
+
+            # Алерт при изменении статуса на плохой
+            if health["status"] != last_health_status:
+                if health["status"] in ["degraded", "under_attack"]:
+                    logger.warning(f"🏛 Atlant status changed: {last_health_status} → {health['status']}")
+
+                    # Алерт владельцу (если есть application)
+                    if _application and _application.bot:
+                        try:
+                            await send_atlant_alert(
+                                _application.bot,
+                                f"STATUS: {health['status'].upper()}",
+                                f"CPU: {health['metrics'].get('cpu_percent', 'N/A')}%, "
+                                f"Mem: {health['metrics'].get('memory_percent', 'N/A')}%",
+                                "high" if health["status"] == "under_attack" else "medium"
+                            )
+                        except Exception as e:
+                            logger.error(f"Failed to send health alert: {e}")
+
+                elif health["status"] == "healthy" and last_health_status != "healthy":
+                    logger.info(f"🏛 Atlant recovered: {last_health_status} → healthy")
+
+                last_health_status = health["status"]
+
+        await asyncio.sleep(60)  # Пинг каждую минуту
+
+    # Завершаем присутствие при остановке
+    time_bank.end(atlant_address)
+    logger.info(f"🏛 АТЛАНТ завершил присутствие: {atlant_address}")
 
 
 async def start_polling():
@@ -1596,9 +3071,13 @@ async def start_polling():
         _application.add_handler(CommandHandler("feed", feed_cmd))
         _application.add_handler(CommandHandler("stats", stats_cmd))
         _application.add_handler(CommandHandler("stat", stat_cmd))
+        _application.add_handler(CommandHandler("resetguard", resetguard_cmd))
+        _application.add_handler(CommandHandler("atlant", atlant_cmd))
+        _application.add_handler(CommandHandler("resetatlant", resetatlant_cmd))
         _application.add_handler(CallbackQueryHandler(handle_chapter_choice, pattern="^chapter_"))
         _application.add_handler(CallbackQueryHandler(handle_user_approval, pattern="^(approve|reject)_"))
         _application.add_handler(CallbackQueryHandler(handle_stat_callback, pattern="^stat_"))
+        _application.add_handler(CallbackQueryHandler(handle_atlant_callback, pattern="^atlant_"))
         _application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
         # Настройка команд меню и запуск
@@ -1613,6 +3092,10 @@ async def start_polling():
         with _polling_lock:
             _is_polling = True
 
+        # Запускаем присутствие Атланта
+        global _atlant_presence_task
+        _atlant_presence_task = asyncio.create_task(atlant_presence_loop())
+
         logger.info("✅ Polling запущен")
 
     except Exception as e:
@@ -1624,11 +3107,19 @@ async def start_polling():
 
 async def stop_polling():
     """Остановить polling (вызывается когда узел ушёл в standby)"""
-    global _application, _polling_task, _is_polling
+    global _application, _polling_task, _is_polling, _atlant_presence_task
 
-    # Сбрасываем флаг polling
+    # Сбрасываем флаг polling (это остановит atlant_presence_loop)
     with _polling_lock:
         _is_polling = False
+
+    # Ждём завершения задачи присутствия Атланта
+    if _atlant_presence_task:
+        try:
+            await asyncio.wait_for(_atlant_presence_task, timeout=5)
+        except asyncio.TimeoutError:
+            _atlant_presence_task.cancel()
+        _atlant_presence_task = None
 
     if _application:
         try:
@@ -1668,6 +3159,11 @@ async def run_with_3mirror():
     logger.info(f"🏔 Montana 3-Mirror Leader Election")
     logger.info(f"📍 Узел: {leader.my_name} (позиция {leader.my_position})")
     logger.info(f"🔗 Цепочка: {' → '.join([n[0] for n in leader.chain])}")
+
+    # Запускаем Breathing Sync — синхронизация данных между узлами
+    breathing = get_breathing_sync()
+    breathing_task = asyncio.create_task(breathing.run_breathing_loop())
+    logger.info(f"🫁 Breathing Sync активирован (каждые 12 сек)")
 
     # Запускаем leader election loop
     await leader.run_leader_loop(

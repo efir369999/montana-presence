@@ -49,6 +49,12 @@ class Protocol:
     NODES_COUNT = 5                        # 5 узлов Montana
     BANK_PRESENCE_PER_T2 = 600             # Банк всегда присутствует 600 сек (10 мин)
 
+    # TIME_BANK RESERVE — 21 млн минут (~40 лет)
+    # 21,000,000 ÷ 525,600 мин/год ≈ 39.95 лет
+    # После исчерпания банк становится чистым оракулом
+    BANK_TOTAL_MINUTES = 21_000_000        # 21 млн минут — резерв TIME_BANK
+    BANK_TOTAL_SECONDS = BANK_TOTAL_MINUTES * 60  # 1,260,000,000 секунд
+
     # Эмиссия (для обратной совместимости)
     TOTAL_EMISSION_PER_T2 = 15000          # Старое значение (5 × 3000)
 
@@ -64,7 +70,7 @@ class Protocol:
     TAU3_PER_TAU4 = 104                    # 104 × τ₃ в τ₄ (4 года)
 
     # Другие временные параметры
-    INACTIVITY_LIMIT_SEC = 3 * 60          # 3 минуты без активности = пауза
+    INACTIVITY_LIMIT_SEC = 1 * 60          # τ₁ = 1 минута без активности = пауза
     TICK_INTERVAL_SEC = 1                  # Интервал обновления
 
     # Монеты
@@ -169,6 +175,10 @@ class TimeBank:
         self.tau4_count = 0                               # Количество пройденных τ₄ (4 года)
         self.current_halving_coefficient = 1.0            # Текущий коэффициент халвинга
 
+        # TIME_BANK RESERVE — отслеживание расхода 21 млн минут
+        self.bank_seconds_spent = 0                       # Сколько секунд банк уже потратил
+        self.bank_exhausted = False                       # True когда 21 млн минут исчерпаны
+
         self._running = False
         self._thread: Optional[threading.Thread] = None
 
@@ -207,20 +217,40 @@ class TimeBank:
         logger.info(f"📍 Присутствие: {address} [{addr_type}]")
         return entry
 
-    def activity(self, address: str, addr_type: str = "unknown") -> bool:
-        """Регистрирует активность по адресу"""
+    def activity(self, address: str, addr_type: str = "unknown") -> dict:
+        """
+        Регистрирует активность по адресу.
+
+        Returns:
+            {
+                "is_new": True если новая сессия,
+                "was_paused": True если возобновлена после паузы,
+                "presence_seconds": текущие секунды присутствия
+            }
+        """
         entry = self.presence.get(address)
+        is_new = False
+        was_paused = False
+
         if not entry:
             self.start(address, addr_type)
             entry = self.presence.get(address)
+            is_new = True
+            logger.info(f"📍 Новое присутствие: {address}")
 
         entry["last_activity"] = time.time()
 
-        if not entry.get("is_active"):
+        if not entry.get("is_active") and not is_new:
             entry["is_active"] = True
+            was_paused = True
             logger.info(f"▶️ Возобновлено: {address}")
 
-        return True
+        return {
+            "is_new": is_new,
+            "was_paused": was_paused,
+            "presence_seconds": entry.get("presence_seconds", 0),
+            "t2_seconds": entry.get("t2_seconds", 0)
+        }
 
     def end(self, address: str) -> Optional[Dict[str, Any]]:
         """Завершает присутствие, начисляет монеты"""
@@ -458,6 +488,13 @@ class TimeBank:
             "current_year": self.tau3_count // Protocol.TAU3_PER_YEAR,
             "halving_coefficient": self.current_halving_coefficient,
             "t2_to_next_tau3": Protocol.T2_PER_TAU3 - (self.t2_count % Protocol.T2_PER_TAU3),
+            # TIME_BANK RESERVE (21 млн минут)
+            "bank_total_minutes": Protocol.BANK_TOTAL_MINUTES,
+            "bank_seconds_spent": self.bank_seconds_spent,
+            "bank_minutes_spent": self.bank_seconds_spent // 60,
+            "bank_minutes_remaining": max(0, Protocol.BANK_TOTAL_MINUTES - self.bank_seconds_spent // 60),
+            "bank_exhausted": self.bank_exhausted,
+            "bank_years_remaining": max(0, (Protocol.BANK_TOTAL_SECONDS - self.bank_seconds_spent) / (525600 * 60)),
             # ML-DSA-65 Presence Proof
             "ml_dsa_65": ML_DSA_AVAILABLE,
             "presence_proofs": len(self._presence_proofs),
@@ -549,6 +586,20 @@ class TimeBank:
         # Банк подтверждает что прошло 10 минут (600 секунд)
         bank_seconds = Protocol.BANK_PRESENCE_PER_T2
 
+        # TIME_BANK RESERVE — отслеживание расхода 21 млн минут
+        # Банк всегда тратит 10 мин/T2, независимо от халвинга
+        self.bank_seconds_spent += bank_seconds
+
+        # Проверяем исчерпание резерва (21 млн минут = ~40 лет)
+        if not self.bank_exhausted and self.bank_seconds_spent >= Protocol.BANK_TOTAL_SECONDS:
+            self.bank_exhausted = True
+            logger.info(f"")
+            logger.info(f"╔═══════════════════════════════════════════════════════════╗")
+            logger.info(f"║  ⏳ TIME_BANK RESERVE EXHAUSTED — ORACLE MODE            ║")
+            logger.info(f"╚═══════════════════════════════════════════════════════════╝")
+            logger.info(f"🏦 Банк потратил все 21 млн минут")
+            logger.info(f"📡 Теперь чистый оракул — продолжает верифицировать время")
+
         # Эмиссия = (сумма всех + банк - банк) × халвинг = сумма всех × халвинг
         # Банк эмитирует всем и вычитает свои секунды
         emission = int((total_users_seconds + bank_seconds - bank_seconds) * self.current_halving_coefficient)
@@ -598,6 +649,10 @@ class TimeBank:
         logger.info(f"📊 Халвинг: {self.current_halving_coefficient:.4f}x")
         logger.info(f"📡 Эмиссия: {emission} Ɉ")
         logger.info(f"💰 Распределено: {distributed} Ɉ")
+        # TIME_BANK RESERVE status
+        bank_minutes_remaining = Protocol.BANK_TOTAL_MINUTES - self.bank_seconds_spent // 60
+        bank_years_remaining = bank_minutes_remaining / 525600
+        logger.info(f"⏳ Резерв: {bank_minutes_remaining:,} мин (~{bank_years_remaining:.1f} лет)")
 
         self.current_t2_start = time.time()
 
