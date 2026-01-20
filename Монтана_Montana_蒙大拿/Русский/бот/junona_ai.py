@@ -100,7 +100,7 @@ class JunonaAI:
         В сети: {'да' if user_data.get('in_network') else 'нет'}
         """
 
-    def _call_api(self, system: str, messages: list, max_tokens: int = 300) -> str:
+    def _call_api(self, system: str, messages: list, max_tokens: int = 4000) -> str:
         """messages = [{"role": "user/assistant", "content": "..."}]"""
         if self.provider == "openai":
             full_messages = [{"role": "system", "content": system}] + messages
@@ -126,7 +126,7 @@ class JunonaAI:
             return ""
         try:
             rag = get_rag()
-            context = rag.get_context(query, max_tokens=1500)
+            context = rag.get_context(query, max_tokens=3000)
             if context:
                 return f"\n--- БАЗА ЗНАНИЙ MONTANA ---\n{context}\n--- КОНЕЦ БАЗЫ ЗНАНИЙ ---\n"
             return ""
@@ -143,16 +143,20 @@ class JunonaAI:
 
         system = JUNONA_SYSTEM_PROMPT.format(context=context, rag_context=rag_context)
 
+        # Если есть system_instruction - добавляем в начало system prompt
+        if 'system_instruction' in user_data:
+            system = f"{user_data['system_instruction']}\n\n{system}"
+
         messages = history.copy() if history else []
         messages.append({"role": "user", "content": user_message})
 
-        return self._call_api(system, messages, 500)
+        return self._call_api(system, messages, 4000)
 
     async def welcome_guest(self, user_data: dict) -> str:
         context = self._build_context(user_data)
         system = JUNONA_SYSTEM_PROMPT.format(context=context, rag_context="")
         messages = [{"role": "user", "content": WELCOME_GUEST_PROMPT}]
-        return self._call_api(system, messages, 500)
+        return self._call_api(system, messages, 4000)
 
 
 # Инициализация

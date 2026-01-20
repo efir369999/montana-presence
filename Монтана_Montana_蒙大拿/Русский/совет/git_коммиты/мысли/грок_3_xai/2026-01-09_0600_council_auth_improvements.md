@@ -32,7 +32,7 @@ Montana уже использует Dilithium-65 для validation. Почему
 // Вместо Ed25519 → Dilithium-65
 pub struct QuantumSafeCouncilIdentity {
     dilithium_public_key: [u8; 1952],  // Dilithium-65 public key
-    dilithium_secret_key: [u8; 4000],  // 4KB secret (secure storage needed)
+    dilithium_secret_key: [u8; 4032],  // ML-DSA-65 secret key
 }
 ```
 

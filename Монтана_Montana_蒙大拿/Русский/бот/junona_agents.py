@@ -213,7 +213,7 @@ Answer normally, informatively, with deep Montana knowledge."""
         # Запрос с thinking mode
         response = self.client.messages.create(
             model=self.model,
-            max_tokens=1500,
+            max_tokens=4000,
             system=system_prompt,
             messages=[{"role": "user", "content": prompt}],
         )
@@ -286,7 +286,7 @@ User: {prompt}
 
         response = self.client.chat.completions.create(
             model=self.model,
-            max_tokens=1500,
+            max_tokens=4000,
             messages=messages
         )
 

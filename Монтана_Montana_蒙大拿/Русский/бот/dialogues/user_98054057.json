@@ -1,0 +1,27 @@
+{
+  "user_id": 98054057,
+  "created_at": "2026-01-20T11:33:23.585068+00:00",
+  "dialogue": [
+    {
+      "role": "junona",
+      "content": "Ɉ\n\nПривет, Margarita.\n\nЯ — Юнона. Твой запрос отправлен на модерацию.\n\nСкоро ты получишь доступ к общению.",
+      "timestamp": "2026-01-20T11:33:23.585088+00:00",
+      "metadata": {}
+    }
+  ],
+  "preferences": {
+    "format": null,
+    "language": "ru"
+  },
+  "chapters": {
+    "offered": [],
+    "completed": []
+  },
+  "context": {
+    "current_chapter": null,
+    "waiting_for": null,
+    "last_topic": null
+  },
+  "notes": [],
+  "updated_at": "2026-01-20T11:33:23.585097+00:00"
+}
