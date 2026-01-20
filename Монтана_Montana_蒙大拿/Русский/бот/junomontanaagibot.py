@@ -1,6 +1,18 @@
 # junomontanaagibot.py
 # Юнона Montana — Официальный Telegram бот протокола Montana
 # Wallet система, узлы, переводы, AI диалоги
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+# ОБНОВЛЕНИЕ КОМАНД МЕНЮ БОТА
+# ═══════════════════════════════════════════════════════════════════════════════
+# 1. Все команды меню хранятся в константе BOT_COMMANDS (строка ~41)
+# 2. При изменении команд в BOT_COMMANDS:
+#    - Просто напиши /start боту от владельца (BOT_CREATOR_ID)
+#    - Команды автоматически обновятся для всех пользователей
+# 3. Владелец бота: /start всегда принудительно обновляет ВСЕ команды
+# 4. Остальные: /start обновляет команды только для их чата
+# 5. При запуске бота - всегда принудительное обновление всех команд
+# ═══════════════════════════════════════════════════════════════════════════════
 
 import os
 import json
@@ -19,11 +31,13 @@ from telegram.ext import (
 )
 from telegram.error import TelegramError, NetworkError, Conflict, TimedOut, RetryAfter
 
+from leader_election import get_leader_election
 from junona_ai import junona
 from dialogue_coordinator import get_coordinator
-from junona_rag import init_and_index
+# from junona_rag import init_and_index  # Отключено - экономия памяти
 from hippocampus import ExternalHippocampus
 from node_crypto import get_node_crypto_system
+from agent_crypto import get_agent_crypto_system
 from time_bank import get_time_bank
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -32,6 +46,21 @@ from time_bank import get_time_bank
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN_JUNONA")
 BOT_CREATOR_ID = 8552053404
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# КОМАНДЫ МЕНЮ БОТА
+# ВАЖНО: При изменении команд напиши /start боту для обновления меню
+# ═══════════════════════════════════════════════════════════════════════════════
+BOT_COMMANDS = [
+    BotCommand("start", "🏔 Поговорить с Юноной"),
+    BotCommand("balance", "💰 Баланс кошелька"),
+    BotCommand("stats", "📊 Статистика сети Montana"),
+    BotCommand("transfer", "💸 Перевод времени"),
+    BotCommand("tx", "📜 История транзакций"),
+    BotCommand("feed", "📡 Публичная лента"),
+    BotCommand("node", "🌐 Узлы Montana"),
+    BotCommand("stream", "💬 Поток мыслей"),
+]
 
 BOT_DIR = Path(__file__).parent
 USERS_FILE = BOT_DIR / "data" / "users.json"
@@ -46,6 +75,9 @@ hippocampus = ExternalHippocampus(BOT_DIR)
 
 # Система криптографических кошельков узлов
 node_crypto_system = get_node_crypto_system()
+
+# Система криптографии агентов Montana (ML-DSA-65)
+agent_crypto_system = get_agent_crypto_system()
 
 # TIME_BANK - банк времени Montana
 time_bank = get_time_bank()
@@ -380,25 +412,47 @@ async def register_node_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def balance_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Команда /balance — показать свой баланс"""
+    """Команда /balance — показать свой баланс (confirmed + pending)"""
     user = update.effective_user
     user_id = user.id
     address = str(user_id)
 
-    balance = time_bank.balance(address)
+    # Получаем баланс с pending
+    balance_info = time_bank.get_balance_with_pending(address)
+    confirmed = balance_info["confirmed"]
+    pending = balance_info["pending"]
+    total = balance_info["total"]
+
+    # Информация о присутствии
     presence_info = time_bank.get(address)
 
     display = f"Ɉ\n\n"
     display += f"**Твой кошелек Montana**\n\n"
     display += f"**Адрес:** `{user_id}`\n"
     display += f"_(твой Telegram ID — адрес кошелька и ключ)_\n\n"
-    display += f"💰 **Баланс:** {balance} секунд\n\n"
+
+    # Отображаем баланс с pending
+    display += f"💰 **Баланс:** {confirmed} Ɉ\n"
+
+    if pending > 0:
+        display += f"⏳ **Накапливается:** +{pending} Ɉ\n"
+        display += f"{'─' * 25}\n"
+        display += f"💎 **Всего:** {total} Ɉ\n\n"
+
+        # Показываем когда подтвердится
+        stats = time_bank.stats()
+        t2_remaining = stats.get("t2_remaining_sec", 0)
+        t2_minutes = t2_remaining // 60
+        t2_seconds = t2_remaining % 60
+        display += f"⏱ Следующее подтверждение через {t2_minutes}:{t2_seconds:02d}\n\n"
+    else:
+        display += f"\n"
 
     if presence_info and presence_info.get('is_active'):
-        display += f"🟢 **Присутствие:** активно\n"
-        display += f"⏱️ **Секунд в T2:** {presence_info['t2_seconds']}\n\n"
+        display += f"🟢 **Присутствие:** активно\n\n"
 
-    display += f"📊 **/tx** — история транзакций\n"
+    display += f"📊 **/stats** — статистика сети Montana\n"
+    display += f"📜 **/tx** — история транзакций\n"
     display += f"💸 **/transfer <адрес> <сумма>** — перевод\n\n"
     display += f"⚠️ При смене Telegram аккаунта — переноси монеты заранее."
 
@@ -563,85 +617,131 @@ async def feed_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(display, parse_mode="Markdown")
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#                              MINI APPS КОМАНДЫ
-# ═══════════════════════════════════════════════════════════════════════════════
+async def stats_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Команда /stats — статистика сети Montana (токеномика)"""
 
-# URL для Mini Apps (меняй на production URL)
-MINIAPP_BASE_URL = "http://192.168.0.127:5001/miniapp"
+    # Получаем статистику из TIME_BANK
+    stats = time_bank.stats()
+
+    # Временные координаты
+    tau3_count = stats["tau3_count"]
+    tau4_count = stats["tau4_count"]
+    current_year = stats["current_year"]
+    halving_coef = stats["halving_coefficient"]
+
+    # Текущий T2
+    t2_count = stats["t2_count"]
+    t2_elapsed = stats["t2_elapsed_sec"]
+    t2_remaining = stats["t2_remaining_sec"]
+    t2_to_next_tau3 = stats["t2_to_next_tau3"]
+
+    # Активность
+    active_presence = stats["active_presence"]
+    wallets_count = stats["wallets"]
+
+    # Форматируем вывод
+    display = f"Ɉ\n\n"
+    display += f"**📊 Montana Protocol — Статистика**\n\n"
+
+    # Temporal Coordinates
+    display += f"**⏱ Временные Координаты**\n"
+    display += f"├ τ₂ (текущий slice): #{t2_count}\n"
+    display += f"├ τ₃ (checkpoints): #{tau3_count}\n"
+    display += f"├ τ₄ (epoch): #{tau4_count}\n"
+    display += f"└ Год Montana: {current_year}\n\n"
+
+    # Halving
+    display += f"**💰 Эмиссия**\n"
+    display += f"├ Коэффициент халвинга: {halving_coef}×\n"
+    display += f"└ 1 секунда присутствия = {halving_coef} Ɉ\n\n"
+
+    # Следующие события
+    display += f"**⏳ Следующие события**\n"
+    t2_min = t2_remaining // 60
+    t2_sec = t2_remaining % 60
+    display += f"├ Следующий τ₂: через {t2_min}:{t2_sec:02d}\n"
+    display += f"└ До τ₃ checkpoint: {t2_to_next_tau3} слайсов\n\n"
+
+    # Сеть
+    display += f"**🌐 Сеть**\n"
+    display += f"├ Активное присутствие: {active_presence}\n"
+    display += f"└ Всего кошельков: {wallets_count}\n\n"
+
+    display += f"_Montana Protocol v{stats['version']}_"
+
+    await update.message.reply_text(display, parse_mode="Markdown")
 
 
-async def menu_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Команда /menu — меню всех функций через Mini App"""
-    webapp_url = f"{MINIAPP_BASE_URL}/menu.html"
+async def stat_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Команда /stat — статистика бота (только для владельца)"""
+    user_id = update.effective_user.id
 
-    keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton(
-            text="📱 Открыть меню Montana",
-            web_app=WebAppInfo(url=webapp_url)
-        )
-    ]])
+    # Проверка что это владелец
+    if user_id != BOT_CREATOR_ID:
+        await update.message.reply_text("Ɉ\n\nКоманда доступна только владельцу бота.")
+        return
 
-    await update.message.reply_text(
-        "🏔 **Montana Protocol**\n\n"
-        "Меню всех функций Montana в одном месте.\n\n"
-        "Нажми кнопку ниже 👇",
-        reply_markup=keyboard,
-        parse_mode="Markdown"
-    )
+    # Загружаем пользователей
+    users = load_users()
+    total_users = len(users)
 
+    # Считаем одобренных и ожидающих
+    approved_count = sum(1 for u in users.values() if u.get('approved', False))
+    pending_count = sum(1 for u in users.values() if u.get('pending_approval', False))
 
-async def verify_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Команда /verify — верификация через Face ID"""
-    webapp_url = f"{MINIAPP_BASE_URL}/verify.html"
+    # Статистика по времени
+    from datetime import datetime
+    now = datetime.now()
 
-    keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton(
-            text="🔐 Верифицировать Face ID",
-            web_app=WebAppInfo(url=webapp_url)
-        )
-    ]])
+    # Читаем stream для статистики мыслей
+    thought_count = 0
+    if STREAM_FILE.exists():
+        try:
+            with open(STREAM_FILE, 'r', encoding='utf-8') as f:
+                thought_count = sum(1 for _ in f)
+        except:
+            pass
 
-    await update.message.reply_text(
-        "🏔 **Montana Verification**\n\n"
-        "Подтверди присутствие через Face ID / Touch ID\n\n"
-        "📱 Proof of Presence — доказательство реального человека\n"
-        "✅ ML-DSA-65 (Post-Quantum)\n"
-        "✅ WebAuthn биометрия\n\n"
-        "Нажми кнопку ниже 👇",
-        reply_markup=keyboard,
-        parse_mode="Markdown"
-    )
+    # Статистика по транзакциям
+    tx_count = len(time_bank.tx_feed(limit=10000))
 
+    # Статистика по узлам
+    nodes = node_crypto_system.get_all_nodes()
+    active_nodes = sum(1 for n in nodes.values() if n.get('official', False))
 
-async def webapp_data_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик данных от Mini App"""
-    try:
-        data = json.loads(update.effective_message.web_app_data.data)
+    # Формируем ответ как агент Montana
+    display = f"Ɉ\n\n"
+    display += f"**📊 Статистика Montana Protocol Bot**\n\n"
+    display += f"**👥 Пользователи**\n"
+    display += f"├ Всего: **{total_users}**\n"
+    display += f"├ Одобрено: **{approved_count}**\n"
+    display += f"└ Ожидают: **{pending_count}**\n\n"
 
-        if data.get('action') == 'verified':
-            user_id = data.get('telegram_id')
-            success = data.get('success')
+    display += f"**💰 Time Bank**\n"
+    display += f"└ Транзакций: **{tx_count}**\n\n"
 
-            if success:
-                await update.effective_message.reply_text(
-                    "✅ **Присутствие подтверждено!**\n\n"
-                    "📱 Face ID верифицирован\n"
-                    "🔐 ML-DSA-65 подпись сохранена\n\n"
-                    "Юнона Montana благодарит за подтверждение.",
-                    parse_mode="Markdown"
-                )
-            else:
-                await update.effective_message.reply_text(
-                    "❌ **Верификация не удалась**\n\n"
-                    "Попробуй еще раз или обратись к администратору."
-                )
+    display += f"**🌐 Узлы Montana**\n"
+    display += f"└ Активных: **{active_nodes}**\n\n"
 
-    except Exception as e:
-        logger.error(f"WebApp data handler error: {e}")
-        await update.effective_message.reply_text(
-            "❌ Ошибка обработки данных от Mini App"
-        )
+    display += f"**💭 Поток мыслей**\n"
+    display += f"└ Записей: **{thought_count}**\n\n"
+
+    # Список последних 5 пользователей
+    if users:
+        display += f"**👤 Последние пользователи**\n"
+        user_items = list(users.items())[-5:]
+        for uid, udata in reversed(user_items):
+            name = udata.get('first_name', 'Unknown')
+            username = udata.get('username', '')
+            status = "✅" if udata.get('approved') else "⏳"
+            display += f"{status} {name}"
+            if username:
+                display += f" (@{username})"
+            display += f" • ID: `{uid}`\n"
+
+    display += f"\n_Montana Protocol v1.0 • {now.strftime('%Y-%m-%d %H:%M')}_"
+
+    await update.message.reply_text(display, parse_mode="Markdown")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -852,6 +952,25 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Начало — пользователь поздоровался, Юнона представляется"""
     user = update.message.from_user
     user_id = user.id
+    chat_id = update.effective_chat.id
+
+    # ПРИНУДИТЕЛЬНОЕ ОБНОВЛЕНИЕ КОМАНД МЕНЮ
+    # Для владельца - полная очистка всех scope и установка новых команд
+    # Для остальных - очистка только для конкретного чата
+    try:
+        from telegram import BotCommandScopeChat
+
+        if user_id == BOT_CREATOR_ID:
+            # Владелец: принудительно обновляем команды для всех scope
+            logger.info(f"👑 Владелец бота запустил /start - принудительное обновление всех команд")
+            await setup_bot_commands(context.application, force=True)
+        else:
+            # Остальные: удаляем команды только для конкретного чата
+            await context.bot.delete_my_commands(scope=BotCommandScopeChat(chat_id=chat_id))
+            logger.info(f"🗑 Команды удалены для чата {chat_id}")
+            await setup_bot_commands(context.application, force=False)
+    except Exception as e:
+        logger.warning(f"⚠️ Не удалось обновить команды: {e}")
 
     # Проверяем - новый пользователь или возвращается
     users = load_users()
@@ -904,34 +1023,24 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(greeting)
         return
 
-    # Получаем баланс
-    address = str(user_id)
-    balance = time_bank.balance(address)
-    presence_info = time_bank.get(address)
+    # Юнона приветствует пользователя через AI
+    try:
+        # Получаем ответ от Юноны
+        response = await junona.welcome_guest(user_data)
 
-    # Приветствие с информацией о кошельке
-    greeting = f"Ɉ\n\n"
-    greeting += f"Привет, {user.first_name}.\n\n"
-    greeting += f"Я — Юнона. Богиня виртуального пространства Montana.\n\n"
-    greeting += f"**Твой кошелек Montana**\n\n"
-    greeting += f"**Адрес:** `{user_id}`\n"
-    greeting += f"_(твой Telegram ID — адрес кошелька и ключ)_\n\n"
-    greeting += f"💰 **Баланс:** {balance} секунд\n\n"
+        # Сохраняем в историю координатора
+        coordinator.add_message(user_id, "user", "/start")
+        coordinator.add_message(user_id, "junona", response)
 
-    if presence_info and presence_info.get('is_active'):
-        greeting += f"🟢 **Присутствие:** активно\n"
-        greeting += f"⏱️ **Секунд в T2:** {presence_info['t2_seconds']}\n\n"
+        # Отправляем ответ
+        await update.message.reply_text(response)
 
-    greeting += f"**Команды:**\n"
-    greeting += f"💰 **/balance** — баланс кошелька\n"
-    greeting += f"💸 **/transfer** — перевод времени\n"
-    greeting += f"📊 **/tx** — история транзакций\n"
-    greeting += f"🌐 **/node** — узлы Montana\n"
-    greeting += f"📡 **/feed** — публичная лента\n\n"
-    greeting += f"О чем хочешь поговорить?"
-
-    coordinator.add_message(user_id, "junona", greeting)
-    await update.message.reply_text(greeting, parse_mode="Markdown")
+    except Exception as e:
+        logger.error(f"Error in start command: {e}")
+        # Fallback если AI недоступна
+        greeting = f"Приветствую тебя, {user.first_name}! Я очень рада, что ты решил присоединиться ко мне в этом виртуальном пространстве. Надеюсь, ты чувствуешь себя здесь уютно и комфортно.\n\nО чем хочешь поговорить?"
+        coordinator.add_message(user_id, "junona", greeting)
+        await update.message.reply_text(greeting)
 
 
 def is_asking_for_materials(text: str) -> bool:
@@ -1010,10 +1119,41 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Юнона отвечает
     if junona:
         try:
-            response = await junona.respond(text, {
+            # Детектируем вопросы о начислениях/балансе/статистике
+            text_lower = text.lower()
+            is_about_money = any(word in text_lower for word in [
+                'начисл', 'баланс', 'сколько', 'монет', 'секунд', 'заработ',
+                'получ', 'время', 'эмиссия', 't2', 'присутств'
+            ])
+
+            # Готовим контекст для Юноны
+            user_context = {
                 'name': user.first_name,
                 'lang': 'ru'
-            }, history)
+            }
+
+            # Если вопрос о начислениях - добавляем точные данные
+            if is_about_money:
+                address = str(user_id)
+                balance = time_bank.balance(address)
+                presence_info = time_bank.get(address)
+
+                user_context['montana_agent_mode'] = True
+                user_context['user_balance'] = balance
+                user_context['emission_rate'] = 15000  # Ɉ в секунду за T2
+                user_context['t2_seconds'] = presence_info.get('t2_seconds', 0) if presence_info else 0
+                user_context['is_active'] = presence_info.get('is_active', False) if presence_info else False
+
+                # Добавляем инструкцию для Юноны отвечать как агент Montana с точными цифрами
+                user_context['system_instruction'] = (
+                    "Ты агент Montana Protocol. Отвечай точными цифрами из контекста. "
+                    f"Баланс пользователя: {balance} секунд. "
+                    f"Эмиссия T2: 15000 Ɉ. "
+                    f"Секунд в T2: {user_context['t2_seconds']}. "
+                    "Не используй общие фразы - только точные данные."
+                )
+
+            response = await junona.respond(text, user_context, history)
 
             # Сохраняем в историю
             history.append({"role": "user", "content": text})
@@ -1059,65 +1199,156 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
 #                              BOT SETUP
 # ═══════════════════════════════════════════════════════════════════════════════
 
-async def setup_bot_commands(application):
-    """Настройка кнопки меню с командами"""
-    commands = [
-        BotCommand("start", "🏠 Главная — баланс и команды"),
-        BotCommand("menu", "📱 Меню Montana"),
-        BotCommand("verify", "🔐 Верификация Face ID"),
-        BotCommand("balance", "💰 Баланс кошелька"),
-        BotCommand("transfer", "💸 Перевод времени"),
-        BotCommand("tx", "📊 История транзакций"),
-        BotCommand("feed", "📡 Публичная лента"),
-        BotCommand("node", "🌐 Узлы Montana"),
-        BotCommand("stream", "💬 Лента диалога"),
-    ]
+async def setup_bot_commands(application, force=False):
+    """
+    Настройка кнопки меню с командами
 
-    await application.bot.set_my_commands(commands)
-    logger.info("✅ Кнопка меню настроена")
+    Args:
+        application: Telegram application
+        force: Если True, принудительно удаляет все старые команды перед установкой новых
+    """
+    from telegram import BotCommandScopeDefault, BotCommandScopeAllPrivateChats, BotCommandScopeAllGroupChats, BotCommandScopeAllChatAdministrators
+
+    if force:
+        # Удаляем команды для всех scope принудительно
+        scopes = [
+            BotCommandScopeDefault(),
+            BotCommandScopeAllPrivateChats(),
+            BotCommandScopeAllGroupChats(),
+            BotCommandScopeAllChatAdministrators()
+        ]
+
+        for scope in scopes:
+            try:
+                await application.bot.delete_my_commands(scope=scope)
+                logger.info(f"🗑 Команды принудительно удалены для scope: {scope}")
+            except Exception as e:
+                logger.warning(f"⚠️ Не удалось удалить команды для scope {scope}: {e}")
+
+    # Устанавливаем команды из константы BOT_COMMANDS
+    await application.bot.set_my_commands(BOT_COMMANDS)
+    logger.info(f"✅ Установлено {len(BOT_COMMANDS)} команд в меню")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #                              MAIN
 # ═══════════════════════════════════════════════════════════════════════════════
+
+# Глобальные переменные для управления polling
+_application = None
+_polling_task = None
+
+
+async def start_polling():
+    """Запустить polling (вызывается когда узел стал мастером)"""
+    global _application, _polling_task
+
+    try:
+        # Останавливаем предыдущий если был
+        await stop_polling()
+
+        # Инициализация RAG базы знаний - ОТКЛЮЧЕНО ДЛЯ ЭКОНОМИИ ПАМЯТИ
+        # try:
+        #     logger.info("🧠 Инициализация базы знаний Montana...")
+        #     init_and_index(background=True)
+        # except Exception as e:
+        #     logger.warning(f"⚠️ RAG инициализация: {e}")
+
+        # Создаём application
+        _application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+        _application.add_error_handler(error_handler)
+
+        # Handlers
+        _application.add_handler(CommandHandler("start", start))
+        _application.add_handler(CommandHandler("stream", stream_cmd))
+        _application.add_handler(CommandHandler("export", export_cmd))
+        _application.add_handler(CommandHandler("node", node_cmd))
+        _application.add_handler(CommandHandler("network", network_cmd))
+        _application.add_handler(CommandHandler("register_node", register_node_cmd))
+        _application.add_handler(CommandHandler("balance", balance_cmd))
+        _application.add_handler(CommandHandler("transfer", transfer_cmd))
+        _application.add_handler(CommandHandler("tx", tx_cmd))
+        _application.add_handler(CommandHandler("feed", feed_cmd))
+        _application.add_handler(CommandHandler("stats", stats_cmd))
+        _application.add_handler(CommandHandler("stat", stat_cmd))
+        _application.add_handler(CallbackQueryHandler(handle_chapter_choice, pattern="^chapter_"))
+        _application.add_handler(CallbackQueryHandler(handle_user_approval, pattern="^(approve|reject)_"))
+        _application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+        # Инициализация и запуск
+        await _application.initialize()
+        await setup_bot_commands(_application, force=True)
+        await _application.start()
+        await _application.updater.start_polling(
+            drop_pending_updates=False,
+            allowed_updates=['message', 'callback_query']
+        )
+
+        logger.info("✅ Polling запущен")
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка запуска polling: {e}")
+        raise
+
+
+async def stop_polling():
+    """Остановить polling (вызывается когда узел ушёл в standby)"""
+    global _application, _polling_task
+
+    if _application:
+        try:
+            logger.info("🛑 Останавливаем polling...")
+
+            if _application.updater and _application.updater.running:
+                await _application.updater.stop()
+
+            if _application.running:
+                await _application.stop()
+
+            await _application.shutdown()
+            _application = None
+
+            logger.info("✅ Polling остановлен")
+
+        except Exception as e:
+            logger.warning(f"⚠️ Ошибка остановки polling: {e}")
+            _application = None
+
+
+async def run_with_3mirror():
+    """
+    Запуск бота с 3-Mirror Leader Election.
+
+    Архитектура из 003_ТРОЙНОЕ_ЗЕРКАЛО.md:
+    - Цепочка узлов: Amsterdam → Moscow → Almaty → SPB → Novosibirsk
+    - Я мастер если ВСЕ узлы ДО меня в цепочке мертвы
+    - Активная проверка каждые 5 секунд
+    - Failover < 10 секунд
+    """
+    leader = get_leader_election()
+
+    logger.info(f"🏔 Montana 3-Mirror Leader Election")
+    logger.info(f"📍 Узел: {leader.my_name} (позиция {leader.my_position})")
+    logger.info(f"🔗 Цепочка: {' → '.join([n[0] for n in leader.chain])}")
+
+    # Запускаем leader election loop
+    await leader.run_leader_loop(
+        on_become_master=start_polling,
+        on_become_standby=stop_polling
+    )
+
 
 if __name__ == '__main__':
     if not TELEGRAM_TOKEN:
         logger.error("TELEGRAM_TOKEN_JUNONA not set")
         exit(1)
 
-    # Инициализация RAG базы знаний (в фоне)
-    try:
-        logger.info("🧠 Инициализация базы знаний Montana...")
-        init_and_index(background=True)
-    except Exception as e:
-        logger.warning(f"⚠️ RAG инициализация: {e}")
-
-    application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-    application.add_error_handler(error_handler)
-
-    # Настройка команд и меню
-    application.post_init = setup_bot_commands
-
-    # Handlers
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("stream", stream_cmd))
-    application.add_handler(CommandHandler("export", export_cmd))
-    application.add_handler(CommandHandler("node", node_cmd))
-    application.add_handler(CommandHandler("network", network_cmd))
-    application.add_handler(CommandHandler("register_node", register_node_cmd))
-    application.add_handler(CommandHandler("balance", balance_cmd))
-    application.add_handler(CommandHandler("transfer", transfer_cmd))
-    application.add_handler(CommandHandler("tx", tx_cmd))
-    application.add_handler(CommandHandler("feed", feed_cmd))
-
-    # Mini Apps команды
-    application.add_handler(CommandHandler("menu", menu_cmd))
-    application.add_handler(CommandHandler("verify", verify_cmd))
-    application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, webapp_data_handler))
-
-    application.add_handler(CallbackQueryHandler(handle_chapter_choice, pattern="^chapter_"))
-    application.add_handler(CallbackQueryHandler(handle_user_approval, pattern="^(approve|reject)_"))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-
     logger.info("Ɉ Юнона — Montana Protocol Bot")
-    application.run_polling()
+
+    # Запускаем с 3-Mirror Leader Election
+    try:
+        asyncio.run(run_with_3mirror())
+    except KeyboardInterrupt:
+        logger.info("🛑 Остановка по Ctrl+C")
+    except Exception as e:
+        logger.error(f"❌ Критическая ошибка: {e}", exc_info=True)
+        exit(1)
