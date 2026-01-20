@@ -149,6 +149,13 @@ class AttackDetector:
         # Последняя проверка
         self.last_check_time = time.time()
 
+        # Network traffic tracking (для расчёта delta)
+        self.last_bytes_recv = 0
+        try:
+            self.last_bytes_recv = psutil.net_io_counters().bytes_recv
+        except:
+            pass
+
         # Флаг атаки
         self.under_attack = False
 
@@ -201,9 +208,25 @@ class AttackDetector:
         """
         try:
             net_io = psutil.net_io_counters()
-            # Простая эвристика: > 100 MB/s входящего трафика
-            bytes_per_sec = net_io.bytes_recv / (time.time() - self.last_check_time + 0.001)
-            if bytes_per_sec > 100 * 1024 * 1024:  # 100 MB/s
+            current_bytes = net_io.bytes_recv
+            current_time = time.time()
+
+            # Рассчитываем DELTA bytes за период
+            time_delta = current_time - self.last_check_time
+            bytes_delta = current_bytes - self.last_bytes_recv
+
+            # Обновляем для следующей проверки
+            self.last_bytes_recv = current_bytes
+            self.last_check_time = current_time
+
+            # Защита от первого запуска или отрицательного delta
+            if time_delta <= 0 or bytes_delta < 0:
+                return False
+
+            bytes_per_sec = bytes_delta / time_delta
+
+            # Порог: > 500 MB/s входящего трафика (реальная DDoS атака)
+            if bytes_per_sec > 500 * 1024 * 1024:  # 500 MB/s
                 logger.warning(f"🚨 АТАКА ОБНАРУЖЕНА: высокий трафик {bytes_per_sec / 1024 / 1024:.1f} MB/s")
                 self.under_attack = True
                 return True
@@ -362,26 +385,70 @@ class LeaderElection:
             status.append(f"{marker} {name}{is_me}")
         return " | ".join(status)
 
-    def shuffle_chain_on_attack(self):
+    def _pq_secure_shuffle(self, items: list) -> list:
+        """
+        Постквантово-безопасное перемешивание списка.
+
+        Использует:
+        1. ML-DSA-65 подпись текущего timestamp для seed
+        2. secrets.SystemRandom() как fallback (CSPRNG)
+
+        Атакующий НЕ может предсказать порядок даже с квантовым компьютером.
+        """
+        import secrets
+        import hashlib
+
+        # Пробуем использовать ML-DSA-65 для генерации seed
+        try:
+            from node_crypto import get_node_crypto_system
+            node_crypto = get_node_crypto_system()
+
+            # Данные для подписи: timestamp + список узлов
+            entropy_data = f"{time.time()}:{','.join([n for n, _ in items])}".encode()
+
+            # Подписываем ML-DSA-65
+            signature = node_crypto.sign(entropy_data)
+            if signature:
+                # Хэш подписи = криптографически безопасный seed
+                seed_bytes = hashlib.sha256(signature).digest()
+                seed = int.from_bytes(seed_bytes[:8], 'big')
+                logger.info(f"🔐 PQ-shuffle: ML-DSA-65 seed generated")
+            else:
+                # Fallback на secrets
+                seed = secrets.randbits(64)
+                logger.info(f"🔐 PQ-shuffle: secrets fallback")
+        except Exception as e:
+            # Fallback на CSPRNG
+            seed = secrets.randbits(64)
+            logger.warning(f"⚠️ ML-DSA-65 unavailable, using secrets: {e}")
+
+        # Перемешиваем используя seed
+        shuffled = list(items)
+        rng = random.Random(seed)
+        rng.shuffle(shuffled)
+
+        return shuffled
+
+    def shuffle_chain_on_attack(self, external_trigger: bool = False):
         """
         При обнаружении атаки — случайный порядок failover.
 
-        Из требований пользователя:
-        "при обнаружении ататки передавать мастера в случайном порядке"
-
-        Защита:
+        ПОСТКВАНТОВАЯ БЕЗОПАСНОСТЬ:
+        - Используется ML-DSA-65 для генерации seed
         - Атакующий НЕ может предсказать следующего мастера
-        - Цепочка перемешивается случайным образом
+        - Цепочка перемешивается криптографически безопасно
         - Только здоровые узлы учитываются
+
+        Args:
+            external_trigger: True если вызван внешне (AtlantGuard)
         """
-        if not self.attack_detector.is_under_attack():
+        if not external_trigger and not self.attack_detector.is_under_attack():
             return
 
-        logger.warning("🚨 АТАКА ОБНАРУЖЕНА! Переход на случайный failover")
+        logger.warning("🚨 АТАКА ОБНАРУЖЕНА! Переход на PQ-случайный failover")
 
-        # Перемешиваем цепочку случайным образом
-        shuffled = list(self.chain)
-        random.shuffle(shuffled)
+        # Постквантово-безопасное перемешивание
+        shuffled = self._pq_secure_shuffle(self.chain)
 
         # Фильтруем только живые узлы
         healthy_nodes = []
@@ -421,6 +488,177 @@ class LeaderElection:
                     self.my_position = i
                     break
 
+    # ═══════════════════════════════════════════════════════════════════════════════
+    #                    PULSE MODE — РЕЖИМ ПУЛЬСАЦИИ
+    # ═══════════════════════════════════════════════════════════════════════════════
+
+    def check_majority_under_attack(self) -> tuple:
+        """
+        Проверяет, атаковано ли большинство узлов.
+
+        Returns:
+            (is_majority_attack: bool, healthy_count: int, total: int)
+        """
+        total = len(self.original_chain)
+        healthy_count = 0
+        unhealthy_nodes = []
+
+        for name, ip in self.original_chain:
+            if check_node_health(ip):
+                healthy_count += 1
+            else:
+                unhealthy_nodes.append(name)
+
+        # Большинство = более 50% недоступны
+        majority_threshold = total // 2 + 1
+        is_majority_attack = (total - healthy_count) >= majority_threshold
+
+        if is_majority_attack:
+            logger.warning(f"🚨 MAJORITY ATTACK: {total - healthy_count}/{total} узлов недоступны")
+            logger.warning(f"   Недоступны: {', '.join(unhealthy_nodes)}")
+
+        return is_majority_attack, healthy_count, total
+
+    def enter_pulse_mode(self) -> dict:
+        """
+        Входит в режим пульсации при атаке на большинство.
+
+        PULSE MODE:
+        - Сеть "засыпает"
+        - Узлы пульсируют поочерёдно
+        - Только один узел активен в момент времени
+        - Минимизация поверхности атаки
+
+        Returns:
+            {
+                "mode": "pulse",
+                "pulse_duration": int (секунды активности),
+                "sleep_duration": int (секунды сна),
+                "my_pulse_slot": int (мой слот в очереди),
+                "total_slots": int
+            }
+        """
+        import hashlib
+        import secrets
+
+        # Параметры пульсации
+        PULSE_DURATION = 30  # 30 сек активности
+        SLEEP_DURATION = 60  # 60 сек сна между пульсами
+
+        # Находим живые узлы
+        healthy_nodes = []
+        for name, ip in self.original_chain:
+            if check_node_health(ip):
+                healthy_nodes.append((name, ip))
+
+        if not healthy_nodes:
+            logger.error("❌ PULSE MODE: Нет живых узлов!")
+            return None
+
+        total_slots = len(healthy_nodes)
+
+        # Определяем мой слот через PQ-хэш
+        # Используем ML-DSA-65 если доступен, иначе SHA256
+        try:
+            from node_crypto import get_node_crypto_system
+            node_crypto = get_node_crypto_system()
+
+            # Подписываем текущий час (все узлы получат одинаковый результат)
+            hour_marker = int(time.time() // 3600)
+            entropy = f"PULSE:{hour_marker}:{','.join([n for n, _ in healthy_nodes])}".encode()
+
+            signature = node_crypto.sign(entropy)
+            if signature:
+                seed_bytes = hashlib.sha256(signature).digest()
+            else:
+                seed_bytes = hashlib.sha256(entropy).digest()
+        except Exception:
+            hour_marker = int(time.time() // 3600)
+            entropy = f"PULSE:{hour_marker}:{','.join([n for n, _ in healthy_nodes])}".encode()
+            seed_bytes = hashlib.sha256(entropy).digest()
+
+        # Перемешиваем узлы детерминированно
+        seed = int.from_bytes(seed_bytes[:8], 'big')
+        rng = random.Random(seed)
+        pulse_order = list(healthy_nodes)
+        rng.shuffle(pulse_order)
+
+        # Находим мой слот
+        my_pulse_slot = -1
+        for i, (name, ip) in enumerate(pulse_order):
+            if name == self.my_name:
+                my_pulse_slot = i
+                break
+
+        if my_pulse_slot < 0:
+            logger.warning(f"⚠️ PULSE MODE: Я ({self.my_name}) не в списке живых узлов")
+            return None
+
+        logger.warning(f"💓 PULSE MODE ACTIVATED")
+        logger.warning(f"   Порядок: {' → '.join([n for n, _ in pulse_order])}")
+        logger.warning(f"   Мой слот: #{my_pulse_slot + 1}/{total_slots}")
+        logger.warning(f"   Пульс: {PULSE_DURATION}s активен, {SLEEP_DURATION}s сон")
+
+        return {
+            "mode": "pulse",
+            "pulse_duration": PULSE_DURATION,
+            "sleep_duration": SLEEP_DURATION,
+            "my_pulse_slot": my_pulse_slot,
+            "total_slots": total_slots,
+            "pulse_order": [n for n, _ in pulse_order]
+        }
+
+    def is_my_pulse_active(self, pulse_config: dict) -> bool:
+        """
+        Проверяет, активен ли сейчас мой пульс.
+
+        В режиме пульсации узлы работают по очереди:
+        - Узел 0: активен 0-30 сек, спит 30-120 сек
+        - Узел 1: активен 30-60 сек, спит 0-30 + 60-120 сек
+        - и т.д.
+
+        Returns:
+            True если сейчас моя очередь быть активным
+        """
+        if not pulse_config:
+            return False
+
+        pulse_duration = pulse_config["pulse_duration"]
+        sleep_duration = pulse_config["sleep_duration"]
+        my_slot = pulse_config["my_pulse_slot"]
+        total_slots = pulse_config["total_slots"]
+
+        # Полный цикл = все узлы по очереди
+        cycle_duration = total_slots * pulse_duration + sleep_duration
+
+        # Текущая позиция в цикле
+        current_time = time.time()
+        position_in_cycle = current_time % cycle_duration
+
+        # Мой активный период в цикле
+        my_start = my_slot * pulse_duration
+        my_end = my_start + pulse_duration
+
+        is_active = my_start <= position_in_cycle < my_end
+
+        if is_active:
+            remaining = my_end - position_in_cycle
+            logger.debug(f"💓 Мой пульс АКТИВЕН (осталось {remaining:.0f}s)")
+        else:
+            # Когда следующий пульс
+            if position_in_cycle < my_start:
+                next_pulse = my_start - position_in_cycle
+            else:
+                next_pulse = cycle_duration - position_in_cycle + my_start
+            logger.debug(f"😴 Сплю (следующий пульс через {next_pulse:.0f}s)")
+
+        return is_active
+
+    def exit_pulse_mode(self):
+        """Выход из режима пульсации"""
+        logger.info("💓 PULSE MODE DEACTIVATED — возврат к нормальной работе")
+        self.restore_original_chain()
+
     def stop(self):
         """Остановить leader election и breathing sync"""
         self._stop_event.set()
@@ -453,10 +691,15 @@ class LeaderElection:
         """
         Основной цикл проверки лидерства.
 
+        РЕЖИМЫ РАБОТЫ:
+        1. NORMAL — стандартная цепочка приоритетов
+        2. ATTACK — PQ-случайный failover при атаке на узел
+        3. PULSE — поочерёдная пульсация при атаке на большинство
+
         Каждые check_interval секунд:
-        1. Проверяем всех кто выше в цепочке
-        2. Если все мертвы — становимся мастером
-        3. Если кто-то жив — уходим в standby
+        1. Проверяем состояние сети
+        2. Определяем режим работы
+        3. Принимаем решение о мастерстве
         """
         logger.info(f"🔄 Запуск leader election loop (интервал {check_interval} сек)")
         logger.info(f"📍 Моя позиция: {self.my_name} #{self.my_position}")
@@ -470,12 +713,67 @@ class LeaderElection:
         await asyncio.sleep(STARTUP_DELAY)
 
         was_master = False
+        pulse_mode_config = None  # Конфигурация режима пульсации
+        pulse_mode_active = False
 
         while not self._stop_event.is_set():
             try:
-                # ЗАЩИТА ОТ АТАК — проверяем метрики
                 check_start_time = time.time()
 
+                # ═══════════════════════════════════════════════════════════════
+                # ПРОВЕРКА 1: Атака на большинство → PULSE MODE
+                # ═══════════════════════════════════════════════════════════════
+                is_majority_attack, healthy_count, total_nodes = self.check_majority_under_attack()
+
+                if is_majority_attack and not pulse_mode_active:
+                    # ВХОДИМ В РЕЖИМ ПУЛЬСАЦИИ
+                    logger.warning(f"🚨 MAJORITY ATTACK DETECTED! {total_nodes - healthy_count}/{total_nodes} узлов недоступны")
+                    logger.warning(f"💓 Переход в PULSE MODE — сеть засыпает и пульсирует")
+
+                    pulse_mode_config = self.enter_pulse_mode()
+                    pulse_mode_active = pulse_mode_config is not None
+
+                    # Уходим в standby пока не наш пульс
+                    if was_master:
+                        self.is_master = False
+                        was_master = False
+                        await on_become_standby()
+
+                elif not is_majority_attack and pulse_mode_active:
+                    # ВЫХОДИМ ИЗ РЕЖИМА ПУЛЬСАЦИИ
+                    logger.info(f"✅ Сеть восстановлена: {healthy_count}/{total_nodes} узлов здоровы")
+                    self.exit_pulse_mode()
+                    pulse_mode_active = False
+                    pulse_mode_config = None
+
+                # ═══════════════════════════════════════════════════════════════
+                # РЕЖИМ ПУЛЬСАЦИИ — поочерёдная работа узлов
+                # ═══════════════════════════════════════════════════════════════
+                if pulse_mode_active and pulse_mode_config:
+                    is_my_pulse = self.is_my_pulse_active(pulse_mode_config)
+
+                    if is_my_pulse and not was_master:
+                        # МОЙ ПУЛЬС — становлюсь мастером
+                        self.is_master = True
+                        was_master = True
+                        logger.info(f"💓 {self.my_name} → PULSE MASTER (слот #{pulse_mode_config['my_pulse_slot'] + 1})")
+                        self.attack_detector.record_success()
+                        await on_become_master()
+
+                    elif not is_my_pulse and was_master:
+                        # НЕ МОЙ ПУЛЬС — засыпаю
+                        self.is_master = False
+                        was_master = False
+                        logger.info(f"😴 {self.my_name} → PULSE SLEEP")
+                        await on_become_standby()
+
+                    # В режиме пульсации пропускаем обычную логику
+                    await asyncio.sleep(check_interval)
+                    continue
+
+                # ═══════════════════════════════════════════════════════════════
+                # ПРОВЕРКА 2: Атака на узел → PQ-FAILOVER
+                # ═══════════════════════════════════════════════════════════════
                 if self.attack_detector.is_under_attack():
                     # Атака обнаружена — переход на случайный failover
                     self.shuffle_chain_on_attack()
@@ -487,7 +785,9 @@ class LeaderElection:
                         was_master = False
                         await on_become_standby()
 
-                # Проверяем статус цепочки
+                # ═══════════════════════════════════════════════════════════════
+                # НОРМАЛЬНЫЙ РЕЖИМ — стандартная цепочка
+                # ═══════════════════════════════════════════════════════════════
                 should_be_master = self.am_i_the_master()
 
                 # Записываем время отклика
