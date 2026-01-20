@@ -34,10 +34,11 @@ from telegram.error import TelegramError, NetworkError, Conflict, TimedOut, Retr
 
 from leader_election import get_leader_election
 from junona_ai import junona
-from dialogue_coordinator import get_coordinator
 # from junona_rag import init_and_index  # Отключено - экономия памяти
-from hippocampus import ExternalHippocampus
 from node_crypto import get_node_crypto_system
+
+# АТЛАНТ — Гиппокамп Montana (единая система памяти)
+from hippocampus import get_atlant
 from agent_crypto import get_agent_crypto_system
 from time_bank import get_time_bank
 
@@ -56,7 +57,6 @@ BOT_CREATOR_USERNAME = "@junomoneta"  # Ник владельца для уве�
 BOT_COMMANDS = [
     BotCommand("start", "🏔 Поговорить с Юноной"),
     BotCommand("balance", "💰 Баланс кошелька"),
-    BotCommand("stats", "📊 Статистика сети Montana"),
     BotCommand("transfer", "💸 Перевод времени"),
     BotCommand("tx", "📜 История транзакций"),
     BotCommand("feed", "📡 Публичная лента"),
@@ -64,16 +64,20 @@ BOT_COMMANDS = [
     BotCommand("stream", "💬 Поток мыслей"),
 ]
 
+# Расширенное меню для владельца (BOT_CREATOR_ID)
+BOT_COMMANDS_OWNER = BOT_COMMANDS + [
+    BotCommand("stat", "👑 Статистика"),
+    BotCommand("register_node", "➕ Регистрация узла"),
+]
+
 BOT_DIR = Path(__file__).parent
 USERS_FILE = BOT_DIR / "data" / "users.json"
 STREAM_FILE = BOT_DIR / "data" / "stream.jsonl"
 USERS_FILE.parent.mkdir(parents=True, exist_ok=True)
 
-# Координатор диалога
-coordinator = get_coordinator(BOT_DIR)
-
-# Гиппокамп - детектор новизны
-hippocampus = ExternalHippocampus(BOT_DIR)
+# АТЛАНТ — Гиппокамп Montana (единая система памяти)
+# Держит память: диалоги, мысли, контекст
+atlant = get_atlant()
 
 # Система криптографических кошельков узлов
 node_crypto_system = get_node_crypto_system()
@@ -153,82 +157,13 @@ async def check_user_approved(update: Update, user_id: int) -> bool:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#                              ПОТОК МЫСЛЕЙ
+#                              ПОТОК МЫСЛЕЙ (АТЛАНТ)
 # ═══════════════════════════════════════════════════════════════════════════════
-
-def save_to_stream(user_id: int, username: str, thought: str):
-    """Сохранить мысль в поток"""
-    entry = {
-        "user_id": user_id,
-        "username": username,
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-        "thought": thought
-    }
-
-    with open(STREAM_FILE, "a", encoding="utf-8") as f:
-        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-
-
-def load_user_stream(user_id: int, limit: int = 10) -> list[dict]:
-    """Загрузить мысли пользователя из потока"""
-    if not STREAM_FILE.exists():
-        return []
-
-    thoughts = []
-    with open(STREAM_FILE, "r", encoding="utf-8") as f:
-        for line in f:
-            if line.strip():
-                try:
-                    entry = json.loads(line)
-                    if entry.get("user_id") == user_id:
-                        thoughts.append(entry)
-                except json.JSONDecodeError:
-                    continue
-
-    return thoughts[-limit:]  # Последние N мыслей
-
-
-def stream_to_markdown(thoughts: list[dict], username: str) -> str:
-    """Конвертировать мысли в Markdown"""
-    if not thoughts:
-        return None
-
-    lines = [
-        f"# Поток мыслей @{username}",
-        "",
-        f"**Всего мыслей:** {len(thoughts)}",
-        "",
-        "---",
-        ""
-    ]
-
-    current_date = None
-    for t in thoughts:
-        date = t.get("timestamp", "")[:10]
-        time = t.get("timestamp", "")[11:16]
-        thought = t.get("thought", "")
-
-        if date != current_date:
-            current_date = date
-            lines.append(f"## {date}")
-            lines.append("")
-
-        lines.append(f"**[{time}]** {thought}")
-        lines.append("")
-
-    lines.extend([
-        "---",
-        "",
-        f"*Экспорт: {datetime.now().strftime('%Y-%m-%d %H:%M')}*",
-        "",
-        "金元Ɉ Montana — Внешний гиппокамп"
-    ])
-
-    return "\n".join(lines)
-
+# Все функции памяти перенесены в hippocampus/atlant.py
+# Атлант — Гиппокамп Montana. Держит память сети.
 
 async def stream_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Команда /stream — показать свои последние мысли"""
+    """Команда /stream — показать свои последние мысли (Атлант)"""
     user = update.effective_user
     user_id = user.id
 
@@ -236,8 +171,8 @@ async def stream_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await check_user_approved(update, user_id):
         return
 
-    # Загружаем мысли пользователя
-    thoughts = load_user_stream(user_id, limit=10)
+    # Загружаем мысли через Атланта
+    thoughts = atlant.get_thoughts(user_id, limit=10)
 
     if not thoughts:
         await update.message.reply_text(
@@ -251,11 +186,10 @@ async def stream_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lines = [f"Ɉ Твой поток мыслей ({len(thoughts)} последних):", ""]
 
     for t in thoughts:
-        date = t.get("timestamp", "")[:10]
-        time = t.get("timestamp", "")[11:16]
-        thought = t.get("thought", "")
+        date = t.timestamp[:10] if t.timestamp else ""
+        time = t.timestamp[11:16] if t.timestamp else ""
         lines.append(f"[{date} {time}]")
-        lines.append(f"  {thought}")
+        lines.append(f"  {t.content}")
         lines.append("")
 
     lines.append("Для экспорта в файл: /export")
@@ -264,7 +198,7 @@ async def stream_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def export_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Команда /export — экспортировать мысли в MD файл"""
+    """Команда /export — экспортировать мысли в MD файл (Атлант)"""
     user = update.effective_user
     user_id = user.id
     username = user.username or "аноним"
@@ -273,8 +207,8 @@ async def export_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await check_user_approved(update, user_id):
         return
 
-    # Загружаем ВСЕ мысли пользователя
-    thoughts = load_user_stream(user_id, limit=10000)
+    # Проверяем есть ли мысли
+    thoughts = atlant.get_thoughts(user_id, limit=10)
 
     if not thoughts:
         await update.message.reply_text(
@@ -283,19 +217,21 @@ async def export_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # Конвертируем в Markdown
-    markdown = stream_to_markdown(thoughts, username)
+    # Экспорт через Атланта
+    markdown = atlant.export_markdown(user_id)
 
     # Отправляем как файл
     from io import BytesIO
     file_content = markdown.encode('utf-8')
     file_obj = BytesIO(file_content)
-    file_obj.name = f"мысли_{username}_{datetime.now().strftime('%Y%m%d')}.md"
+    file_obj.name = f"память_{username}_{datetime.now().strftime('%Y%m%d')}.md"
+
+    stats = atlant.thought_stats(user_id)
 
     await update.message.reply_document(
         document=file_obj,
         filename=file_obj.name,
-        caption=f"Ɉ Твой поток мыслей ({len(thoughts)} записей)\n\n金元Ɉ Montana — Внешний гиппокамп"
+        caption=f"Ɉ Твоя память Montana ({stats['total']} записей)\n\n🏛 Атлант — Гиппокамп Montana"
     )
 
 
@@ -744,6 +680,19 @@ async def stats_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(display, parse_mode="Markdown")
 
 
+async def check_node_online(ip: str, timeout: float = 2.0) -> bool:
+    """Проверка узла онлайн через TCP порт 22"""
+    import socket
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(timeout)
+        result = sock.connect_ex((ip, 22))
+        sock.close()
+        return result == 0
+    except:
+        return False
+
+
 async def stat_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /stat — статистика бота (только для владельца)"""
     user_id = update.effective_user.id
@@ -752,6 +701,9 @@ async def stat_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id != BOT_CREATOR_ID:
         await update.message.reply_text("Ɉ\n\nКоманда доступна только владельцу бота.")
         return
+
+    # Показываем что работаем
+    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
 
     # Загружаем пользователей
     users = load_users()
@@ -777,13 +729,32 @@ async def stat_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Статистика по транзакциям
     tx_count = len(time_bank.tx_feed(limit=10000))
 
-    # Статистика по узлам
+    # Статистика по узлам с проверкой онлайн
     nodes = node_crypto_system.get_all_nodes()
-    active_nodes = sum(1 for n in nodes.values() if n.get('official', False))
+    official_nodes = [n for n in nodes if n.get('official', False)]
 
-    # Формируем ответ как агент Montana
+    # Проверяем статус каждого узла
+    node_statuses = []
+    for node in official_nodes:
+        ip = node.get('ip', '')
+        is_online = await check_node_online(ip) if ip else False
+        node_statuses.append({
+            'name': node.get('node_name', 'unknown'),
+            'location': node.get('location', ''),
+            'ip': ip,
+            'online': is_online,
+            'priority': node.get('priority', 99)
+        })
+
+    # Сортируем по priority
+    node_statuses.sort(key=lambda x: x['priority'])
+
+    online_count = sum(1 for n in node_statuses if n['online'])
+
+    # Формируем ответ
     display = f"Ɉ\n\n"
-    display += f"**📊 Статистика Montana Protocol Bot**\n\n"
+    display += f"**📊 Статистика Montana Protocol**\n\n"
+
     display += f"**👥 Пользователи**\n"
     display += f"├ Всего: **{total_users}**\n"
     display += f"├ Одобрено: **{approved_count}**\n"
@@ -792,10 +763,13 @@ async def stat_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     display += f"**💰 Time Bank**\n"
     display += f"└ Транзакций: **{tx_count}**\n\n"
 
-    display += f"**🌐 Узлы Montana**\n"
-    display += f"└ Активных: **{active_nodes}**\n\n"
+    display += f"**🌐 Узлы Montana** ({online_count}/{len(node_statuses)} online)\n"
+    for ns in node_statuses:
+        status = "🟢" if ns['online'] else "🔴"
+        display += f"{status} **{ns['name']}** {ns['location']}\n"
+        display += f"    └ `{ns['ip']}`\n"
 
-    display += f"**💭 Поток мыслей**\n"
+    display += f"\n**💭 Поток мыслей**\n"
     display += f"└ Записей: **{thought_count}**\n\n"
 
     # Список последних 5 пользователей
@@ -809,11 +783,191 @@ async def stat_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
             display += f"{status} {name}"
             if username:
                 display += f" (@{username})"
-            display += f" • ID: `{uid}`\n"
+            display += f" • `{uid}`\n"
 
     display += f"\n_Montana Protocol v1.0 • {now.strftime('%Y-%m-%d %H:%M')}_"
 
-    await update.message.reply_text(display, parse_mode="Markdown")
+    # Кнопки управления
+    keyboard = [
+        [
+            InlineKeyboardButton("🔄 Обновить", callback_data="stat_refresh"),
+            InlineKeyboardButton("📋 Логи", callback_data="stat_logs")
+        ],
+        [
+            InlineKeyboardButton("🔄 Синхр. узлы", callback_data="stat_sync_nodes"),
+            InlineKeyboardButton("📡 Пинг всех", callback_data="stat_ping_all")
+        ],
+        [
+            InlineKeyboardButton("👥 Все пользователи", callback_data="stat_users")
+        ]
+    ]
+
+    await update.message.reply_text(
+        display,
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
+async def handle_stat_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработка кнопок управления из /stat"""
+    query = update.callback_query
+    await query.answer()
+
+    user_id = query.from_user.id
+    if user_id != BOT_CREATOR_ID:
+        return
+
+    action = query.data
+
+    if action == "stat_refresh":
+        # Обновляем статистику
+        await query.message.delete()
+        # Создаем фейковый update для вызова stat_cmd
+        await stat_cmd(update, context)
+
+    elif action == "stat_logs":
+        # Показываем реальные логи с текущего сервера
+        await context.bot.send_chat_action(chat_id=query.message.chat_id, action="typing")
+
+        import subprocess
+        try:
+            result = subprocess.run(
+                ["journalctl", "-u", "junona", "-n", "20", "--no-pager", "-o", "short"],
+                capture_output=True, text=True, timeout=5
+            )
+            logs = result.stdout.strip()
+            if len(logs) > 3500:
+                logs = logs[-3500:]
+
+            # Получаем имя текущего узла
+            node_name = os.getenv("NODE_NAME", "unknown")
+
+            await query.message.reply_text(
+                f"Ɉ\n\n📋 **Логи {node_name}** (последние 20):\n\n"
+                f"```\n{logs}\n```",
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            await query.message.reply_text(
+                f"Ɉ\n\n⚠️ Не удалось получить логи: {e}"
+            )
+
+    elif action == "stat_sync_nodes":
+        # Перезагружаем узлы из файла
+        await context.bot.send_chat_action(chat_id=query.message.chat_id, action="typing")
+
+        # Принудительно сбрасываем синглтон и перечитываем nodes.json
+        import node_crypto
+        node_crypto._node_crypto_system = None
+        global node_crypto_system
+        node_crypto_system = get_node_crypto_system()
+
+        nodes = node_crypto_system.get_all_nodes()
+        official = [n for n in nodes if n.get('official', False)]
+
+        node_list = "\n".join([f"• {n.get('node_name')} ({n.get('location')})" for n in official])
+
+        await query.message.reply_text(
+            f"Ɉ\n\n🔄 **Узлы перезагружены**\n\n"
+            f"Загружено: {len(official)} official узлов\n\n"
+            f"{node_list}",
+            parse_mode="Markdown"
+        )
+
+    elif action == "stat_ping_all":
+        # Пингуем все узлы
+        await context.bot.send_chat_action(chat_id=query.message.chat_id, action="typing")
+
+        nodes = node_crypto_system.get_all_nodes()
+        official_nodes = [n for n in nodes if n.get('official', False)]
+
+        results = []
+        for node in official_nodes:
+            ip = node.get('ip', '')
+            name = node.get('node_name', 'unknown')
+            is_online = await check_node_online(ip) if ip else False
+            status = "🟢" if is_online else "🔴"
+            results.append(f"{status} {name}: {ip}")
+
+        await query.message.reply_text(
+            f"Ɉ\n\n📡 **Пинг узлов:**\n\n" + "\n".join(results),
+            parse_mode="Markdown"
+        )
+
+    elif action == "stat_users":
+        # Показываем всех пользователей с кнопками управления
+        await context.bot.send_chat_action(chat_id=query.message.chat_id, action="typing")
+
+        users = load_users()
+        if not users:
+            await query.message.reply_text("Ɉ\n\n👥 Нет пользователей.")
+            return
+
+        display = "Ɉ\n\n**👥 Все пользователи:**\n\n"
+
+        # Создаём кнопки для каждого пользователя
+        keyboard = []
+        for uid, udata in users.items():
+            name = udata.get('first_name', 'Unknown')
+            username = udata.get('username', '')
+            is_approved = udata.get('approved', False)
+            is_pending = udata.get('pending_approval', False)
+
+            if is_approved:
+                status = "✅"
+                btn_text = f"🚫 {name}"
+                btn_action = f"stat_revoke_{uid}"
+            elif is_pending:
+                status = "⏳"
+                btn_text = f"✅ {name}"
+                btn_action = f"stat_approve_{uid}"
+            else:
+                status = "❌"
+                btn_text = f"✅ {name}"
+                btn_action = f"stat_approve_{uid}"
+
+            user_line = f"{status} **{name}**"
+            if username:
+                user_line += f" @{username}"
+            user_line += f" `{uid}`\n"
+            display += user_line
+
+            keyboard.append([InlineKeyboardButton(btn_text, callback_data=btn_action)])
+
+        keyboard.append([InlineKeyboardButton("◀️ Назад", callback_data="stat_refresh")])
+
+        await query.message.reply_text(
+            display,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+    elif action.startswith("stat_revoke_"):
+        # Отзыв верификации
+        target_uid = action.replace("stat_revoke_", "")
+        users = load_users()
+        if target_uid in users:
+            users[target_uid]['approved'] = False
+            users[target_uid]['pending_approval'] = False
+            save_users(users)
+            name = users[target_uid].get('first_name', target_uid)
+            await query.message.reply_text(f"Ɉ\n\n🚫 **{name}** отключён от Юноны.")
+        else:
+            await query.message.reply_text("Ɉ\n\n⚠️ Пользователь не найден.")
+
+    elif action.startswith("stat_approve_"):
+        # Одобрение пользователя
+        target_uid = action.replace("stat_approve_", "")
+        users = load_users()
+        if target_uid in users:
+            users[target_uid]['approved'] = True
+            users[target_uid]['pending_approval'] = False
+            save_users(users)
+            name = users[target_uid].get('first_name', target_uid)
+            await query.message.reply_text(f"Ɉ\n\n✅ **{name}** одобрен.")
+        else:
+            await query.message.reply_text("Ɉ\n\n⚠️ Пользователь не найден.")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -824,12 +978,12 @@ async def offer_chapter(update: Update, user_id: int, chapter_num: int):
     """Юнона предлагает главу элегантно"""
 
     # Получаем информацию о главе
-    chapter_info = coordinator.get_chapter_files(chapter_num)
+    chapter_info = atlant.get_chapter_files(chapter_num)
     if not chapter_info:
         return
 
     # Записываем что предложили главу
-    coordinator.offer_chapter(user_id, chapter_num)
+    atlant.offer_chapter(user_id, chapter_num)
 
     # Юнона элегантно подводит к главе
     chapter_names_ru = {
@@ -892,10 +1046,10 @@ async def send_chapter(query, user_id: int, chapter_num: int, format_choice: str
     """Отправить главу пользователю"""
 
     # Записываем выбор формата
-    coordinator.set_preference(user_id, "format", format_choice)
+    atlant.set_preference(user_id, "format", format_choice)
 
     # Получаем файлы
-    chapter_info = coordinator.get_chapter_files(chapter_num)
+    chapter_info = atlant.get_chapter_files(chapter_num)
     if not chapter_info:
         await query.message.reply_text("Ɉ Не могу найти эту главу.")
         return
@@ -931,8 +1085,8 @@ async def send_chapter(query, user_id: int, chapter_num: int, format_choice: str
     )
 
     # Устанавливаем контекст
-    coordinator.set_context(user_id, "waiting_for", "impression")
-    coordinator.set_context(user_id, "current_chapter", chapter_num)
+    atlant.set_context(user_id, "waiting_for", "impression")
+    atlant.set_context(user_id, "current_chapter", chapter_num)
 
 
 async def handle_chapter_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1075,53 +1229,52 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             logger.error(f"Failed to notify creator: {e}")
 
-    # Показываем "печатает..."
-    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+    # SECURITY: Проверка авторизации ПЕРЕД любыми действиями
+    logger.info(f"🔐 AUTH CHECK user={user_id}: pending={user_data.get('pending_approval')}, approved={user_data.get('approved')}")
 
-    # SECURITY: Проверка авторизации
-    # 1. Ожидает одобрения
+    # 1. Ожидает одобрения — минимальный ответ без AI
     if user_data.get('pending_approval'):
-        # Убираем все команды кроме /start для неавторизованных
+        # Убираем все команды для неавторизованных
         try:
             from telegram import BotCommandScopeChat
             await context.bot.delete_my_commands(scope=BotCommandScopeChat(chat_id=chat_id))
         except:
             pass
 
-        greeting = f"Ɉ\n\n" \
-                  f"Привет, {user.first_name}.\n\n" \
-                  f"Я — Юнона. Твой запрос отправлен на модерацию.\n\n" \
-                  f"⏳ Ожидай авторизации от {BOT_CREATOR_USERNAME}\n\n" \
-                  f"Скоро ты получишь доступ к общению."
-        coordinator.add_message(user_id, "junona", greeting)
-        await update.message.reply_text(greeting)
-        return
-
-    # 2. Отклонён (approved=False, pending_approval=False)
-    if not user_data.get('approved', False):
-        # Убираем все команды для отклонённых
-        try:
-            from telegram import BotCommandScopeChat
-            await context.bot.delete_my_commands(scope=BotCommandScopeChat(chat_id=chat_id))
-        except:
-            pass
-
+        # Короткое сообщение без AI, без записи в память
         await update.message.reply_text(
-            f"Ɉ\n\n❌ Доступ не предоставлен.\n\n"
-            f"Владелец: {BOT_CREATOR_USERNAME}"
+            f"Ɉ\n\n⏳ Запрос на модерации.\n\nОжидай."
         )
         return
 
-    # ✅ ОДОБРЕН — устанавливаем полное меню команд
+    # 2. Отклонён — минимальный ответ
+    if not user_data.get('approved', False):
+        try:
+            from telegram import BotCommandScopeChat
+            await context.bot.delete_my_commands(scope=BotCommandScopeChat(chat_id=chat_id))
+        except:
+            pass
+
+        await update.message.reply_text("Ɉ\n\n❌ Доступ закрыт.")
+        return
+
+    # ✅ ОДОБРЕН — устанавливаем меню команд
     try:
         from telegram import BotCommandScopeChat
+        # Принудительный сброс старого меню
+        await context.bot.delete_my_commands(scope=BotCommandScopeChat(chat_id=chat_id))
+        # Владелец получает расширенное меню с /stat и /register_node
+        commands = BOT_COMMANDS_OWNER if user_id == BOT_CREATOR_ID else BOT_COMMANDS
         await context.bot.set_my_commands(
-            BOT_COMMANDS,
+            commands,
             scope=BotCommandScopeChat(chat_id=chat_id)
         )
-        logger.info(f"✅ Полное меню установлено для {user_id}")
+        logger.info(f"✅ Меню установлено для {user_id} ({'OWNER' if user_id == BOT_CREATOR_ID else 'user'}): {len(commands)} команд")
     except Exception as e:
         logger.warning(f"⚠️ Не удалось установить меню: {e}")
+
+    # Показываем "печатает..." только одобренным
+    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
 
     # Юнона приветствует пользователя через AI
     try:
@@ -1129,8 +1282,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         response = await junona.welcome_guest(user_data)
 
         # Сохраняем в историю координатора
-        coordinator.add_message(user_id, "user", "/start")
-        coordinator.add_message(user_id, "junona", response)
+        atlant.add_message(user_id, "user", "/start")
+        atlant.add_message(user_id, "junona", response)
 
         # Отправляем ответ
         await update.message.reply_text(response)
@@ -1139,7 +1292,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Error in start command: {e}")
         # Fallback если AI недоступна
         greeting = f"Приветствую тебя, {user.first_name}! Я очень рада, что ты решил присоединиться ко мне в этом виртуальном пространстве. Надеюсь, ты чувствуешь себя здесь уютно и комфортно.\n\nО чем хочешь поговорить?"
-        coordinator.add_message(user_id, "junona", greeting)
+        atlant.add_message(user_id, "junona", greeting)
         await update.message.reply_text(greeting)
 
 
@@ -1161,46 +1314,50 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = user.id
     text = update.message.text
 
-    user_data = get_user(user_id)
+    # SECURITY: Проверка что пользователь есть в базе
+    users = load_users()
+    if str(user_id) not in users:
+        # Совсем новый пользователь — не отвечаем, направляем на /start
+        await update.message.reply_text(
+            f"Ɉ\n\n👋 Привет!\n\nНажми /start чтобы начать."
+        )
+        return
 
-    # Проверка одобрения - только одобренные могут общаться
+    user_data = users[str(user_id)]
+
+    # SECURITY: Проверка одобрения — только approved=True могут общаться
     if not user_data.get('approved', False):
         if user_data.get('pending_approval', False):
-            await update.message.reply_text(
-                f"Ɉ\n\n⏳ Твой запрос на модерации.\n\n"
-                f"Скоро получишь ответ."
-            )
+            # Молча игнорируем — уже знает что на модерации
+            return
         else:
-            # Пользователь был отклонен
-            await update.message.reply_text(
-                f"Ɉ\n\n❌ Доступ не предоставлен."
-            )
-        return
+            # Отклонён — молча игнорируем
+            return
 
     history = user_data.get('history', [])
 
     # Используем детектор новизны гиппокампа
-    is_thought = hippocampus.is_raw_thought(text)
+    is_thought = atlant.is_thought(text)
 
     # Сохраняем в поток только если это мысль
     if is_thought:
-        save_to_stream(user_id, user.username or "аноним", text)
+        atlant.save_thought(user_id, text, username=user.username or "аноним")
         logger.info(f"💭 {user.first_name}: {text[:50]}...")
 
     # Записываем все сообщения в координатор
-    coordinator.add_message(user_id, "user", text)
+    atlant.add_message(user_id, "user", text)
 
     # Проверяем контекст - может ждем впечатления о главе?
-    ctx = coordinator.get_context(user_id)
+    ctx = atlant.get_context(user_id)
     if ctx.get("waiting_for") == "impression":
         current_chapter = ctx.get("current_chapter")
         if current_chapter is not None:
             # Пользователь делится впечатлением
-            coordinator.complete_chapter(user_id, current_chapter,
-                                        coordinator.get_preference(user_id, "format", "text"),
+            atlant.complete_chapter(user_id, current_chapter,
+                                        atlant.get_preference(user_id, "format", "text"),
                                         impression=text)
 
-            coordinator.add_note(user_id, f"Глава {current_chapter}: {text[:100]}")
+            atlant.add_note(user_id, f"Глава {current_chapter}: {text[:100]}")
 
             await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
 
@@ -1209,7 +1366,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                       f"Это важная часть твоего пути — не просто читать, а осмысливать.\n\n" \
                       f"Продолжим разговор?"
 
-            coordinator.add_message(user_id, "junona", response)
+            atlant.add_message(user_id, "junona", response)
             await update.message.reply_text(response)
             return
 
@@ -1264,14 +1421,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             save_user(user_id, user_data)
 
             # Записываем ответ Юноны
-            coordinator.add_message(user_id, "junona", response)
+            atlant.add_message(user_id, "junona", response)
 
             await update.message.reply_text(f"Ɉ\n\n{response}")
 
             # Проверяем - просил ли пользователь материалы ЯВНО?
             if is_asking_for_materials(text):
                 # Пользователь явно попросил материалы - предлагаем следующую главу
-                next_chapter = coordinator.get_next_chapter(user_id)
+                next_chapter = atlant.get_next_chapter(user_id)
                 if next_chapter is not None:
                     await asyncio.sleep(1)
                     await offer_chapter(update, user_id, next_chapter)
@@ -1441,6 +1598,7 @@ async def start_polling():
         _application.add_handler(CommandHandler("stat", stat_cmd))
         _application.add_handler(CallbackQueryHandler(handle_chapter_choice, pattern="^chapter_"))
         _application.add_handler(CallbackQueryHandler(handle_user_approval, pattern="^(approve|reject)_"))
+        _application.add_handler(CallbackQueryHandler(handle_stat_callback, pattern="^stat_"))
         _application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
         # Настройка команд меню и запуск
