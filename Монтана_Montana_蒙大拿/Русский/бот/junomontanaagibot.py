@@ -1199,6 +1199,49 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
 #                              BOT SETUP
 # ═══════════════════════════════════════════════════════════════════════════════
 
+def kill_existing_bot_processes():
+    """
+    Проверяет и останавливает все запущенные процессы бота.
+
+    Предотвращает конфликт getUpdates при запуске нового экземпляра.
+    """
+    import subprocess
+    import signal
+
+    try:
+        # Находим все процессы junomontanaagibot.py
+        ps_output = subprocess.check_output(['ps', 'aux'], text=True)
+        lines = ps_output.split('\n')
+
+        killed_count = 0
+        for line in lines:
+            if 'junomontanaagibot.py' in line and 'grep' not in line:
+                # Извлекаем PID
+                parts = line.split()
+                if len(parts) >= 2:
+                    try:
+                        pid = int(parts[1])
+                        # Не убиваем себя
+                        if pid != os.getpid():
+                            os.kill(pid, signal.SIGKILL)
+                            killed_count += 1
+                            logger.info(f"🗑 Остановлен старый процесс бота: PID {pid}")
+                    except (ValueError, ProcessLookupError):
+                        pass
+
+        if killed_count > 0:
+            logger.info(f"✅ Остановлено {killed_count} старых процессов бота")
+            # Даём время на очистку Telegram API (getUpdates session)
+            import time
+            logger.info("⏳ Ожидание освобождения Telegram API (10 сек)...")
+            time.sleep(10)
+        else:
+            logger.debug("✓ Нет старых процессов бота")
+
+    except Exception as e:
+        logger.warning(f"⚠️ Ошибка проверки процессов: {e}")
+
+
 async def setup_bot_commands(application, force=False):
     """
     Настройка кнопки меню с командами
@@ -1257,6 +1300,20 @@ async def start_polling():
         _application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
         _application.add_error_handler(error_handler)
 
+        # Инициализируем для принудительной очистки Telegram API
+        await _application.initialize()
+
+        # КРИТИЧЕСКИ ВАЖНО: Сбрасываем любые активные getUpdates сессии
+        try:
+            logger.info("🧹 Очистка старых Telegram API сессий...")
+            # Удаляем webhook (если был)
+            await _application.bot.delete_webhook(drop_pending_updates=True)
+            # Делаем одноразовый getUpdates с timeout=1 чтобы сбросить очередь
+            await _application.bot.get_updates(offset=-1, timeout=1)
+            logger.info("✅ Telegram API сессии очищены")
+        except Exception as e:
+            logger.warning(f"⚠️ Очистка API: {e}")
+
         # Handlers
         _application.add_handler(CommandHandler("start", start))
         _application.add_handler(CommandHandler("stream", stream_cmd))
@@ -1274,12 +1331,11 @@ async def start_polling():
         _application.add_handler(CallbackQueryHandler(handle_user_approval, pattern="^(approve|reject)_"))
         _application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-        # Инициализация и запуск
-        await _application.initialize()
+        # Настройка команд меню и запуск
         await setup_bot_commands(_application, force=True)
         await _application.start()
         await _application.updater.start_polling(
-            drop_pending_updates=False,
+            drop_pending_updates=True,  # Сбрасываем старую сессию getUpdates
             allowed_updates=['message', 'callback_query']
         )
 
@@ -1324,6 +1380,9 @@ async def run_with_3mirror():
     - Активная проверка каждые 5 секунд
     - Failover < 10 секунд
     """
+    # Останавливаем старые процессы бота перед запуском
+    kill_existing_bot_processes()
+
     leader = get_leader_election()
 
     logger.info(f"🏔 Montana 3-Mirror Leader Election")
