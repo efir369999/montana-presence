@@ -13,9 +13,13 @@ import asyncio
 import logging
 import socket
 import subprocess
+import random
+import time
+import psutil
 from pathlib import Path
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Dict
 from datetime import datetime
+from collections import deque
 
 # Breathing Sync
 try:
@@ -115,6 +119,120 @@ def check_node_health(ip: str) -> bool:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+#                              ATTACK DETECTOR
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class AttackDetector:
+    """
+    Обнаружение атак на узел Montana.
+
+    Метрики атаки:
+    - Высокий CPU usage (> 80%)
+    - Высокий network traffic (аномальный)
+    - Много повторных ошибок/failures
+    - Медленное время отклика (> 5 сек)
+    - Недоступность узла
+    """
+
+    def __init__(self):
+        # Счетчики ошибок
+        self.failure_count = 0
+        self.max_failures = 10  # Порог для обнаружения атаки
+
+        # История времени отклика (последние 10 проверок)
+        self.response_times: deque = deque(maxlen=10)
+
+        # Пороги
+        self.cpu_threshold = 80.0  # %
+        self.response_time_threshold = 5.0  # секунды
+
+        # Последняя проверка
+        self.last_check_time = time.time()
+
+        # Флаг атаки
+        self.under_attack = False
+
+    def record_failure(self):
+        """Зарегистрировать ошибку"""
+        self.failure_count += 1
+        if self.failure_count >= self.max_failures:
+            self.under_attack = True
+            logger.warning(f"🚨 АТАКА ОБНАРУЖЕНА: {self.failure_count} failures")
+
+    def record_success(self):
+        """Зарегистрировать успех (сбрасывает счетчик)"""
+        if self.failure_count > 0:
+            self.failure_count = max(0, self.failure_count - 1)
+
+    def record_response_time(self, response_time: float):
+        """Зарегистрировать время отклика"""
+        self.response_times.append(response_time)
+
+        # Проверяем среднее время отклика
+        if len(self.response_times) >= 5:
+            avg_time = sum(self.response_times) / len(self.response_times)
+            if avg_time > self.response_time_threshold:
+                self.under_attack = True
+                logger.warning(f"🚨 АТАКА ОБНАРУЖЕНА: медленный отклик {avg_time:.2f}s")
+
+    def check_cpu_usage(self) -> bool:
+        """
+        Проверить CPU usage.
+
+        Returns:
+            True если CPU > порога (возможная атака)
+        """
+        try:
+            cpu_percent = psutil.cpu_percent(interval=0.1)
+            if cpu_percent > self.cpu_threshold:
+                logger.warning(f"🚨 АТАКА ОБНАРУЖЕНА: высокий CPU {cpu_percent}%")
+                self.under_attack = True
+                return True
+        except Exception as e:
+            logger.debug(f"Ошибка проверки CPU: {e}")
+        return False
+
+    def check_network_traffic(self) -> bool:
+        """
+        Проверить network traffic (базовая проверка).
+
+        Returns:
+            True если обнаружена аномалия
+        """
+        try:
+            net_io = psutil.net_io_counters()
+            # Простая эвристика: > 100 MB/s входящего трафика
+            bytes_per_sec = net_io.bytes_recv / (time.time() - self.last_check_time + 0.001)
+            if bytes_per_sec > 100 * 1024 * 1024:  # 100 MB/s
+                logger.warning(f"🚨 АТАКА ОБНАРУЖЕНА: высокий трафик {bytes_per_sec / 1024 / 1024:.1f} MB/s")
+                self.under_attack = True
+                return True
+        except Exception as e:
+            logger.debug(f"Ошибка проверки network: {e}")
+        return False
+
+    def is_under_attack(self) -> bool:
+        """
+        Проверить все метрики и определить состояние атаки.
+
+        Returns:
+            True если узел под атакой
+        """
+        # Проверяем все метрики
+        self.check_cpu_usage()
+        self.check_network_traffic()
+
+        return self.under_attack
+
+    def reset(self):
+        """Сбросить флаг атаки после успешного failover"""
+        self.under_attack = False
+        self.failure_count = 0
+        self.response_times.clear()
+        logger.info("✅ Attack detector reset")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 #                              LEADER ELECTION
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -131,6 +249,7 @@ class LeaderElection:
 
     def __init__(self, chain: List[Tuple[str, str]] = None):
         self.chain = chain or BOT_CHAIN
+        self.original_chain = list(self.chain)  # Сохраняем оригинальную цепочку
         self.my_name: Optional[str] = None
         self.my_ip: Optional[str] = None
         self.my_position: int = -1  # Позиция в цепочке (-1 = не в цепочке)
@@ -140,6 +259,10 @@ class LeaderElection:
         # Breathing Sync
         self._breathing_sync: Optional[BreathingSync] = None
         self._breathing_task: Optional[asyncio.Task] = None
+
+        # Attack Detection
+        self.attack_detector = AttackDetector()
+        self.chain_shuffled = False  # Флаг - цепочка перемешана?
 
         # Определяем себя
         self._detect_self()
@@ -239,6 +362,65 @@ class LeaderElection:
             status.append(f"{marker} {name}{is_me}")
         return " | ".join(status)
 
+    def shuffle_chain_on_attack(self):
+        """
+        При обнаружении атаки — случайный порядок failover.
+
+        Из требований пользователя:
+        "при обнаружении ататки передавать мастера в случайном порядке"
+
+        Защита:
+        - Атакующий НЕ может предсказать следующего мастера
+        - Цепочка перемешивается случайным образом
+        - Только здоровые узлы учитываются
+        """
+        if not self.attack_detector.is_under_attack():
+            return
+
+        logger.warning("🚨 АТАКА ОБНАРУЖЕНА! Переход на случайный failover")
+
+        # Перемешиваем цепочку случайным образом
+        shuffled = list(self.chain)
+        random.shuffle(shuffled)
+
+        # Фильтруем только живые узлы
+        healthy_nodes = []
+        for name, ip in shuffled:
+            if check_node_health(ip):
+                healthy_nodes.append((name, ip))
+                logger.info(f"  ✅ {name} ({ip}) — ЗДОРОВ")
+            else:
+                logger.warning(f"  ❌ {name} ({ip}) — НЕДОСТУПЕН")
+
+        if healthy_nodes:
+            self.chain = healthy_nodes
+            self.chain_shuffled = True
+            logger.info(f"🎲 Новый случайный порядок: {' → '.join([n for n, _ in self.chain])}")
+
+            # Обновляем мою позицию
+            for i, (name, ip) in enumerate(self.chain):
+                if name == self.my_name:
+                    self.my_position = i
+                    break
+        else:
+            logger.error("❌ НЕТ ЗДОРОВЫХ УЗЛОВ! Оставляем старую цепочку")
+
+        # Сбрасываем attack detector после failover
+        self.attack_detector.reset()
+
+    def restore_original_chain(self):
+        """Восстановить оригинальную детерминированную цепочку"""
+        if self.chain_shuffled:
+            logger.info("🔄 Восстановление оригинальной цепочки")
+            self.chain = list(self.original_chain)
+            self.chain_shuffled = False
+
+            # Обновляем позицию
+            for i, (name, ip) in enumerate(self.chain):
+                if name == self.my_name:
+                    self.my_position = i
+                    break
+
     def stop(self):
         """Остановить leader election и breathing sync"""
         self._stop_event.set()
@@ -291,8 +473,26 @@ class LeaderElection:
 
         while not self._stop_event.is_set():
             try:
+                # ЗАЩИТА ОТ АТАК — проверяем метрики
+                check_start_time = time.time()
+
+                if self.attack_detector.is_under_attack():
+                    # Атака обнаружена — переход на случайный failover
+                    self.shuffle_chain_on_attack()
+
+                    # Если я был мастером — передаём управление
+                    if was_master:
+                        logger.warning("🚨 Передача мастерства из-за атаки")
+                        self.is_master = False
+                        was_master = False
+                        await on_become_standby()
+
                 # Проверяем статус цепочки
                 should_be_master = self.am_i_the_master()
+
+                # Записываем время отклика
+                check_duration = time.time() - check_start_time
+                self.attack_detector.record_response_time(check_duration)
 
                 if should_be_master and not was_master:
                     # Стали мастером
@@ -300,6 +500,7 @@ class LeaderElection:
                     was_master = True
                     logger.info(f"👑 {self.my_name} → MASTER")
                     logger.info(f"   Цепочка: {self.get_chain_status()}")
+                    self.attack_detector.record_success()
                     await on_become_master()
 
                 elif not should_be_master and was_master:
@@ -321,6 +522,7 @@ class LeaderElection:
                 break
             except Exception as e:
                 logger.error(f"❌ Ошибка в leader loop: {e}")
+                self.attack_detector.record_failure()
                 await asyncio.sleep(check_interval)
 
 
