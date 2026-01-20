@@ -18,6 +18,7 @@ import os
 import json
 import logging
 import asyncio
+import threading
 from pathlib import Path
 from datetime import datetime
 
@@ -46,6 +47,7 @@ from time_bank import get_time_bank
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN_JUNONA")
 BOT_CREATOR_ID = 8552053404
+BOT_CREATOR_USERNAME = "@junomoneta"  # Ник владельца для уведомлений
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # КОМАНДЫ МЕНЮ БОТА
@@ -117,6 +119,38 @@ def save_user(user_id: int, data: dict):
     users = load_users()
     users[str(user_id)] = data
     save_users(users)
+
+
+async def check_user_approved(update: Update, user_id: int) -> bool:
+    """
+    Проверка авторизации пользователя.
+
+    Возвращает True если пользователь одобрен.
+    Если не одобрен — отправляет сообщение и возвращает False.
+
+    SECURITY: Все команды ДОЛЖНЫ вызывать эту функцию в начале.
+    """
+    # Владелец бота всегда одобрен
+    if user_id == BOT_CREATOR_ID:
+        return True
+
+    user_data = get_user(user_id)
+
+    if user_data.get('approved', False):
+        return True
+
+    # Не одобрен — отправляем отказ
+    if user_data.get('pending_approval', False):
+        await update.message.reply_text(
+            "Ɉ\n\n⏳ Твой запрос на модерации.\n\nСкоро получишь ответ."
+        )
+    else:
+        await update.message.reply_text(
+            "Ɉ\n\n❌ Доступ не предоставлен."
+        )
+
+    return False
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #                              ПОТОК МЫСЛЕЙ
@@ -198,6 +232,10 @@ async def stream_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_id = user.id
 
+    # SECURITY: Проверка авторизации
+    if not await check_user_approved(update, user_id):
+        return
+
     # Загружаем мысли пользователя
     thoughts = load_user_stream(user_id, limit=10)
 
@@ -231,6 +269,10 @@ async def export_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = user.id
     username = user.username or "аноним"
 
+    # SECURITY: Проверка авторизации
+    if not await check_user_approved(update, user_id):
+        return
+
     # Загружаем ВСЕ мысли пользователя
     thoughts = load_user_stream(user_id, limit=10000)
 
@@ -263,6 +305,11 @@ async def export_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def node_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /node [адрес|alias] — показать кошелек узла"""
+    user_id = update.effective_user.id
+
+    # SECURITY: Проверка авторизации
+    if not await check_user_approved(update, user_id):
+        return
 
     if not context.args:
         # Показать все узлы
@@ -415,6 +462,11 @@ async def balance_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /balance — показать свой баланс (confirmed + pending)"""
     user = update.effective_user
     user_id = user.id
+
+    # SECURITY: Проверка авторизации
+    if not await check_user_approved(update, user_id):
+        return
+
     address = str(user_id)
 
     # Получаем баланс с pending
@@ -471,6 +523,11 @@ async def transfer_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     Анонимность: публично виден только proof, адреса хэшированы
     """
     user_id = update.effective_user.id
+
+    # SECURITY: Проверка авторизации — КРИТИЧНО для переводов
+    if not await check_user_approved(update, user_id):
+        return
+
     from_addr = str(user_id)
 
     if len(context.args) < 2:
@@ -564,6 +621,11 @@ async def transfer_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def tx_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /tx — история транзакций"""
     user_id = update.effective_user.id
+
+    # SECURITY: Проверка авторизации
+    if not await check_user_approved(update, user_id):
+        return
+
     address = str(user_id)
 
     # Получаем личную историю
@@ -595,6 +657,11 @@ async def tx_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def feed_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /feed — публичная лента транзакций"""
+    user_id = update.effective_user.id
+
+    # SECURITY: Проверка авторизации
+    if not await check_user_approved(update, user_id):
+        return
 
     txs = time_bank.tx_feed(limit=15)
 
@@ -619,6 +686,11 @@ async def feed_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def stats_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /stats — статистика сети Montana (токеномика)"""
+    user_id = update.effective_user.id
+
+    # SECURITY: Проверка авторизации
+    if not await check_user_approved(update, user_id):
+        return
 
     # Получаем статистику из TIME_BANK
     stats = time_bank.stats()
@@ -954,37 +1026,30 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = user.id
     chat_id = update.effective_chat.id
 
-    # ПРИНУДИТЕЛЬНОЕ ОБНОВЛЕНИЕ КОМАНД МЕНЮ
-    # Для владельца - полная очистка всех scope и установка новых команд
-    # Для остальных - очистка только для конкретного чата
-    try:
-        from telegram import BotCommandScopeChat
-
-        if user_id == BOT_CREATOR_ID:
-            # Владелец: принудительно обновляем команды для всех scope
-            logger.info(f"👑 Владелец бота запустил /start - принудительное обновление всех команд")
-            await setup_bot_commands(context.application, force=True)
-        else:
-            # Остальные: удаляем команды только для конкретного чата
-            await context.bot.delete_my_commands(scope=BotCommandScopeChat(chat_id=chat_id))
-            logger.info(f"🗑 Команды удалены для чата {chat_id}")
-            await setup_bot_commands(context.application, force=False)
-    except Exception as e:
-        logger.warning(f"⚠️ Не удалось обновить команды: {e}")
+    # Команды меню будут установлены ПОСЛЕ проверки авторизации
 
     # Проверяем - новый пользователь или возвращается
     users = load_users()
     is_new_user = str(user_id) not in users
 
-    # Сохраняем данные пользователя
-    user_data = {
-        'first_name': user.first_name,
-        'username': user.username,
-        'history': [],
-        'approved': user_id == BOT_CREATOR_ID,  # Владелец одобрен автоматически
-        'pending_approval': is_new_user and user_id != BOT_CREATOR_ID
-    }
-    save_user(user_id, user_data)
+    # Загружаем или создаём данные пользователя
+    if is_new_user:
+        # Новый пользователь — создаём запись
+        user_data = {
+            'first_name': user.first_name,
+            'username': user.username,
+            'history': [],
+            'approved': user_id == BOT_CREATOR_ID,  # Владелец одобрен автоматически
+            'pending_approval': user_id != BOT_CREATOR_ID  # Новые ждут одобрения
+        }
+        save_user(user_id, user_data)
+    else:
+        # Возвращающийся пользователь — загружаем существующие данные
+        user_data = get_user(user_id)
+        # Обновляем только имя/username (могли измениться)
+        user_data['first_name'] = user.first_name
+        user_data['username'] = user.username
+        save_user(user_id, user_data)
 
     # Если новый пользователь (не владелец) - уведомляем владельца
     if is_new_user and user_id != BOT_CREATOR_ID:
@@ -1013,15 +1078,50 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Показываем "печатает..."
     await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
 
-    # Если пользователь ждет одобрения
+    # SECURITY: Проверка авторизации
+    # 1. Ожидает одобрения
     if user_data.get('pending_approval'):
+        # Убираем все команды кроме /start для неавторизованных
+        try:
+            from telegram import BotCommandScopeChat
+            await context.bot.delete_my_commands(scope=BotCommandScopeChat(chat_id=chat_id))
+        except:
+            pass
+
         greeting = f"Ɉ\n\n" \
                   f"Привет, {user.first_name}.\n\n" \
                   f"Я — Юнона. Твой запрос отправлен на модерацию.\n\n" \
+                  f"⏳ Ожидай авторизации от {BOT_CREATOR_USERNAME}\n\n" \
                   f"Скоро ты получишь доступ к общению."
         coordinator.add_message(user_id, "junona", greeting)
         await update.message.reply_text(greeting)
         return
+
+    # 2. Отклонён (approved=False, pending_approval=False)
+    if not user_data.get('approved', False):
+        # Убираем все команды для отклонённых
+        try:
+            from telegram import BotCommandScopeChat
+            await context.bot.delete_my_commands(scope=BotCommandScopeChat(chat_id=chat_id))
+        except:
+            pass
+
+        await update.message.reply_text(
+            f"Ɉ\n\n❌ Доступ не предоставлен.\n\n"
+            f"Владелец: {BOT_CREATOR_USERNAME}"
+        )
+        return
+
+    # ✅ ОДОБРЕН — устанавливаем полное меню команд
+    try:
+        from telegram import BotCommandScopeChat
+        await context.bot.set_my_commands(
+            BOT_COMMANDS,
+            scope=BotCommandScopeChat(chat_id=chat_id)
+        )
+        logger.info(f"✅ Полное меню установлено для {user_id}")
+    except Exception as e:
+        logger.warning(f"⚠️ Не удалось установить меню: {e}")
 
     # Юнона приветствует пользователя через AI
     try:
@@ -1279,15 +1379,27 @@ async def setup_bot_commands(application, force=False):
 # Глобальные переменные для управления polling
 _application = None
 _polling_task = None
+_polling_lock = threading.Lock()  # Защита от одновременных вызовов start/stop_polling
+_is_polling = False  # Флаг состояния polling
 
 
 async def start_polling():
     """Запустить polling (вызывается когда узел стал мастером)"""
-    global _application, _polling_task
+    global _application, _polling_task, _is_polling
+
+    # Проверяем что не запущен уже
+    with _polling_lock:
+        if _is_polling:
+            logger.warning("⚠️ Polling уже запущен, пропускаем...")
+            return
 
     try:
         # Останавливаем предыдущий если был
         await stop_polling()
+
+        # КРИТИЧЕСКИ ВАЖНО: Ждем освобождения Telegram API
+        logger.info("⏳ Ожидание освобождения Telegram API (15 сек)...")
+        await asyncio.sleep(15)
 
         # Инициализация RAG базы знаний - ОТКЛЮЧЕНО ДЛЯ ЭКОНОМИИ ПАМЯТИ
         # try:
@@ -1339,16 +1451,26 @@ async def start_polling():
             allowed_updates=['message', 'callback_query']
         )
 
+        # Устанавливаем флаг что polling запущен
+        with _polling_lock:
+            _is_polling = True
+
         logger.info("✅ Polling запущен")
 
     except Exception as e:
         logger.error(f"❌ Ошибка запуска polling: {e}")
+        with _polling_lock:
+            _is_polling = False
         raise
 
 
 async def stop_polling():
     """Остановить polling (вызывается когда узел ушёл в standby)"""
-    global _application, _polling_task
+    global _application, _polling_task, _is_polling
+
+    # Сбрасываем флаг polling
+    with _polling_lock:
+        _is_polling = False
 
     if _application:
         try:
