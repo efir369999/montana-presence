@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Montana Wallet - Скачать</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -320,6 +323,9 @@
                     <span class="step-text">На iPhone: Настройки &#8594; Основные &#8594; VPN и устройства &#8594; Доверять разработчику</span>
                 </li>
             </ol>
+            <a href="downloads/JunonaAI_1.4.0.ipa" class="download-btn" download style="margin-top: 16px;">
+                &#11015; Скачать IPA для iPhone
+            </a>
         </div>
 
         <div class="install-guide">
@@ -335,13 +341,23 @@
                 </li>
                 <li>
                     <span class="step-num">3</span>
-                    <span class="step-text">При первом запуске: ПКМ на приложении &#8594; Открыть</span>
+                    <span class="step-text">Открой Терминал и выполни: <code>sudo spctl --master-disable</code></span>
                 </li>
                 <li>
                     <span class="step-num">4</span>
-                    <span class="step-text">Нажми "Открыть" в диалоге безопасности</span>
+                    <span class="step-text">Запусти Montana из Applications</span>
+                </li>
+                <li>
+                    <span class="step-num">5</span>
+                    <span class="step-text">После установки можно вернуть: <code>sudo spctl --master-enable</code></span>
                 </li>
             </ol>
+            <p class="download-info" style="margin-top: 12px; text-align: left;">
+                <strong>Альтернатива:</strong> ПКМ на приложении &#8594; Открыть &#8594; Открыть в диалоге
+            </p>
+            <a href="downloads/Montana_1.4.0.dmg" class="download-btn" download style="margin-top: 16px;">
+                &#11015; Скачать DMG для Mac
+            </a>
         </div>
 
         <div class="security-note">
