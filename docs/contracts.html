@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Montana Contracts - Контракты с Юноной</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+        .container { max-width: 600px; text-align: center; }
+        .logo { font-size: 100px; margin-bottom: 20px; }
+        h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .subtitle { font-size: 1.2em; color: #888; margin-bottom: 30px; }
+        .badge { display: inline-block; background: #ff6b35; color: #fff; padding: 6px 14px; border-radius: 16px; font-size: 0.9em; margin: 5px; }
+        .badge.ai { background: #7b2fff; }
+        .badge.secure { background: #00d4ff; color: #000; }
+        .features { text-align: left; background: rgba(255,255,255,0.05); border-radius: 16px; padding: 24px; margin: 30px 0; }
+        .feature { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .feature:last-child { border: none; }
+        .feature-icon { font-size: 24px; margin-right: 16px; width: 40px; text-align: center; }
+        .feature-text h3 { font-size: 1em; margin-bottom: 4px; }
+        .feature-text p { font-size: 0.85em; color: #888; }
+        .contract-types { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0; }
+        .contract-type { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; text-align: center; }
+        .contract-type .icon { font-size: 32px; margin-bottom: 8px; }
+        .contract-type h4 { font-size: 0.95em; margin-bottom: 4px; }
+        .contract-type p { font-size: 0.8em; color: #888; }
+        .cta { margin: 30px 0; }
+        .btn { display: inline-block; background: linear-gradient(90deg, #ff6b35, #7b2fff); color: #fff; padding: 14px 32px; border-radius: 30px; text-decoration: none; font-weight: bold; }
+        .btn:hover { opacity: 0.9; }
+        .coming-soon { background: rgba(255,107,53,0.2); border: 1px solid rgba(255,107,53,0.5); border-radius: 12px; padding: 16px; margin: 20px 0; }
+        .coming-soon h3 { color: #ff6b35; margin-bottom: 8px; }
+        .back { margin-top: 40px; }
+        .back a { color: #888; text-decoration: none; }
+        .back a:hover { color: #00d4ff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">📜</div>
+        <h1>Montana Contracts</h1>
+        <p class="subtitle">Умные контракты с Юноной</p>
+
+        <div>
+            <span class="badge ai">AI-арбитр</span>
+            <span class="badge secure">ML-DSA-65</span>
+            <span class="badge">Escrow</span>
+        </div>
+
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">🤝</div>
+                <div class="feature-text">
+                    <h3>Юнона-арбитр</h3>
+                    <p>AI разрешает споры честно и быстро</p>
+                </div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">⏱️</div>
+                <div class="feature-text">
+                    <h3>Оплата временем</h3>
+                    <p>Контракты в Ɉ — время как гарантия</p>
+                </div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🔒</div>
+                <div class="feature-text">
+                    <h3>Escrow</h3>
+                    <p>Деньги заблокированы до выполнения</p>
+                </div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">✍️</div>
+                <div class="feature-text">
+                    <h3>Подпись ML-DSA-65</h3>
+                    <p>Постквантовая криптографическая подпись</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="contract-types">
+            <div class="contract-type">
+                <div class="icon">💼</div>
+                <h4>Фриланс</h4>
+                <p>Работа за время</p>
+            </div>
+            <div class="contract-type">
+                <div class="icon">🏠</div>
+                <h4>Аренда</h4>
+                <p>Залог в Ɉ</p>
+            </div>
+            <div class="contract-type">
+                <div class="icon">🎓</div>
+                <h4>Обучение</h4>
+                <p>Оплата по результату</p>
+            </div>
+            <div class="contract-type">
+                <div class="icon">🤖</div>
+                <h4>AI-услуги</h4>
+                <p>Юнона выполняет</p>
+            </div>
+        </div>
+
+        <div class="coming-soon">
+            <h3>Coming Soon</h3>
+            <p>Контракты с Юноной в разработке. Следи за обновлениями в Telegram.</p>
+        </div>
+
+        <div class="cta">
+            <a href="https://t.me/junomontanaagibot" class="btn">Следить в Telegram</a>
+        </div>
+
+        <div class="back">
+            <a href="index.html">← Montana Protocol</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Montana Protocol - ML-DSA-65 MAINNET</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Montana Protocol - Ɉ</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -11,83 +11,437 @@
             background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
             color: #fff;
             min-height: 100vh;
+            overflow: hidden;
+            touch-action: pan-y;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            background: linear-gradient(180deg, rgba(10,10,10,0.9) 0%, transparent 100%);
+        }
+        .header-logo { font-size: 24px; font-weight: bold; }
+        .menu-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
             display: flex;
             flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 4px;
+        }
+        .menu-btn span {
+            width: 18px;
+            height: 2px;
+            background: #fff;
+            border-radius: 1px;
+        }
+
+        /* Cards Container */
+        .cards-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
         }
-        .container { max-width: 800px; text-align: center; }
-        .logo { font-size: 80px; margin-bottom: 20px; }
-        h1 { font-size: 3em; margin-bottom: 10px; background: linear-gradient(90deg, #00d4ff, #7b2fff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .subtitle { font-size: 1.5em; color: #888; margin-bottom: 40px; }
-        .badge { display: inline-block; background: #00d4ff; color: #000; padding: 8px 16px; border-radius: 20px; font-weight: bold; margin: 10px 5px; }
-        .badge.quantum { background: #7b2fff; color: #fff; }
-        .stats { display: flex; justify-content: center; gap: 40px; margin: 40px 0; flex-wrap: wrap; }
-        .stat { text-align: center; }
-        .stat-value { font-size: 2em; font-weight: bold; color: #00d4ff; }
-        .stat-label { color: #888; font-size: 0.9em; }
-        .links { margin-top: 40px; }
-        .links a { color: #00d4ff; text-decoration: none; margin: 0 15px; font-size: 1.1em; }
-        .links a:hover { text-decoration: underline; }
-        .crypto-box { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; margin: 30px 0; text-align: left; }
-        .crypto-box h3 { color: #00d4ff; margin-bottom: 15px; }
-        .crypto-box code { background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; font-family: monospace; }
-        table { width: 100%; border-collapse: collapse; }
-        td { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        td:first-child { color: #888; }
-        td:last-child { text-align: right; font-family: monospace; color: #00d4ff; }
-        footer { margin-top: 60px; color: #555; font-size: 0.9em; }
+
+        /* App Card */
+        .app-card {
+            position: absolute;
+            width: calc(100% - 40px);
+            max-width: 400px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 24px;
+            padding: 40px 24px;
+            text-align: center;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            cursor: grab;
+            user-select: none;
+        }
+        .app-card:active { cursor: grabbing; }
+        .app-card.hidden { display: none; }
+        .app-card .icon { font-size: 80px; margin-bottom: 20px; }
+        .app-card h2 { font-size: 2em; margin-bottom: 8px; }
+        .app-card .desc { color: #888; margin-bottom: 24px; }
+        .app-card .badges { margin-bottom: 24px; }
+        .app-card .badge {
+            display: inline-block;
+            background: rgba(0,212,255,0.2);
+            color: #00d4ff;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            margin: 4px;
+        }
+        .app-card .badge.purple { background: rgba(123,47,255,0.2); color: #7b2fff; }
+        .app-card .badge.orange { background: rgba(255,107,53,0.2); color: #ff6b35; }
+        .app-card .features { text-align: left; margin: 20px 0; }
+        .app-card .feature {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .app-card .feature:last-child { border: none; }
+        .app-card .feature-icon { width: 32px; font-size: 18px; }
+        .app-card .feature-text { font-size: 0.9em; }
+        .app-card .cta {
+            display: inline-block;
+            background: linear-gradient(90deg, #00d4ff, #7b2fff);
+            color: #fff;
+            padding: 14px 32px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 16px;
+        }
+
+        /* Indicators */
+        .indicators {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 100;
+        }
+        .indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .indicator.active {
+            width: 24px;
+            border-radius: 4px;
+            background: #00d4ff;
+        }
+
+        /* Swipe Hint */
+        .swipe-hint {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #555;
+            font-size: 0.85em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .swipe-hint .arrow { animation: swipeHint 1.5s ease-in-out infinite; }
+        @keyframes swipeHint {
+            0%, 100% { transform: translateX(0); opacity: 0.5; }
+            50% { transform: translateX(10px); opacity: 1; }
+        }
+
+        /* Menu Overlay */
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+            padding: 80px 40px 40px;
+        }
+        .menu-overlay.open { display: flex; }
+        .menu-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 24px;
+            color: #fff;
+        }
+        .menu-items { flex: 1; }
+        .menu-item {
+            display: block;
+            color: #fff;
+            text-decoration: none;
+            font-size: 1.5em;
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .menu-item:hover { color: #00d4ff; }
+        .menu-footer { color: #555; font-size: 0.9em; text-align: center; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="logo">Ɉ</div>
-        <h1>Montana Protocol</h1>
-        <p class="subtitle">Protocol of Ideal Money</p>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-logo">Ɉ Montana</div>
+        <button class="menu-btn" onclick="toggleMenu()">
+            <span></span><span></span><span></span>
+        </button>
+    </header>
 
-        <div>
-            <span class="badge">v9.0.0 MAINNET</span>
-            <span class="badge quantum">ML-DSA-65 Post-Quantum</span>
-            <span class="badge">FIPS 204</span>
-        </div>
-
-        <div class="stats">
-            <div class="stat">
-                <div class="stat-value">4032</div>
-                <div class="stat-label">Private Key (bytes)</div>
+    <!-- Cards -->
+    <div class="cards-container" id="cardsContainer">
+        <!-- Card 1: Junona -->
+        <div class="app-card" data-index="0">
+            <div class="icon">🌙</div>
+            <h2>Junona</h2>
+            <p class="desc">AI-ассистент Montana</p>
+            <div class="badges">
+                <span class="badge purple">GPT-4</span>
+                <span class="badge purple">Claude</span>
+                <span class="badge">Голос</span>
             </div>
-            <div class="stat">
-                <div class="stat-value">1952</div>
-                <div class="stat-label">Public Key (bytes)</div>
+            <div class="features">
+                <div class="feature">
+                    <span class="feature-icon">💬</span>
+                    <span class="feature-text">Диалог на любые темы</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">🔐</span>
+                    <span class="feature-text">Zero Collection по умолчанию</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">Ɉ</span>
+                    <span class="feature-text">1 секунда = 1 Ɉ</span>
+                </div>
             </div>
-            <div class="stat">
-                <div class="stat-value">3309</div>
-                <div class="stat-label">Signature (bytes)</div>
+            <a href="https://t.me/junomontanaagibot" class="cta">Открыть</a>
+        </div>
+
+        <!-- Card 2: Wallet -->
+        <div class="app-card hidden" data-index="1">
+            <div class="icon">Ɉ</div>
+            <h2>Wallet</h2>
+            <p class="desc">Кошелёк времени</p>
+            <div class="badges">
+                <span class="badge">iOS</span>
+                <span class="badge purple">ML-DSA-65</span>
+                <span class="badge">Self-Custody</span>
             </div>
+            <div class="features">
+                <div class="feature">
+                    <span class="feature-icon">🔑</span>
+                    <span class="feature-text">Когнитивный ключ</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">⚛️</span>
+                    <span class="feature-text">Постквантовая защита</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">💸</span>
+                    <span class="feature-text">Мгновенные переводы</span>
+                </div>
+            </div>
+            <a href="wallet.html" class="cta">Скачать</a>
         </div>
 
-        <div class="crypto-box">
-            <h3>Post-Quantum Cryptography</h3>
-            <table>
-                <tr><td>Algorithm</td><td>ML-DSA-65 (Dilithium)</td></tr>
-                <tr><td>Standard</td><td>FIPS 204</td></tr>
-                <tr><td>Security Level</td><td>NIST Level 3 (128-bit PQ)</td></tr>
-                <tr><td>Address Format</td><td><code>mt + SHA256(pubkey)[:20]</code></td></tr>
-                <tr><td>Quantum Safe</td><td>Yes, from genesis</td></tr>
-            </table>
+        <!-- Card 3: Contracts -->
+        <div class="app-card hidden" data-index="2">
+            <div class="icon">📜</div>
+            <h2>Contracts</h2>
+            <p class="desc">Контракты с Юноной</p>
+            <div class="badges">
+                <span class="badge orange">AI-арбитр</span>
+                <span class="badge purple">ML-DSA-65</span>
+                <span class="badge">Escrow</span>
+            </div>
+            <div class="features">
+                <div class="feature">
+                    <span class="feature-icon">🤝</span>
+                    <span class="feature-text">Юнона разрешает споры</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">🔒</span>
+                    <span class="feature-text">Escrow в Ɉ</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">✍️</span>
+                    <span class="feature-text">Подпись ML-DSA-65</span>
+                </div>
+            </div>
+            <a href="contracts.html" class="cta">Скоро</a>
         </div>
-
-        <div class="links">
-            <a href="https://github.com/efir369999/-_Nothing_-">GitHub</a>
-            <a href="https://t.me/JunonaMontanaAGIBot">Telegram Bot</a>
-            <a href="https://github.com/efir369999/-_Nothing_-/releases/tag/v9.0.0">v9.0.0 Release</a>
-        </div>
-
-        <footer>
-            <p>Time is the only real currency</p>
-            <p>ML-DSA-65 MAINNET - Post-quantum from genesis</p>
-        </footer>
     </div>
+
+    <!-- Indicators -->
+    <div class="indicators">
+        <div class="indicator active" data-index="0"></div>
+        <div class="indicator" data-index="1"></div>
+        <div class="indicator" data-index="2"></div>
+    </div>
+
+    <!-- Swipe Hint -->
+    <div class="swipe-hint">
+        <span class="arrow">←</span>
+        Свайп
+        <span class="arrow">→</span>
+    </div>
+
+    <!-- Menu Overlay -->
+    <div class="menu-overlay" id="menuOverlay">
+        <button class="menu-close" onclick="toggleMenu()">×</button>
+        <div class="menu-items">
+            <a href="junona.html" class="menu-item">🌙 Junona</a>
+            <a href="wallet.html" class="menu-item">Ɉ Wallet</a>
+            <a href="contracts.html" class="menu-item">📜 Contracts</a>
+            <a href="https://github.com/efir369999/-_Nothing_-" class="menu-item">GitHub</a>
+            <a href="https://t.me/junomontanaagibot" class="menu-item">Telegram</a>
+        </div>
+        <div class="menu-footer">
+            <p>Montana Protocol v1.1.0</p>
+            <p>ML-DSA-65 MAINNET</p>
+        </div>
+    </div>
+
+    <script>
+        let currentIndex = 0;
+        const totalCards = 3;
+        let startX = 0;
+        let currentX = 0;
+        let isDragging = false;
+
+        const cards = document.querySelectorAll('.app-card');
+        const indicators = document.querySelectorAll('.indicator');
+        const container = document.getElementById('cardsContainer');
+
+        function showCard(index) {
+            cards.forEach((card, i) => {
+                card.classList.toggle('hidden', i !== index);
+                card.style.transform = '';
+                card.style.opacity = '';
+            });
+            indicators.forEach((ind, i) => {
+                ind.classList.toggle('active', i === index);
+            });
+            currentIndex = index;
+        }
+
+        function nextCard() {
+            if (currentIndex < totalCards - 1) {
+                showCard(currentIndex + 1);
+            }
+        }
+
+        function prevCard() {
+            if (currentIndex > 0) {
+                showCard(currentIndex - 1);
+            }
+        }
+
+        // Touch events
+        container.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            isDragging = true;
+        }, { passive: true });
+
+        container.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            currentX = e.touches[0].clientX;
+            const diff = currentX - startX;
+            const card = cards[currentIndex];
+            card.style.transform = `translateX(${diff}px) rotate(${diff * 0.02}deg)`;
+            card.style.opacity = 1 - Math.abs(diff) / 500;
+        }, { passive: true });
+
+        container.addEventListener('touchend', () => {
+            if (!isDragging) return;
+            isDragging = false;
+            const diff = currentX - startX;
+
+            if (diff > 80) {
+                prevCard();
+            } else if (diff < -80) {
+                nextCard();
+            } else {
+                cards[currentIndex].style.transform = '';
+                cards[currentIndex].style.opacity = '';
+            }
+            startX = 0;
+            currentX = 0;
+        });
+
+        // Mouse events (desktop)
+        container.addEventListener('mousedown', (e) => {
+            startX = e.clientX;
+            isDragging = true;
+        });
+
+        container.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            currentX = e.clientX;
+            const diff = currentX - startX;
+            const card = cards[currentIndex];
+            card.style.transform = `translateX(${diff}px) rotate(${diff * 0.02}deg)`;
+            card.style.opacity = 1 - Math.abs(diff) / 500;
+        });
+
+        container.addEventListener('mouseup', () => {
+            if (!isDragging) return;
+            isDragging = false;
+            const diff = currentX - startX;
+
+            if (diff > 80) {
+                prevCard();
+            } else if (diff < -80) {
+                nextCard();
+            } else {
+                cards[currentIndex].style.transform = '';
+                cards[currentIndex].style.opacity = '';
+            }
+            startX = 0;
+            currentX = 0;
+        });
+
+        container.addEventListener('mouseleave', () => {
+            if (isDragging) {
+                isDragging = false;
+                cards[currentIndex].style.transform = '';
+                cards[currentIndex].style.opacity = '';
+            }
+        });
+
+        // Keyboard
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') nextCard();
+            if (e.key === 'ArrowLeft') prevCard();
+            if (e.key === 'Escape') closeMenu();
+        });
+
+        // Click on indicators
+        indicators.forEach((ind, i) => {
+            ind.addEventListener('click', () => showCard(i));
+        });
+
+        // Menu
+        function toggleMenu() {
+            document.getElementById('menuOverlay').classList.toggle('open');
+        }
+        function closeMenu() {
+            document.getElementById('menuOverlay').classList.remove('open');
+        }
+    </script>
 </body>
 </html>

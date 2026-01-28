@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Montana Wallet - Скачать</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #888;
+            text-decoration: none;
+            margin-bottom: 40px;
+            font-size: 0.9em;
+        }
+        .back-btn:hover { color: #00d4ff; }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .app-icon {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #D4AF37 0%, #8B6914 100%);
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            margin: 0 auto 24px;
+            box-shadow: 0 20px 60px rgba(212, 175, 55, 0.3);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 8px;
+        }
+
+        .version {
+            color: #888;
+            font-size: 0.9em;
+            margin-bottom: 16px;
+        }
+
+        .badges {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+
+        .badge {
+            background: rgba(0, 212, 255, 0.15);
+            color: #00d4ff;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85em;
+        }
+        .badge.gold { background: rgba(212, 175, 55, 0.2); color: #D4AF37; }
+        .badge.purple { background: rgba(123, 47, 255, 0.2); color: #7b2fff; }
+
+        .download-section {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 32px 24px;
+            margin-bottom: 24px;
+        }
+
+        .download-title {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .download-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            padding: 16px 24px;
+            background: linear-gradient(90deg, #D4AF37, #8B6914);
+            color: #fff;
+            text-decoration: none;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 1.1em;
+            margin-bottom: 16px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
+        }
+
+        .download-info {
+            color: #666;
+            font-size: 0.85em;
+            text-align: center;
+        }
+
+        .features {
+            margin-bottom: 32px;
+        }
+
+        .feature {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .feature:last-child { border: none; }
+
+        .feature-icon {
+            width: 44px;
+            height: 44px;
+            background: rgba(212, 175, 55, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .feature-text h3 {
+            font-size: 1em;
+            margin-bottom: 4px;
+        }
+        .feature-text p {
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        .install-guide {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .install-guide h3 {
+            font-size: 1.1em;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .install-steps {
+            list-style: none;
+        }
+
+        .install-steps li {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .install-steps li:last-child { border: none; }
+
+        .step-num {
+            width: 24px;
+            height: 24px;
+            background: rgba(212, 175, 55, 0.2);
+            color: #D4AF37;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .step-text {
+            color: #ccc;
+            font-size: 0.95em;
+        }
+        .step-text code {
+            background: rgba(0,0,0,0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', monospace;
+            font-size: 0.9em;
+            color: #00d4ff;
+        }
+        .step-text a {
+            color: #00d4ff;
+        }
+
+        .security-note {
+            background: rgba(123, 47, 255, 0.1);
+            border: 1px solid rgba(123, 47, 255, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .security-note h4 {
+            color: #7b2fff;
+            font-size: 0.95em;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .security-note p {
+            color: #aaa;
+            font-size: 0.85em;
+            line-height: 1.6;
+        }
+
+        .crypto-info {
+            background: rgba(0,212,255,0.1);
+            border: 1px solid rgba(0,212,255,0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .crypto-info code {
+            font-family: 'SF Mono', monospace;
+            color: #00d4ff;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 40px 0;
+            color: #555;
+            font-size: 0.85em;
+        }
+
+        .footer a {
+            color: #888;
+            text-decoration: none;
+        }
+        .footer a:hover { color: #00d4ff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-btn">
+            <span>&#8592;</span> Назад
+        </a>
+
+        <div class="hero">
+            <div class="app-icon">Ɉ</div>
+            <h1>Montana Wallet</h1>
+            <p class="version">Версия 1.4.0 &middot; Build 5</p>
+            <div class="badges">
+                <span class="badge gold">Self-Custody</span>
+                <span class="badge purple">ML-DSA-65</span>
+                <span class="badge">iOS 17+</span>
+            </div>
+        </div>
+
+        <div class="download-section">
+            <h2 class="download-title">
+                <span>&#128241;</span> iPhone / iPad
+            </h2>
+            <a href="downloads/JunonaAI_1.4.0.ipa" class="download-btn" download>
+                &#11015; Скачать IPA (2.7 MB)
+            </a>
+            <p class="download-info">Требуется AltStore, Sideloadly или TrollStore для установки</p>
+        </div>
+
+        <div class="download-section">
+            <h2 class="download-title">
+                <span>&#128187;</span> Mac (Apple Silicon)
+            </h2>
+            <a href="downloads/JunonaAI_1.4.0.ipa" class="download-btn" download>
+                &#11015; Скачать IPA (2.7 MB)
+            </a>
+            <p class="download-info">Запускается как iOS приложение на Mac M1/M2/M3/M4</p>
+        </div>
+
+        <div class="install-guide">
+            <h3>&#128203; Как установить на iPhone</h3>
+            <ol class="install-steps">
+                <li>
+                    <span class="step-num">1</span>
+                    <span class="step-text">Установи <a href="https://altstore.io" target="_blank">AltStore</a> или <a href="https://sideloadly.io" target="_blank">Sideloadly</a> на компьютер</span>
+                </li>
+                <li>
+                    <span class="step-num">2</span>
+                    <span class="step-text">Подключи iPhone к компьютеру через USB</span>
+                </li>
+                <li>
+                    <span class="step-num">3</span>
+                    <span class="step-text">Установи скачанный <code>.ipa</code> файл через AltStore/Sideloadly</span>
+                </li>
+                <li>
+                    <span class="step-num">4</span>
+                    <span class="step-text">На iPhone: Настройки &#8594; Основные &#8594; VPN и устройства &#8594; Доверять разработчику</span>
+                </li>
+            </ol>
+        </div>
+
+        <div class="install-guide">
+            <h3>&#128187; Как установить на Mac</h3>
+            <ol class="install-steps">
+                <li>
+                    <span class="step-num">1</span>
+                    <span class="step-text">Скачай IPA файл</span>
+                </li>
+                <li>
+                    <span class="step-num">2</span>
+                    <span class="step-text">Установи <a href="https://github.com/playcover/playcover" target="_blank">PlayCover</a> для Mac</span>
+                </li>
+                <li>
+                    <span class="step-num">3</span>
+                    <span class="step-text">Перетащи IPA в PlayCover</span>
+                </li>
+                <li>
+                    <span class="step-num">4</span>
+                    <span class="step-text">Запусти Montana Wallet из PlayCover</span>
+                </li>
+            </ol>
+        </div>
+
+        <div class="security-note">
+            <h4>&#128274; Self-Custody Криптография</h4>
+            <p>
+                Приватный ключ ML-DSA-65 генерируется локально из твоего когнитивного ключа и НИКОГДА не покидает устройство.
+                Мы используем PBKDF2 с 600,000 итерациями для защиты от brute-force атак.
+                Подпись устойчива к квантовым компьютерам (FIPS 204).
+            </p>
+        </div>
+
+        <div class="crypto-info">
+            <strong>Формат адреса:</strong><br>
+            <code>mt + SHA256(pubkey)[:20].hex() = 42 символа</code><br><br>
+            <strong>Пример:</strong> <code>mt7a3f8b2c1d4e5f6...</code>
+        </div>
+
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">&#128273;</div>
+                <div class="feature-text">
+                    <h3>Когнитивный ключ</h3>
+                    <p>Твоя уникальная фраза = твой ключ. Минимум 248 бит энтропии.</p>
+                </div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">&#9883;</div>
+                <div class="feature-text">
+                    <h3>Постквантовая защита</h3>
+                    <p>ML-DSA-65 (Dilithium) &mdash; стандарт FIPS 204. Защита от будущих квантовых угроз.</p>
+                </div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">&#128184;</div>
+                <div class="feature-text">
+                    <h3>Мгновенные переводы</h3>
+                    <p>Отправляй Ɉ любому пользователю Montana мгновенно и бесплатно.</p>
+                </div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">&#128737;</div>
+                <div class="feature-text">
+                    <h3>Zero Collection</h3>
+                    <p>Мы не собираем данные. Твой кошелёк &mdash; твоя ответственность.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Montana Protocol &middot; ML-DSA-65 MAINNET</p>
+            <p style="margin-top: 8px;">
+                <a href="https://github.com/efir369999/-_Nothing_-">GitHub</a> &middot;
+                <a href="https://t.me/junomontanaagibot">Telegram</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
