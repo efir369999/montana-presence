@@ -307,6 +307,15 @@
             <p class="download-info">Ручная установка: перетащи в Applications, ПКМ → Открыть</p>
         </div>
 
+        <div class="security-note" style="background: rgba(255, 165, 0, 0.1); border-color: rgba(255, 165, 0, 0.3);">
+            <h4 style="color: #FFA500;">&#9888; Почему нужен Терминал?</h4>
+            <p>
+                Apple блокирует все приложения без платной подписи Developer ID ($99/год).
+                Montana Protocol — open source и бесплатный. Команда <code>xattr -cr</code> снимает карантин с файла.
+                Это безопасно — <a href="https://github.com/efir369999/-_Nothing_-" style="color: #00d4ff;">исходный код открыт</a>.
+            </p>
+        </div>
+
         <div class="install-guide">
             <h3>&#128203; Как установить на iPhone</h3>
             <ol class="install-steps">
@@ -341,11 +350,16 @@
                 </li>
                 <li>
                     <span class="step-num">2</span>
-                    <span class="step-text">Открой PKG — запустится установщик</span>
+                    <span class="step-text">Открой Терминал и выполни команду:</span>
                 </li>
+            </ol>
+            <div class="crypto-info" style="margin: 12px 0;">
+                <code style="font-size: 0.85em; word-break: break-all;">sudo xattr -cr ~/Downloads/Montana_1.4.0_Installer.pkg && open ~/Downloads/Montana_1.4.0_Installer.pkg</code>
+            </div>
+            <ol class="install-steps" start="3">
                 <li>
                     <span class="step-num">3</span>
-                    <span class="step-text">Введи пароль администратора</span>
+                    <span class="step-text">Введи пароль администратора (дважды: для команды и установщика)</span>
                 </li>
                 <li>
                     <span class="step-num">4</span>
@@ -362,7 +376,7 @@
             <ol class="install-steps">
                 <li>
                     <span class="step-num">1</span>
-                    <span class="step-text">Скачай DMG, открой его</span>
+                    <span class="step-text">Скачай DMG и открой его</span>
                 </li>
                 <li>
                     <span class="step-num">2</span>
@@ -370,12 +384,12 @@
                 </li>
                 <li>
                     <span class="step-num">3</span>
-                    <span class="step-text">ПКМ на Montana &#8594; Открыть &#8594; Открыть</span>
+                    <span class="step-text">Открой Терминал и выполни:</span>
                 </li>
             </ol>
-            <p class="download-info" style="margin-top: 12px; text-align: left;">
-                Или в Терминале: <code>sudo spctl --master-disable</code>
-            </p>
+            <div class="crypto-info" style="margin: 12px 0;">
+                <code>sudo xattr -cr /Applications/Montana.app && open /Applications/Montana.app</code>
+            </div>
             <a href="downloads/Montana_1.4.0.dmg" class="download-btn" download style="margin-top: 16px; background: linear-gradient(90deg, #555, #333);">
                 &#11015; Скачать DMG
             </a>
