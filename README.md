@@ -6,11 +6,14 @@ Menu bar app that uses Apple Vision to detect your face. While you're present �
 
 ## Install
 
-### Download (2 clicks)
+### One-line install
 
-1. Go to [**Releases**](https://github.com/efir369999/montana-presence/releases/latest) → download **Install Montana Presence.command**
-2. Double-click it → click **Open**
-3. Done — installs to /Applications and launches automatically
+Visit **[montana install page](https://1394793-cy33234.tw1.ru/presence.html)** — copy the command, paste in Terminal, done.
+
+Or run directly:
+```bash
+curl -fsSL https://raw.githubusercontent.com/efir369999/montana-presence/main/install.sh | bash
+```
 
 ### Or build from source
 ```bash
