@@ -11,14 +11,18 @@ Menu bar app that uses Apple Vision to detect your face. While you're present �
 curl -fsSL https://raw.githubusercontent.com/efir369999/montana-presence/main/install.sh | bash
 ```
 
-### Option 2: Download
+### Option 2: Download manually
 Go to [Releases](https://github.com/efir369999/montana-presence/releases) and download `MontanaPresence.zip`.
 
-Unzip, then:
+Unzip it, then **right-click** the app → **Open** → confirm.
+
+Or in Terminal:
 ```bash
 xattr -cr MontanaPresence.app
 open MontanaPresence.app
 ```
+
+> **macOS Gatekeeper:** The app is not signed with an Apple Developer ID. This is normal for open-source software. `xattr -cr` removes the quarantine flag, or use right-click → Open.
 
 ### Option 3: Build from source
 ```bash

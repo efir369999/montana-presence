@@ -36,8 +36,17 @@ unzip -q MontanaPresence.zip
 # Remove quarantine
 xattr -cr "$APP_NAME" 2>/dev/null || true
 
+# Remove Gatekeeper quarantine from inside the app too
+xattr -cr "$APP_NAME" 2>/dev/null || true
+
 # Copy to Applications
 cp -r "$APP_NAME" "$INSTALL_DIR/"
+
+# Remove quarantine on installed copy
+xattr -cr "$INSTALL_DIR/$APP_NAME" 2>/dev/null || true
+
+# Allow in Gatekeeper
+spctl --add "$INSTALL_DIR/$APP_NAME" 2>/dev/null || true
 
 echo "[3/3] Cleaning up..."
 rm -rf "$TMPDIR"
@@ -45,8 +54,11 @@ rm -rf "$TMPDIR"
 echo ""
 echo "Installed to $INSTALL_DIR/$APP_NAME"
 echo ""
-echo "To launch:"
-echo "  open /Applications/MontanaPresence.app"
+
+# Auto-launch
+open "$INSTALL_DIR/$APP_NAME"
+
+echo "Launched! Look for the eye icon in the menu bar."
 echo ""
 echo "First time:"
 echo "  1. Click the eye icon in the menu bar"
