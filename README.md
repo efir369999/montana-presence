@@ -8,7 +8,7 @@ Menu bar app that uses Apple Vision to detect your face. While you're present �
 
 ### One-line install
 
-Visit **[montana install page](https://1394793-cy33234.tw1.ru/presence.html)** — copy the command, paste in Terminal, done.
+Visit **[efir.org/presence](https://efir.org/presence)** — copy the command, paste in Terminal, done.
 
 Or run directly:
 ```bash

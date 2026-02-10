@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Montana Presence — Install</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cyan: #00d4ff;
+            --purple: #7b2fff;
+            --gold: #D4AF37;
+            --bg: #0a0a0a;
+            --card: rgba(255,255,255,0.03);
+            --border: rgba(255,255,255,0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .page {
+            max-width: 640px;
+            width: 100%;
+            padding: 40px 24px;
+            text-align: center;
+        }
+
+        .icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        h1 span { color: var(--cyan); }
+
+        .subtitle {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 40px;
+        }
+
+        /* Install box */
+        .install-box {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px 24px;
+            margin-bottom: 32px;
+        }
+
+        .install-box h2 {
+            font-size: 16px;
+            color: #888;
+            font-weight: 400;
+            margin-bottom: 20px;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .step-num {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--cyan), var(--purple));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .step-text {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .step-text .key {
+            display: inline-block;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-size: 12px;
+        }
+
+        /* Command area */
+        .cmd-wrap {
+            position: relative;
+            margin: 24px 0 8px;
+        }
+
+        .cmd {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 16px 60px 16px 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--cyan);
+            text-align: left;
+            word-break: break-all;
+            cursor: pointer;
+            transition: border-color 0.2s;
+            user-select: all;
+        }
+
+        .cmd:hover { border-color: var(--cyan); }
+
+        .copy-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: linear-gradient(135deg, var(--cyan), var(--purple));
+            border: none;
+            border-radius: 6px;
+            padding: 8px 14px;
+            color: #fff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .copy-btn:hover { opacity: 0.85; }
+        .copy-btn.copied { background: #22c55e; }
+
+        .hint {
+            color: #555;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        /* Features */
+        .features {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        .feat {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: left;
+        }
+
+        .feat-icon { font-size: 20px; margin-bottom: 6px; }
+        .feat-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+        .feat-desc { font-size: 11px; color: #888; }
+
+        /* Footer */
+        .footer {
+            color: #444;
+            font-size: 11px;
+            margin-top: 24px;
+        }
+
+        .footer a { color: #666; text-decoration: none; }
+        .footer a:hover { color: var(--cyan); }
+
+        @media (max-width: 500px) {
+            .features { grid-template-columns: 1fr; }
+            .cmd { font-size: 10px; padding-right: 50px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="icon">👁</div>
+        <h1>Montana <span>Presence</span></h1>
+        <p class="subtitle">Proof of Presence mining for macOS</p>
+
+        <div class="install-box">
+            <h2>Install in 30 seconds</h2>
+
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-text">Click <strong>Copy</strong> below</div>
+            </div>
+
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-text">Open <strong>Terminal</strong>: press <span class="key">⌘</span> <span class="key">Space</span>, type <strong>Terminal</strong>, press <span class="key">Enter</span></div>
+            </div>
+
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-text">Paste: <span class="key">⌘</span> <span class="key">V</span>, press <span class="key">Enter</span></div>
+            </div>
+
+            <div class="cmd-wrap">
+                <div class="cmd" id="cmd" onclick="copyCmd()">curl -fsSL https://raw.githubusercontent.com/efir369999/montana-presence/main/install.sh | bash</div>
+                <button class="copy-btn" id="copyBtn" onclick="copyCmd()">Copy</button>
+            </div>
+            <div class="hint">Installs to /Applications, launches automatically</div>
+        </div>
+
+        <div class="features">
+            <div class="feat">
+                <div class="feat-icon">📷</div>
+                <div class="feat-title">Face Detection</div>
+                <div class="feat-desc">Apple Vision, runs locally. Nothing leaves your Mac.</div>
+            </div>
+            <div class="feat">
+                <div class="feat-icon">⏱</div>
+                <div class="feat-title">1 sec = 1 Ɉ</div>
+                <div class="feat-desc">Earn time coins every second you're present on camera.</div>
+            </div>
+            <div class="feat">
+                <div class="feat-icon">🎥</div>
+                <div class="feat-title">Works with calls</div>
+                <div class="feat-desc">FaceTime, Zoom, Google Meet — runs alongside any app.</div>
+            </div>
+            <div class="feat">
+                <div class="feat-icon">🪶</div>
+                <div class="feat-title">135 KB</div>
+                <div class="feat-desc">Menu bar only. No dock icon, no battery drain.</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <a href="https://efir.org">efir.org</a> ·
+            <a href="https://github.com/efir369999/montana-presence">GitHub</a> ·
+            macOS 14+ · Apple Silicon
+        </div>
+    </div>
+
+    <script>
+        function copyCmd() {
+            const cmd = document.getElementById('cmd').textContent;
+            navigator.clipboard.writeText(cmd).then(() => {
+                const btn = document.getElementById('copyBtn');
+                btn.textContent = '✓';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = 'Copy';
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
