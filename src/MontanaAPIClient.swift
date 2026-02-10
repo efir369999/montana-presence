@@ -2,8 +2,7 @@ import Foundation
 
 class MontanaAPIClient {
     private let endpoints: [(name: String, url: String)] = [
-        ("Timeweb", "https://1394793-cy33234.tw1.ru"),
-        ("Moscow", "http://176.124.208.93"),
+        ("efir.org", "https://efir.org"),
         ("Amsterdam", "http://72.56.102.240"),
         ("Almaty", "http://91.200.148.93")
     ]
