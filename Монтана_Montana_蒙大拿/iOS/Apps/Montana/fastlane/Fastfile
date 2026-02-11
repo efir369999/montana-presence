@@ -1,0 +1,27 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Create development certificate"
+  lane :certs do
+    create_keychain(
+      name: "montana_keychain",
+      password: "montana123",
+      default_keychain: false,
+      unlock: true,
+      timeout: 3600
+    ) rescue nil
+    
+    cert(
+      development: true,
+      force: true,
+      team_id: "5U4V57QT55"
+    )
+    
+    sigh(
+      development: true,
+      force: true,
+      team_id: "5U4V57QT55",
+      app_identifier: "network.montana.junona"
+    )
+  end
+end

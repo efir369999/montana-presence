@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Montana - Установка через Терминал</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #888;
+            text-decoration: none;
+            margin-bottom: 32px;
+            font-size: 0.9em;
+        }
+        .back-btn:hover { color: #00d4ff; }
+
+        h1 {
+            font-size: 1.8em;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #888;
+            margin-bottom: 32px;
+        }
+
+        .install-box {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 153, 204, 0.1));
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+        .install-box p {
+            color: #aaa;
+            font-size: 0.9em;
+            margin-bottom: 16px;
+        }
+
+        .code-block {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(0, 212, 255, 0.4);
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'SF Mono', 'Menlo', monospace;
+            font-size: 0.95em;
+            color: #00d4ff;
+            overflow-x: auto;
+            position: relative;
+            text-align: left;
+        }
+        .code-block.large {
+            font-size: 1em;
+            padding: 20px;
+        }
+        .code-block .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0, 212, 255, 0.2);
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            color: #00d4ff;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+        .code-block .copy-btn:hover {
+            background: rgba(0, 212, 255, 0.4);
+        }
+
+        .steps {
+            margin-bottom: 32px;
+        }
+        .step {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+        .step-num {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+            color: #000;
+        }
+        .step-title {
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+        .step-content {
+            color: #aaa;
+            font-size: 0.95em;
+            line-height: 1.6;
+            padding-left: 48px;
+        }
+        .step-content code {
+            background: rgba(0,0,0,0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: #00d4ff;
+        }
+
+        .code-step {
+            margin: 16px 0 16px 48px;
+        }
+
+        .platform-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        .platform-tab {
+            flex: 1;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .platform-tab:hover {
+            background: rgba(255,255,255,0.08);
+        }
+        .platform-tab.active {
+            background: rgba(0, 212, 255, 0.15);
+            border-color: rgba(0, 212, 255, 0.4);
+        }
+        .platform-tab .icon {
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+        .platform-tab .name {
+            font-size: 0.9em;
+        }
+
+        .platform-content {
+            display: none;
+        }
+        .platform-content.active {
+            display: block;
+        }
+
+        .commands-list {
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 24px;
+        }
+        .commands-list h4 {
+            margin-bottom: 16px;
+            color: #00d4ff;
+        }
+        .cmd-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-family: 'SF Mono', monospace;
+            font-size: 0.85em;
+        }
+        .cmd-row:last-child {
+            border: none;
+        }
+        .cmd-row .cmd {
+            color: #00d4ff;
+        }
+        .cmd-row .desc {
+            color: #888;
+        }
+
+        .note {
+            background: rgba(123, 47, 255, 0.1);
+            border: 1px solid rgba(123, 47, 255, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 24px;
+        }
+        .note h4 {
+            color: #7b2fff;
+            margin-bottom: 8px;
+        }
+        .note p {
+            color: #aaa;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 32px 0;
+            color: #555;
+            font-size: 0.85em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="wallet.html" class="back-btn">
+            <span>&#8592;</span> Назад к выбору
+        </a>
+
+        <h1>&#62;_ Установка через Терминал</h1>
+        <p class="subtitle">CLI + Сервис присутствия для Mac и Linux</p>
+
+        <div class="install-box">
+            <p>Скопируй команду и выполни в Терминале:</p>
+            <div class="code-block large">
+                <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+                curl -fsSL https://1394793-cy33234.tw1.ru/install.sh | bash
+            </div>
+        </div>
+
+        <div class="platform-tabs">
+            <div class="platform-tab active" onclick="showPlatform('mac')">
+                <div class="icon">&#128187;</div>
+                <div class="name">macOS</div>
+            </div>
+            <div class="platform-tab" onclick="showPlatform('linux')">
+                <div class="icon">&#128421;</div>
+                <div class="name">Linux</div>
+            </div>
+        </div>
+
+        <!-- macOS -->
+        <div id="platform-mac" class="platform-content active">
+            <div class="steps">
+                <div class="step">
+                    <div class="step-header">
+                        <span class="step-num">1</span>
+                        <span class="step-title">Открой Терминал</span>
+                    </div>
+                    <div class="step-content">
+                        <strong>Cmd + Пробел</strong> &#8594; введи "Terminal" &#8594; Enter
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-header">
+                        <span class="step-num">2</span>
+                        <span class="step-title">Выполни команду установки</span>
+                    </div>
+                    <div class="step-content">
+                        Скопируй команду выше и вставь в Терминал. Нажми Enter.
+                        Введи пароль администратора когда попросит.
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-header">
+                        <span class="step-num">3</span>
+                        <span class="step-title">Дождись завершения</span>
+                    </div>
+                    <div class="step-content">
+                        Скрипт установит:<br>
+                        &bull; Montana CLI в <code>/usr/local/bin/montana</code><br>
+                        &bull; GUI приложение в <code>/Applications/Montana.app</code><br>
+                        &bull; Сервис присутствия (launchd)
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-header">
+                        <span class="step-num">4</span>
+                        <span class="step-title">Создай кошелёк</span>
+                    </div>
+                    <div class="step-content">
+                        В Терминале выполни:
+                    </div>
+                    <div class="code-step">
+                        <div class="code-block">
+                            <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+                            montana init
+                        </div>
+                    </div>
+                    <div class="step-content">
+                        Придумай когнитивный ключ — уникальную фразу минимум из 24 слов.
+                        Это твоя история. Только ты её знаешь.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Linux -->
+        <div id="platform-linux" class="platform-content">
+            <div class="steps">
+                <div class="step">
+                    <div class="step-header">
+                        <span class="step-num">1</span>
+                        <span class="step-title">Открой терминал</span>
+                    </div>
+                    <div class="step-content">
+                        Используй свой любимый терминал (gnome-terminal, konsole, xterm и т.д.)
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-header">
+                        <span class="step-num">2</span>
+                        <span class="step-title">Выполни команду установки</span>
+                    </div>
+                    <div class="step-content">
+                        Скопируй команду выше и выполни. Потребуется sudo.
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-header">
+                        <span class="step-num">3</span>
+                        <span class="step-title">Дождись завершения</span>
+                    </div>
+                    <div class="step-content">
+                        Скрипт установит:<br>
+                        &bull; Montana CLI в <code>/usr/local/bin/montana</code><br>
+                        &bull; Systemd сервис присутствия<br>
+                        &bull; <strong>БЕЗ GUI</strong> — всё через командную строку
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-header">
+                        <span class="step-num">4</span>
+                        <span class="step-title">Создай кошелёк</span>
+                    </div>
+                    <div class="code-step">
+                        <div class="code-block">
+                            <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+                            montana init
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-header">
+                        <span class="step-num">5</span>
+                        <span class="step-title">Проверь сервис</span>
+                    </div>
+                    <div class="code-step">
+                        <div class="code-block">
+                            <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+                            systemctl status montana-presence
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="commands-list">
+            <h4>Команды Montana CLI</h4>
+            <div class="cmd-row">
+                <span class="cmd">montana init</span>
+                <span class="desc">Создать кошелёк</span>
+            </div>
+            <div class="cmd-row">
+                <span class="cmd">montana restore</span>
+                <span class="desc">Восстановить из ключа</span>
+            </div>
+            <div class="cmd-row">
+                <span class="cmd">montana balance</span>
+                <span class="desc">Проверить баланс</span>
+            </div>
+            <div class="cmd-row">
+                <span class="cmd">montana send &lt;addr&gt; &lt;amt&gt;</span>
+                <span class="desc">Перевод</span>
+            </div>
+            <div class="cmd-row">
+                <span class="cmd">montana status</span>
+                <span class="desc">Статус сервиса</span>
+            </div>
+            <div class="cmd-row">
+                <span class="cmd">montana --help</span>
+                <span class="desc">Справка</span>
+            </div>
+        </div>
+
+        <div class="note">
+            <h4>&#128274; Синхронизация между устройствами</h4>
+            <p>
+                Один когнитивный ключ = один адрес на всех устройствах.
+                Создай кошелёк на Mac, затем используй <code>montana restore</code> на Linux
+                с тем же ключом — получишь тот же адрес и баланс.
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>Montana Protocol &middot; ML-DSA-65 MAINNET</p>
+        </div>
+    </div>
+
+    <script>
+        function copyCode(btn) {
+            const code = btn.parentElement.textContent.replace('Копировать', '').trim();
+            navigator.clipboard.writeText(code);
+            btn.textContent = 'Скопировано!';
+            setTimeout(() => btn.textContent = 'Копировать', 2000);
+        }
+
+        function showPlatform(platform) {
+            document.querySelectorAll('.platform-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.platform-content').forEach(c => c.classList.remove('active'));
+
+            document.querySelector(`.platform-tab:nth-child(${platform === 'mac' ? 1 : 2})`).classList.add('active');
+            document.getElementById(`platform-${platform}`).classList.add('active');
+        }
+    </script>
+</body>
+</html>

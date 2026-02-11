@@ -1,0 +1,41 @@
+{
+  "name": "Montana Protocol",
+  "identifier": "network.montana.altstore",
+  "subtitle": "Time is the only real currency",
+  "description": "Montana Protocol — Post-Quantum Money. ML-DSA-65 (FIPS 204).",
+  "iconURL": "https://efir.org/logo.png",
+  "headerURL": "https://efir.org/logo.png",
+  "website": "https://efir.org",
+  "tintColor": "00d4ff",
+  "apps": [
+    {
+      "name": "Montana",
+      "bundleIdentifier": "network.montana.junona",
+      "developerName": "Alejandro Montana",
+      "subtitle": "Presence Mining Wallet",
+      "localizedDescription": "Montana Protocol Wallet — time-based cryptocurrency with post-quantum cryptography ML-DSA-65 (FIPS 204). Mine Ɉ by proving your presence.",
+      "iconURL": "https://efir.org/logo.png",
+      "tintColor": "00d4ff",
+      "category": "finance",
+      "screenshots": [],
+      "versions": [
+        {
+          "version": "2.0.0",
+          "date": "2026-02-11",
+          "localizedDescription": "Full independence. Standalone Montana Protocol. Post-quantum ML-DSA-65.",
+          "downloadURL": "https://efir.org/downloads/Montana_2.0.0.ipa",
+          "size": 3250000,
+          "minOSVersion": "17.0"
+        }
+      ],
+      "appPermissions": {
+        "entitlements": [],
+        "privacy": {
+          "NSCameraUsageDescription": "Face detection for presence proof",
+          "NSFaceIDUsageDescription": "Secure wallet access"
+        }
+      }
+    }
+  ],
+  "news": []
+}

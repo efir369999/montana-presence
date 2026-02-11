@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Montana - Политика конфиденциальности</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: #fff;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #888;
+            text-decoration: none;
+            margin-bottom: 40px;
+            font-size: 0.9em;
+        }
+        .back-btn:hover { color: #D4AF37; }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 8px;
+            color: #D4AF37;
+        }
+
+        .subtitle {
+            color: #888;
+            margin-bottom: 40px;
+        }
+
+        h2 {
+            font-size: 1.3em;
+            margin: 32px 0 16px;
+            color: #00d4ff;
+        }
+
+        p, li {
+            color: #ccc;
+            margin-bottom: 12px;
+        }
+
+        ul {
+            margin-left: 24px;
+            margin-bottom: 16px;
+        }
+
+        .highlight {
+            background: rgba(212, 175, 55, 0.15);
+            border-left: 4px solid #D4AF37;
+            padding: 16px 20px;
+            border-radius: 0 12px 12px 0;
+            margin: 24px 0;
+        }
+
+        .highlight strong {
+            color: #D4AF37;
+        }
+
+        .section {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 40px 0;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        a { color: #D4AF37; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-btn">← Назад</a>
+
+        <h1>Политика конфиденциальности</h1>
+        <p class="subtitle">Последнее обновление: 28 января 2026</p>
+
+        <div class="highlight">
+            <strong>Zero Collection по умолчанию</strong><br>
+            Montana Protocol не собирает персональные данные. Когнитивный ключ не хранится — он используется для генерации ключей и сразу стирается из памяти.
+        </div>
+
+        <div class="section">
+            <h2>1. Какие данные мы НЕ собираем</h2>
+            <ul>
+                <li>Когнитивные ключи — не хранятся вообще (стираются из памяти после генерации ключей)</li>
+                <li>Приватные ключи ML-DSA-65 — генерируются и хранятся только локально в Keychain</li>
+                <li>Историю транзакций с привязкой к личности</li>
+                <li>IP-адреса для идентификации</li>
+                <li>Геолокацию</li>
+                <li>Контакты, фото, сообщения</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>2. Какие данные обрабатываются</h2>
+            <p>Для работы сети Montana обрабатываются:</p>
+            <ul>
+                <li><strong>Публичный ключ</strong> — для верификации подписей (не содержит персональных данных)</li>
+                <li><strong>Montana адрес (mt...)</strong> — криптографический хеш публичного ключа</li>
+                <li><strong>Подписи транзакций</strong> — ML-DSA-65 подписи для подтверждения операций</li>
+            </ul>
+            <p>Эти данные являются публичными и не позволяют идентифицировать личность.</p>
+        </div>
+
+        <div class="section">
+            <h2>3. Локальное хранение</h2>
+            <p>На вашем устройстве хранятся:</p>
+            <ul>
+                <li>Приватный ключ ML-DSA-65 (в Keychain с биометрической защитой)</li>
+                <li>Публичный ключ и адрес</li>
+                <li>Локальный кеш баланса</li>
+            </ul>
+            <p><strong>Когнитивный ключ НЕ хранится</strong> — он используется один раз для генерации ключей и сразу стирается из памяти. Для восстановления на другом устройстве вы должны помнить его сами.</p>
+            <p>Все данные зашифрованы средствами iOS и защищены биометрией.</p>
+        </div>
+
+        <div class="section">
+            <h2>4. Постквантовая криптография</h2>
+            <p>Montana использует ML-DSA-65 (FIPS 204) — постквантовый алгоритм подписи, устойчивый к атакам квантовых компьютеров.</p>
+            <ul>
+                <li>Приватный ключ: 4032 байта</li>
+                <li>Публичный ключ: 1952 байта</li>
+                <li>Подпись: 3309 байт</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>5. Ваши права</h2>
+            <ul>
+                <li><strong>Полный контроль</strong> — только вы владеете когнитивным ключом</li>
+                <li><strong>Удаление</strong> — удалите приложение, и все локальные данные будут стёрты</li>
+                <li><strong>Переносимость</strong> — когнитивный ключ позволяет восстановить кошелёк на любом устройстве</li>
+                <li><strong>Анонимность</strong> — Montana адрес не связан с личностью</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>6. Сервер не нужен</h2>
+            <p>Для восстановления кошелька сервер НЕ нужен. Когнитивный ключ детерминистически генерирует одни и те же ключи ML-DSA-65 на любом устройстве.</p>
+            <p><em>"Тот же ключ = тот же кошелёк, всегда."</em></p>
+        </div>
+
+        <div class="section">
+            <h2>7. Контакты</h2>
+            <p>По вопросам конфиденциальности:</p>
+            <ul>
+                <li>Telegram: <a href="https://t.me/junomoneta">@junomoneta</a></li>
+            </ul>
+        </div>
+
+        <div class="footer">
+            <p>Montana Protocol · ML-DSA-65 · FIPS 204</p>
+            <p>Время — единственная реальная валюта</p>
+        </div>
+    </div>
+</body>
+</html>

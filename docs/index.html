@@ -2,445 +2,858 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Montana Protocol - Ɉ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>Montana Protocol — Протокол Идеальных Денег</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --gold: #D4AF37;
+            --gold-dark: #8B6914;
+            --cyan: #00d4ff;
+            --purple: #7b2fff;
+            --bg-dark: #0a0a0a;
+            --bg-card: rgba(255,255,255,0.03);
+            --border: rgba(255,255,255,0.1);
+            --text: #ffffff;
+            --text-dim: #888888;
+            --text-muted: #555555;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
-            color: #fff;
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-dark);
+            color: var(--text);
             min-height: 100vh;
-            overflow: hidden;
-            touch-action: pan-y;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 60px 24px 40px;
+            position: relative;
+        }
+
+        /* Language Switcher */
+        .lang-switch {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            display: flex;
+            gap: 8px;
+            z-index: 100;
+        }
+
+        .lang-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.85em;
+            transition: all 0.2s;
+        }
+
+        .lang-btn:hover {
+            border-color: var(--gold);
+            color: var(--text);
+        }
+
+        .lang-btn.active {
+            background: var(--gold);
+            color: #000;
+            border-color: var(--gold);
         }
 
         /* Header */
         .header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            padding: 16px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 100;
-            background: linear-gradient(180deg, rgba(10,10,10,0.9) 0%, transparent 100%);
-        }
-        .header-logo { font-size: 24px; font-weight: bold; }
-        .menu-btn {
-            width: 40px;
-            height: 40px;
-            background: rgba(255,255,255,0.1);
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 4px;
-        }
-        .menu-btn span {
-            width: 18px;
-            height: 2px;
-            background: #fff;
-            border-radius: 1px;
-        }
-
-        /* Cards Container */
-        .cards-container {
-            position: relative;
-            width: 100%;
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* App Card */
-        .app-card {
-            position: absolute;
-            width: calc(100% - 40px);
-            max-width: 400px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 24px;
-            padding: 40px 24px;
             text-align: center;
-            transition: transform 0.3s ease, opacity 0.3s ease;
-            cursor: grab;
-            user-select: none;
-        }
-        .app-card:active { cursor: grabbing; }
-        .app-card.hidden { display: none; }
-        .app-card .icon { font-size: 80px; margin-bottom: 20px; }
-        .app-card h2 { font-size: 2em; margin-bottom: 8px; }
-        .app-card .desc { color: #888; margin-bottom: 24px; }
-        .app-card .badges { margin-bottom: 24px; }
-        .app-card .badge {
-            display: inline-block;
-            background: rgba(0,212,255,0.2);
-            color: #00d4ff;
-            padding: 6px 12px;
-            border-radius: 12px;
-            font-size: 0.85em;
-            margin: 4px;
-        }
-        .app-card .badge.purple { background: rgba(123,47,255,0.2); color: #7b2fff; }
-        .app-card .badge.orange { background: rgba(255,107,53,0.2); color: #ff6b35; }
-        .app-card .features { text-align: left; margin: 20px 0; }
-        .app-card .feature {
-            display: flex;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-        .app-card .feature:last-child { border: none; }
-        .app-card .feature-icon { width: 32px; font-size: 18px; }
-        .app-card .feature-text { font-size: 0.9em; }
-        .app-card .cta {
-            display: inline-block;
-            background: linear-gradient(90deg, #00d4ff, #7b2fff);
-            color: #fff;
-            padding: 14px 32px;
-            border-radius: 30px;
-            text-decoration: none;
-            font-weight: bold;
-            margin-top: 16px;
+            margin-bottom: 48px;
+            padding-top: 20px;
         }
 
-        /* Indicators */
-        .indicators {
-            position: fixed;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 8px;
-            z-index: 100;
+        .logo-symbol {
+            width: 140px;
+            height: 140px;
+            margin: 0 auto 24px;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(212, 175, 55, 0.4);
         }
-        .indicator {
+
+        .logo-symbol img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .logo-text {
+            font-size: 2.5em;
+            font-weight: 700;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .tagline {
+            color: var(--text-dim);
+            font-size: 0.95em;
+            letter-spacing: 2px;
+        }
+
+        /* Dividers */
+        .divider {
+            text-align: center;
+            color: var(--text-muted);
+            margin: 40px 0;
+            font-size: 0.85em;
+            letter-spacing: 4px;
+        }
+
+        /* Terminal Block */
+        .terminal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .terminal-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .terminal-dot.red { background: #ff5f56; }
+        .terminal-dot.yellow { background: #ffbd2e; }
+        .terminal-dot.green { background: #27c93f; }
+
+        .terminal-title {
+            color: var(--text-dim);
+            font-size: 0.85em;
+            margin-left: 8px;
+        }
+
+        .terminal-body {
+            font-size: 0.9em;
+        }
+
+        .terminal-line {
+            margin-bottom: 8px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .terminal-label {
+            color: var(--text-muted);
+            min-width: 140px;
+        }
+
+        .terminal-value {
+            color: var(--cyan);
+        }
+
+        .terminal-value.gold { color: var(--gold); }
+        .terminal-value.green { color: #27c93f; }
+
+        /* Status Grid */
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .status-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .status-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .status-card-title {
+            color: var(--text-dim);
+            font-size: 0.8em;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .status-indicator {
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: rgba(255,255,255,0.3);
-            transition: all 0.3s;
-            cursor: pointer;
-        }
-        .indicator.active {
-            width: 24px;
-            border-radius: 4px;
-            background: #00d4ff;
+            background: #27c93f;
+            box-shadow: 0 0 12px #27c93f;
         }
 
-        /* Swipe Hint */
-        .swipe-hint {
-            position: fixed;
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: #555;
+        .status-card-value {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: var(--gold);
+        }
+
+        .status-card-value.cyan { color: var(--cyan); }
+
+        /* Section Headers */
+        .section-header {
+            color: var(--text-dim);
             font-size: 0.85em;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
             display: flex;
             align-items: center;
-            gap: 8px;
-        }
-        .swipe-hint .arrow { animation: swipeHint 1.5s ease-in-out infinite; }
-        @keyframes swipeHint {
-            0%, 100% { transform: translateX(0); opacity: 0.5; }
-            50% { transform: translateX(10px); opacity: 1; }
+            gap: 12px;
         }
 
-        /* Menu Overlay */
+        .section-header::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* Spec List */
+        .spec-list {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .spec-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .spec-item:last-child {
+            border-bottom: none;
+        }
+
+        .spec-label {
+            color: var(--text-dim);
+        }
+
+        .spec-value {
+            color: var(--cyan);
+            font-weight: 500;
+        }
+
+        /* CTA Button */
+        .cta-section {
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        .cta-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 18px 40px;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: #000;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1.1em;
+            letter-spacing: 1px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .cta-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 20px 40px rgba(212, 175, 55, 0.3);
+        }
+
+        .cta-secondary {
+            display: inline-block;
+            margin-top: 16px;
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: color 0.2s;
+        }
+
+        .cta-secondary:hover {
+            color: var(--cyan);
+        }
+
+        /* Network Nodes */
+        .nodes-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 600px) {
+            .nodes-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .node-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .node-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .node-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #27c93f;
+            box-shadow: 0 0 12px #27c93f;
+        }
+
+        .node-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .node-ip {
+            color: var(--text-muted);
+            font-size: 0.85em;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 40px 0;
+            color: var(--text-muted);
+            font-size: 0.85em;
+        }
+
+        .footer-links {
+            margin-top: 12px;
+        }
+
+        .footer-links a {
+            color: var(--text-dim);
+            text-decoration: none;
+            margin: 0 12px;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--cyan);
+        }
+
+        /* Genesis Quote */
+        .genesis-quote {
+            text-align: center;
+            padding: 40px 20px;
+            margin: 40px 0;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .genesis-quote blockquote {
+            font-size: 1.2em;
+            font-style: italic;
+            color: var(--text-dim);
+            margin-bottom: 12px;
+        }
+
+        .genesis-quote cite {
+            color: var(--gold);
+            font-size: 0.9em;
+        }
+
+        /* Language visibility */
+        .lang-en { display: none; }
+        body.en .lang-ru { display: none; }
+        body.en .lang-en { display: block; }
+        body.en .lang-en-inline { display: inline; }
+        body.en .lang-ru-inline { display: none; }
+        .lang-ru-inline { display: inline; }
+        .lang-en-inline { display: none; }
+
+        /* Burger Menu */
+        .menu-btn {
+            position: fixed;
+            top: 24px;
+            left: 24px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            transition: all 0.2s;
+        }
+
+        .menu-btn:hover {
+            border-color: var(--gold);
+            color: var(--text);
+        }
+
         .menu-overlay {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.95);
+            background: rgba(0,0,0,0.7);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            z-index: 150;
+        }
+
+        .menu-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .side-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 280px;
+            background: #0a0a0a;
+            border-right: 1px solid var(--border);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
             z-index: 200;
-            display: none;
+            display: flex;
             flex-direction: column;
-            padding: 80px 40px 40px;
         }
-        .menu-overlay.open { display: flex; }
-        .menu-close {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 40px;
-            height: 40px;
-            background: rgba(255,255,255,0.1);
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 24px;
-            color: #fff;
+
+        .side-menu.open {
+            transform: translateX(0);
         }
-        .menu-items { flex: 1; }
-        .menu-item {
-            display: block;
-            color: #fff;
-            text-decoration: none;
-            font-size: 1.5em;
+
+        .menu-header {
+            padding: 40px 24px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .menu-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .menu-logo img {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+        }
+
+        .menu-logo-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gold);
+            letter-spacing: 3px;
+        }
+
+        .menu-items {
+            flex: 1;
             padding: 16px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
-        .menu-item:hover { color: #00d4ff; }
-        .menu-footer { color: #555; font-size: 0.9em; text-align: center; }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 24px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .menu-item:hover {
+            background: rgba(255,255,255,0.05);
+            color: var(--text);
+        }
+
+        .menu-item .icon {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .menu-footer {
+            padding: 24px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .menu-footer-text {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="header-logo">Ɉ Montana</div>
-        <button class="menu-btn" onclick="toggleMenu()">
-            <span></span><span></span><span></span>
-        </button>
-    </header>
-
-    <!-- Cards -->
-    <div class="cards-container" id="cardsContainer">
-        <!-- Card 1: Junona -->
-        <div class="app-card" data-index="0">
-            <div class="icon">🌙</div>
-            <h2>Junona</h2>
-            <p class="desc">AI-ассистент Montana</p>
-            <div class="badges">
-                <span class="badge purple">GPT-4</span>
-                <span class="badge purple">Claude</span>
-                <span class="badge">Голос</span>
-            </div>
-            <div class="features">
-                <div class="feature">
-                    <span class="feature-icon">💬</span>
-                    <span class="feature-text">Диалог на любые темы</span>
-                </div>
-                <div class="feature">
-                    <span class="feature-icon">🔐</span>
-                    <span class="feature-text">Zero Collection по умолчанию</span>
-                </div>
-                <div class="feature">
-                    <span class="feature-icon">Ɉ</span>
-                    <span class="feature-text">1 секунда = 1 Ɉ</span>
-                </div>
-            </div>
-            <a href="https://t.me/junomontanaagibot" class="cta">Открыть</a>
-        </div>
-
-        <!-- Card 2: Wallet -->
-        <div class="app-card hidden" data-index="1">
-            <div class="icon">Ɉ</div>
-            <h2>Wallet</h2>
-            <p class="desc">Кошелёк времени</p>
-            <div class="badges">
-                <span class="badge">iOS</span>
-                <span class="badge purple">ML-DSA-65</span>
-                <span class="badge">Self-Custody</span>
-            </div>
-            <div class="features">
-                <div class="feature">
-                    <span class="feature-icon">🔑</span>
-                    <span class="feature-text">Когнитивный ключ</span>
-                </div>
-                <div class="feature">
-                    <span class="feature-icon">⚛️</span>
-                    <span class="feature-text">Постквантовая защита</span>
-                </div>
-                <div class="feature">
-                    <span class="feature-icon">💸</span>
-                    <span class="feature-text">Мгновенные переводы</span>
-                </div>
-            </div>
-            <a href="wallet.html" class="cta">Скачать</a>
-        </div>
-
-        <!-- Card 3: Contracts -->
-        <div class="app-card hidden" data-index="2">
-            <div class="icon">📜</div>
-            <h2>Contracts</h2>
-            <p class="desc">Контракты с Юноной</p>
-            <div class="badges">
-                <span class="badge orange">AI-арбитр</span>
-                <span class="badge purple">ML-DSA-65</span>
-                <span class="badge">Escrow</span>
-            </div>
-            <div class="features">
-                <div class="feature">
-                    <span class="feature-icon">🤝</span>
-                    <span class="feature-text">Юнона разрешает споры</span>
-                </div>
-                <div class="feature">
-                    <span class="feature-icon">🔒</span>
-                    <span class="feature-text">Escrow в Ɉ</span>
-                </div>
-                <div class="feature">
-                    <span class="feature-icon">✍️</span>
-                    <span class="feature-text">Подпись ML-DSA-65</span>
-                </div>
-            </div>
-            <a href="contracts.html" class="cta">Скоро</a>
-        </div>
-    </div>
-
-    <!-- Indicators -->
-    <div class="indicators">
-        <div class="indicator active" data-index="0"></div>
-        <div class="indicator" data-index="1"></div>
-        <div class="indicator" data-index="2"></div>
-    </div>
-
-    <!-- Swipe Hint -->
-    <div class="swipe-hint">
-        <span class="arrow">←</span>
-        Свайп
-        <span class="arrow">→</span>
-    </div>
+    <!-- Burger Menu Button -->
+    <button class="menu-btn" onclick="toggleMenu()">&#9776;</button>
 
     <!-- Menu Overlay -->
-    <div class="menu-overlay" id="menuOverlay">
-        <button class="menu-close" onclick="toggleMenu()">×</button>
+    <div class="menu-overlay" id="menuOverlay" onclick="toggleMenu()"></div>
+
+    <!-- Side Menu -->
+    <div class="side-menu" id="sideMenu">
+        <div class="menu-header">
+            <div class="menu-logo">
+                <img src="img/logo.png" alt="Ɉ">
+                <span class="menu-logo-text">MONTANA</span>
+            </div>
+        </div>
         <div class="menu-items">
-            <a href="junona.html" class="menu-item">🌙 Junona</a>
-            <a href="wallet.html" class="menu-item">Ɉ Wallet</a>
-            <a href="contracts.html" class="menu-item">📜 Contracts</a>
-            <a href="https://github.com/efir369999/-_Nothing_-" class="menu-item">GitHub</a>
-            <a href="https://t.me/junomontanaagibot" class="menu-item">Telegram</a>
+            <a href="app.html" class="menu-item">
+                <span class="icon">&#128179;</span>
+                <span class="lang-ru-inline">Кошелёк</span>
+                <span class="lang-en-inline">Wallet</span>
+            </a>
+            <a href="app.html#timechain" class="menu-item">
+                <span class="icon">&#9201;</span>
+                <span>TimeChain</span>
+            </a>
+            <a href="wallet.html" class="menu-item">
+                <span class="icon">&#8595;</span>
+                <span class="lang-ru-inline">Скачать</span>
+                <span class="lang-en-inline">Download</span>
+            </a>
+            <a href="https://github.com/efir369999" class="menu-item" target="_blank">
+                <span class="icon">&#128187;</span>
+                <span>GitHub</span>
+            </a>
         </div>
         <div class="menu-footer">
-            <p>Montana Protocol v1.1.0</p>
-            <p>ML-DSA-65 MAINNET</p>
+            <p class="menu-footer-text">Montana Protocol v2.0.0</p>
         </div>
+    </div>
+
+    <!-- Language Switcher -->
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="setLang('ru')" id="btn-ru">RU</button>
+        <button class="lang-btn" onclick="setLang('en')" id="btn-en">EN</button>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo-symbol"><img src="img/logo.png" alt="Ɉ"></div>
+            <h1 class="logo-text">MONTANA</h1>
+            <p class="tagline">
+                <span class="lang-ru-inline">Протокол Идеальных Денег</span>
+                <span class="lang-en-inline">Protocol of Ideal Money</span>
+            </p>
+        </header>
+
+        <div class="divider">━━━━━━━━━━━━━━━━━━━━━━</div>
+
+        <!-- Status Cards -->
+        <div class="status-grid">
+            <div class="status-card">
+                <div class="status-card-header">
+                    <span class="status-card-title">
+                        <span class="lang-ru-inline">Сеть</span>
+                        <span class="lang-en-inline">Network</span>
+                    </span>
+                    <span class="status-indicator"></span>
+                </div>
+                <div class="status-card-value">MAINNET</div>
+            </div>
+            <div class="status-card">
+                <div class="status-card-header">
+                    <span class="status-card-title">
+                        <span class="lang-ru-inline">Криптография</span>
+                        <span class="lang-en-inline">Cryptography</span>
+                    </span>
+                    <span class="status-indicator"></span>
+                </div>
+                <div class="status-card-value cyan">ML-DSA-65</div>
+            </div>
+            <div class="status-card">
+                <div class="status-card-header">
+                    <span class="status-card-title">
+                        <span class="lang-ru-inline">Узлы онлайн</span>
+                        <span class="lang-en-inline">Nodes Online</span>
+                    </span>
+                    <span class="status-indicator"></span>
+                </div>
+                <div class="status-card-value">3 / 3</div>
+            </div>
+        </div>
+
+        <!-- Protocol Specs -->
+        <div class="section-header">
+            <span class="lang-ru-inline">Спецификация протокола</span>
+            <span class="lang-en-inline">Protocol Specification</span>
+        </div>
+
+        <div class="terminal">
+            <div class="terminal-header">
+                <span class="terminal-dot red"></span>
+                <span class="terminal-dot yellow"></span>
+                <span class="terminal-dot green"></span>
+                <span class="terminal-title">montana-protocol.spec</span>
+            </div>
+            <div class="terminal-body">
+                <div class="terminal-line">
+                    <span class="terminal-label">
+                        <span class="lang-ru-inline">АЛГОРИТМ</span>
+                        <span class="lang-en-inline">ALGORITHM</span>
+                    </span>
+                    <span class="terminal-value">ML-DSA-65 (FIPS 204)</span>
+                </div>
+                <div class="terminal-line">
+                    <span class="terminal-label">
+                        <span class="lang-ru-inline">ПРИВАТ_КЛЮЧ</span>
+                        <span class="lang-en-inline">PRIVATE_KEY</span>
+                    </span>
+                    <span class="terminal-value">4032 bytes</span>
+                </div>
+                <div class="terminal-line">
+                    <span class="terminal-label">
+                        <span class="lang-ru-inline">ПУБЛИЧ_КЛЮЧ</span>
+                        <span class="lang-en-inline">PUBLIC_KEY</span>
+                    </span>
+                    <span class="terminal-value">1952 bytes</span>
+                </div>
+                <div class="terminal-line">
+                    <span class="terminal-label">
+                        <span class="lang-ru-inline">ПОДПИСЬ</span>
+                        <span class="lang-en-inline">SIGNATURE</span>
+                    </span>
+                    <span class="terminal-value">3309 bytes</span>
+                </div>
+                <div class="terminal-line">
+                    <span class="terminal-label">
+                        <span class="lang-ru-inline">АДРЕС</span>
+                        <span class="lang-en-inline">ADDRESS</span>
+                    </span>
+                    <span class="terminal-value gold">Ɉ-{N}-{SHA256(pubkey)[:20]}</span>
+                </div>
+                <div class="terminal-line">
+                    <span class="terminal-label">
+                        <span class="lang-ru-inline">АЛИАС</span>
+                        <span class="lang-en-inline">ALIAS</span>
+                    </span>
+                    <span class="terminal-value gold">Ɉ-{N}</span>
+                </div>
+                <div class="terminal-line">
+                    <span class="terminal-label">
+                        <span class="lang-ru-inline">КВАНТ_ЗАЩИТА</span>
+                        <span class="lang-en-inline">QUANTUM_SAFE</span>
+                    </span>
+                    <span class="terminal-value green">TRUE</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- TimeBank -->
+        <div class="section-header">
+            <span class="lang-ru-inline">Эмиссия TimeBank</span>
+            <span class="lang-en-inline">TimeBank Emission</span>
+        </div>
+
+        <div class="spec-list">
+            <div class="spec-item">
+                <span class="spec-label">
+                    <span class="lang-ru-inline">Базовая ставка</span>
+                    <span class="lang-en-inline">Base Rate</span>
+                </span>
+                <span class="spec-value">1 second = 1 Ɉ</span>
+            </div>
+            <div class="spec-item">
+                <span class="spec-label">
+                    <span class="lang-ru-inline">Период халвинга</span>
+                    <span class="lang-en-inline">Halving Period</span>
+                </span>
+                <span class="spec-value">
+                    <span class="lang-ru-inline">4 года</span>
+                    <span class="lang-en-inline">4 years</span>
+                </span>
+            </div>
+            <div class="spec-item">
+                <span class="spec-label">
+                    <span class="lang-ru-inline">Общий резерв</span>
+                    <span class="lang-en-inline">Total Reserve</span>
+                </span>
+                <span class="spec-value">
+                    <span class="lang-ru-inline">40 лет</span>
+                    <span class="lang-en-inline">40 years</span>
+                </span>
+            </div>
+            <div class="spec-item">
+                <span class="spec-label">
+                    <span class="lang-ru-inline">Доказательство</span>
+                    <span class="lang-en-inline">Proof</span>
+                </span>
+                <span class="spec-value">
+                    <span class="lang-ru-inline">Доказательство Присутствия</span>
+                    <span class="lang-en-inline">Proof of Presence</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- Genesis Quote -->
+        <div class="genesis-quote">
+            <blockquote>
+                <span class="lang-ru-inline">"Время — единственная настоящая валюта."</span>
+                <span class="lang-en-inline">"Time is the only real currency."</span>
+            </blockquote>
+            <cite>— Alejandro Montana, Genesis Block</cite>
+        </div>
+
+        <!-- Network Nodes -->
+        <div class="section-header">
+            <span class="lang-ru-inline">Узлы сети</span>
+            <span class="lang-en-inline">Network Nodes</span>
+        </div>
+
+        <div class="nodes-grid">
+            <div class="node-card">
+                <div class="node-status">
+                    <span class="node-dot"></span>
+                    <span class="lang-ru-inline">ОНЛАЙН</span>
+                    <span class="lang-en-inline">ONLINE</span>
+                </div>
+                <div class="node-name">
+                    <span class="lang-ru-inline">Амстердам</span>
+                    <span class="lang-en-inline">Amsterdam</span>
+                </div>
+                <div class="node-ip">72.56.102.240</div>
+            </div>
+            <div class="node-card">
+                <div class="node-status">
+                    <span class="node-dot"></span>
+                    <span class="lang-ru-inline">ОНЛАЙН</span>
+                    <span class="lang-en-inline">ONLINE</span>
+                </div>
+                <div class="node-name">
+                    <span class="lang-ru-inline">Москва</span>
+                    <span class="lang-en-inline">Moscow</span>
+                </div>
+                <div class="node-ip">176.124.208.93</div>
+            </div>
+            <div class="node-card">
+                <div class="node-status">
+                    <span class="node-dot"></span>
+                    <span class="lang-ru-inline">ОНЛАЙН</span>
+                    <span class="lang-en-inline">ONLINE</span>
+                </div>
+                <div class="node-name">
+                    <span class="lang-ru-inline">Алматы</span>
+                    <span class="lang-en-inline">Almaty</span>
+                </div>
+                <div class="node-ip">91.200.148.93</div>
+            </div>
+        </div>
+
+        <div class="divider">═══════════════════════</div>
+
+        <!-- CTA -->
+        <div class="cta-section">
+            <a href="app.html" class="cta-btn">
+                <span class="lang-ru-inline">Скачать Montana Wallet</span>
+                <span class="lang-en-inline">Download Montana Wallet</span>
+            </a>
+            <br>
+            <a href="https://github.com/efir369999" class="cta-secondary">
+                <span class="lang-ru-inline">Исходный код на GitHub</span>
+                <span class="lang-en-inline">View Source Code on GitHub</span>
+            </a>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Montana Protocol v2.0.0 — ML-DSA-65 MAINNET</p>
+            <div class="footer-links">
+                <a href="https://github.com/efir369999">GitHub</a>
+                <a href="privacy.html">
+                    <span class="lang-ru-inline">Конфиденциальность</span>
+                    <span class="lang-en-inline">Privacy</span>
+                </a>
+                <a href="terms.html">
+                    <span class="lang-ru-inline">Условия</span>
+                    <span class="lang-en-inline">Terms</span>
+                </a>
+            </div>
+        </footer>
     </div>
 
     <script>
-        let currentIndex = 0;
-        const totalCards = 3;
-        let startX = 0;
-        let currentX = 0;
-        let isDragging = false;
-
-        const cards = document.querySelectorAll('.app-card');
-        const indicators = document.querySelectorAll('.indicator');
-        const container = document.getElementById('cardsContainer');
-
-        function showCard(index) {
-            cards.forEach((card, i) => {
-                card.classList.toggle('hidden', i !== index);
-                card.style.transform = '';
-                card.style.opacity = '';
-            });
-            indicators.forEach((ind, i) => {
-                ind.classList.toggle('active', i === index);
-            });
-            currentIndex = index;
-        }
-
-        function nextCard() {
-            if (currentIndex < totalCards - 1) {
-                showCard(currentIndex + 1);
-            }
-        }
-
-        function prevCard() {
-            if (currentIndex > 0) {
-                showCard(currentIndex - 1);
-            }
-        }
-
-        // Touch events
-        container.addEventListener('touchstart', (e) => {
-            startX = e.touches[0].clientX;
-            isDragging = true;
-        }, { passive: true });
-
-        container.addEventListener('touchmove', (e) => {
-            if (!isDragging) return;
-            currentX = e.touches[0].clientX;
-            const diff = currentX - startX;
-            const card = cards[currentIndex];
-            card.style.transform = `translateX(${diff}px) rotate(${diff * 0.02}deg)`;
-            card.style.opacity = 1 - Math.abs(diff) / 500;
-        }, { passive: true });
-
-        container.addEventListener('touchend', () => {
-            if (!isDragging) return;
-            isDragging = false;
-            const diff = currentX - startX;
-
-            if (diff > 80) {
-                prevCard();
-            } else if (diff < -80) {
-                nextCard();
-            } else {
-                cards[currentIndex].style.transform = '';
-                cards[currentIndex].style.opacity = '';
-            }
-            startX = 0;
-            currentX = 0;
-        });
-
-        // Mouse events (desktop)
-        container.addEventListener('mousedown', (e) => {
-            startX = e.clientX;
-            isDragging = true;
-        });
-
-        container.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            currentX = e.clientX;
-            const diff = currentX - startX;
-            const card = cards[currentIndex];
-            card.style.transform = `translateX(${diff}px) rotate(${diff * 0.02}deg)`;
-            card.style.opacity = 1 - Math.abs(diff) / 500;
-        });
-
-        container.addEventListener('mouseup', () => {
-            if (!isDragging) return;
-            isDragging = false;
-            const diff = currentX - startX;
-
-            if (diff > 80) {
-                prevCard();
-            } else if (diff < -80) {
-                nextCard();
-            } else {
-                cards[currentIndex].style.transform = '';
-                cards[currentIndex].style.opacity = '';
-            }
-            startX = 0;
-            currentX = 0;
-        });
-
-        container.addEventListener('mouseleave', () => {
-            if (isDragging) {
-                isDragging = false;
-                cards[currentIndex].style.transform = '';
-                cards[currentIndex].style.opacity = '';
-            }
-        });
-
-        // Keyboard
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowRight') nextCard();
-            if (e.key === 'ArrowLeft') prevCard();
-            if (e.key === 'Escape') closeMenu();
-        });
-
-        // Click on indicators
-        indicators.forEach((ind, i) => {
-            ind.addEventListener('click', () => showCard(i));
-        });
-
-        // Menu
+        // Toggle burger menu
         function toggleMenu() {
-            document.getElementById('menuOverlay').classList.toggle('open');
+            const menu = document.getElementById('sideMenu');
+            const overlay = document.getElementById('menuOverlay');
+            menu.classList.toggle('open');
+            overlay.classList.toggle('open');
         }
-        function closeMenu() {
-            document.getElementById('menuOverlay').classList.remove('open');
+
+        function setLang(lang) {
+            if (lang === 'en') {
+                document.body.classList.add('en');
+                document.getElementById('btn-en').classList.add('active');
+                document.getElementById('btn-ru').classList.remove('active');
+                document.documentElement.lang = 'en';
+                localStorage.setItem('montana-lang', 'en');
+            } else {
+                document.body.classList.remove('en');
+                document.getElementById('btn-ru').classList.add('active');
+                document.getElementById('btn-en').classList.remove('active');
+                document.documentElement.lang = 'ru';
+                localStorage.setItem('montana-lang', 'ru');
+            }
+        }
+
+        // Load saved language preference
+        const savedLang = localStorage.getItem('montana-lang');
+        if (savedLang === 'en') {
+            setLang('en');
         }
     </script>
 </body>

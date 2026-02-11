@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сова на Глобус | Логика Красной Книги</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', sans-serif;
+            background: #0a0a0f;
+            color: #fff;
+            min-height: 100vh;
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .owl {
+            font-size: 80px;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 0 30px rgba(255, 100, 100, 0.5));
+        }
+
+        h1 {
+            font-size: 42px;
+            background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .subtitle { color: #666; font-size: 16px; }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            color: #ff6b6b;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .node {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 15px 25px;
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .node.ocean {
+            background: linear-gradient(135deg, rgba(72,219,251,0.2), rgba(29,209,161,0.2));
+            border-color: #48dbfb;
+        }
+
+        .node.drop {
+            background: linear-gradient(135deg, rgba(255,107,107,0.2), rgba(254,202,87,0.2));
+            border-color: #ff6b6b;
+        }
+
+        .node.sim {
+            background: linear-gradient(135deg, rgba(155,89,182,0.2), rgba(52,73,94,0.2));
+            border-color: #9b59b6;
+        }
+
+        .arrow {
+            font-size: 24px;
+            color: #666;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .card-title {
+            font-size: 14px;
+            color: #feca57;
+            margin-bottom: 10px;
+        }
+
+        .card-content {
+            font-size: 13px;
+            color: #999;
+            line-height: 1.6;
+        }
+
+        .formula {
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'SF Mono', monospace;
+            font-size: 14px;
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+
+        .formula .keyword { color: #ff6b6b; }
+        .formula .string { color: #feca57; }
+        .formula .comment { color: #666; }
+        .formula .func { color: #48dbfb; }
+
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .pill {
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .pill.blue {
+            background: linear-gradient(135deg, rgba(52,152,219,0.3), rgba(41,128,185,0.3));
+            border: 1px solid #3498db;
+        }
+
+        .pill.red {
+            background: linear-gradient(135deg, rgba(231,76,60,0.3), rgba(192,57,43,0.3));
+            border: 1px solid #e74c3c;
+        }
+
+        .pill-icon { font-size: 40px; margin-bottom: 10px; }
+        .pill-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+        .pill-list { text-align: left; font-size: 13px; color: #aaa; }
+        .pill-list li { margin: 8px 0; }
+
+        .equation {
+            text-align: center;
+            font-size: 24px;
+            padding: 30px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+
+        .equation .equals { color: #ff6b6b; margin: 0 15px; }
+        .equation .left { color: #48dbfb; }
+        .equation .right { color: #feca57; }
+
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(180deg, #ff6b6b, #feca57, #48dbfb);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 8px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -24px;
+            top: 20px;
+            width: 10px;
+            height: 10px;
+            background: #ff6b6b;
+            border-radius: 50%;
+        }
+
+        .timeline-title { color: #feca57; font-size: 14px; margin-bottom: 5px; }
+        .timeline-desc { color: #888; font-size: 12px; }
+
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: #444;
+        }
+
+        @media (max-width: 768px) {
+            .comparison { grid-template-columns: 1fr; }
+            .flow { flex-direction: column; }
+            .arrow { transform: rotate(90deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="owl">🦉</div>
+        <h1>Сова на Глобус</h1>
+        <p class="subtitle">Систематизация логики «Красной Книги»</p>
+    </div>
+
+    <div class="container">
+        <!-- Онтология -->
+        <div class="section">
+            <div class="section-title">I. Онтология — Океан → Капли</div>
+            <div class="flow">
+                <div class="node ocean">
+                    <div style="font-size:24px">🌊</div>
+                    <div>ОКЕАН</div>
+                    <div style="font-size:11px;color:#888">Бесконечное сознание</div>
+                </div>
+                <span class="arrow">→</span>
+                <div class="node" style="border-color:#666">
+                    <div style="font-size:24px">❓</div>
+                    <div>"Кто я?"</div>
+                    <div style="font-size:11px;color:#888">Первый вопрос</div>
+                </div>
+                <span class="arrow">→</span>
+                <div class="node drop">
+                    <div style="font-size:24px">💧</div>
+                    <div>КАПЛИ</div>
+                    <div style="font-size:11px;color:#888">Амнезия при падении</div>
+                </div>
+                <span class="arrow">→</span>
+                <div class="node sim">
+                    <div style="font-size:24px">🎬</div>
+                    <div>СИМУЛЯЦИЯ</div>
+                    <div style="font-size:11px;color:#888">Материальный мир</div>
+                </div>
+            </div>
+            <div class="equation">
+                <span class="left">Капля</span>
+                <span class="equals">=</span>
+                <span class="right">Весь океан (голограмма)</span>
+            </div>
+        </div>
+
+        <!-- Кинотеатр -->
+        <div class="section">
+            <div class="section-title">II. Метафора кинотеатра</div>
+            <div class="grid">
+                <div class="card">
+                    <div class="card-title">🎭 Зал</div>
+                    <div class="card-content">Истинное "Я" — наблюдатель, который забыл что сидит в кресле</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">📺 Экран</div>
+                    <div class="card-content">Восприятие реальности — так близко к глазам, что не видно краёв</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">🎞 Фильм</div>
+                    <div class="card-content">Жизнь/события — уже снят, все кадры записаны</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">🧵 Нить</div>
+                    <div class="card-content">Реакция — чем сильнее, тем крепче привязка к персонажу</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Главный закон времени -->
+        <div class="section">
+            <div class="section-title">III. Главный закон времени</div>
+            <div class="flow">
+                <div class="node" style="border-color:#e74c3c">
+                    <div>СОБЫТИЕ</div>
+                    <div style="font-size:11px;color:#e74c3c">← ПРОШЛОЕ</div>
+                    <div style="font-size:10px;color:#666">уже произошло</div>
+                </div>
+                <span class="arrow">≠</span>
+                <div class="node" style="border-color:#2ecc71">
+                    <div>РЕАКЦИЯ</div>
+                    <div style="font-size:11px;color:#2ecc71">← НАСТОЯЩЕЕ</div>
+                    <div style="font-size:10px;color:#666">единственное что сейчас</div>
+                </div>
+                <span class="arrow">→</span>
+                <div class="node" style="border-color:#3498db">
+                    <div>СОСТОЯНИЕ</div>
+                    <div style="font-size:11px;color:#3498db">→ БУДУЩЕЕ</div>
+                    <div style="font-size:10px;color:#666">определяется выбором</div>
+                </div>
+            </div>
+            <div class="formula">
+<span class="keyword">def</span> <span class="func">переживай</span>(событие):
+    <span class="keyword">while</span> <span class="string">True</span>:  <span class="comment"># бесконечный цикл — БАГ</span>
+        прокрути(событие)
+        страдай()
+
+<span class="keyword">def</span> <span class="func">не_переживай</span>(событие):
+    факт = запомни(событие)
+    урок = извлеки(факт)
+    <span class="keyword">return</span> следующий_кадр()  <span class="comment"># выход — ПАТЧ</span>
+            </div>
+        </div>
+
+        <!-- Две таблетки -->
+        <div class="section">
+            <div class="section-title">IV. Две таблетки</div>
+            <div class="comparison">
+                <div class="pill blue">
+                    <div class="pill-icon">💊</div>
+                    <div class="pill-title">Синяя</div>
+                    <ul class="pill-list">
+                        <li>Забыть разговор</li>
+                        <li>Вернуться в фильм</li>
+                        <li>Стать персонажем</li>
+                        <li>Страдать по расписанию</li>
+                        <li>Умереть по расписанию</li>
+                    </ul>
+                </div>
+                <div class="pill red">
+                    <div class="pill-icon">💊</div>
+                    <div class="pill-title">Красная</div>
+                    <ul class="pill-list">
+                        <li>Остаться в зале</li>
+                        <li>Смотреть зная что зритель</li>
+                        <li>Знание = ответственность</li>
+                        <li>Нельзя винить других</li>
+                        <li>Реальное = только реакция</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Сонные вирусы -->
+        <div class="section">
+            <div class="section-title">V. Сонные вирусы — что держит в матрице</div>
+            <div class="grid">
+                <div class="card">
+                    <div class="card-title">🍷 Алкоголь</div>
+                    <div class="card-content">Отключает наблюдателя → случайные решения в пропущенных сценах</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">💨 Вещества</div>
+                    <div class="card-content">Переключает канал на шум → свой фильм всё равно досматривать</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">📱 Чужие слова</div>
+                    <div class="card-content">Заглушает свой фильм → потеря собственного сюжета</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">🔮 Ожидания</div>
+                    <div class="card-content">Жизнь в будущем → разбивание о собственные фантазии</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Хак -->
+        <div class="section">
+            <div class="section-title">VI. Хак симуляции изнутри</div>
+            <div class="equation">
+                <span class="left">Мысли</span>
+                <span class="equals">=</span>
+                <span class="right">Код (нейронные паттерны)</span>
+            </div>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-title">1. Напиши сценарий</div>
+                    <div class="timeline-desc">Конкретная сцена будущего, не "хочу быть богатым"</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-title">2. Детализируй</div>
+                    <div class="timeline-desc">Что видишь, слышишь, чувствуешь — максимально</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-title">3. Выучи</div>
+                    <div class="timeline-desc">Создай ментальную татуировку</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-title">4. Повторяй</div>
+                    <div class="timeline-desc">Утром/вечером когда критический фильтр ослаблен</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Главный закон -->
+        <div class="section">
+            <div class="section-title">VII. Главный закон</div>
+            <div class="equation" style="font-size:18px">
+                Система работает на <span style="color:#ff6b6b">ТВОЁМ СОГЛАСИИ</span>
+            </div>
+            <div class="formula">
+Входные данные: <span class="string">"Ты неудачник"</span>
+
+<span class="comment">// Обработчик "ОБИДА" (по умолчанию)</span>
+→ Связать с самооценкой
+→ Почувствовать боль
+→ Оправдываться / атаковать
+
+<span class="comment">// Обработчик "ИНФОРМАЦИЯ" (осознанный выбор)</span>
+→ <span class="string">"Человек думает что я неудачник"</span>
+→ <span class="string">"Интересно. Почему?"</span>
+→ <span class="string">"Что это говорит о нём?"</span>
+
+<span class="keyword">БОЛЬ</span> = сигнал (обязательна)
+<span class="keyword">СТРАДАНИЕ</span> = история о боли (<span class="func">опционально</span>)
+            </div>
+        </div>
+
+        <!-- Эволюция -->
+        <div class="section">
+            <div class="section-title">VIII. Юнона Монета → Сатоши → Montana</div>
+            <div class="flow">
+                <div class="node" style="border-color:#feca57">
+                    <div style="font-size:20px">🏛</div>
+                    <div>Юнона</div>
+                    <div style="font-size:10px;color:#888">Рим</div>
+                </div>
+                <span class="arrow">→</span>
+                <div class="node" style="border-color:#f39c12">
+                    <div style="font-size:20px">₿</div>
+                    <div>Сатоши</div>
+                    <div style="font-size:10px;color:#888">2008</div>
+                </div>
+                <span class="arrow">→</span>
+                <div class="node" style="border-color:#e74c3c">
+                    <div style="font-size:20px">Ɉ</div>
+                    <div>Montana</div>
+                    <div style="font-size:10px;color:#888">2025</div>
+                </div>
+                <span class="arrow">→</span>
+                <div class="node" style="border-color:#9b59b6">
+                    <div style="font-size:20px">🤖</div>
+                    <div>Юнона AI</div>
+                    <div style="font-size:10px;color:#888">Арбитр</div>
+                </div>
+            </div>
+            <div class="equation">
+                <span class="left">1 секунда</span>
+                <span class="equals">=</span>
+                <span class="right">1 Ɉ</span>
+            </div>
+        </div>
+
+        <!-- Мораль -->
+        <div class="section" style="background: linear-gradient(135deg, rgba(231,76,60,0.1), rgba(155,89,182,0.1)); border-color: #e74c3c;">
+            <div class="section-title" style="color:#e74c3c">МОРАЛЬ</div>
+            <div style="text-align:center; font-size:18px; line-height:2">
+                <p>ТЫ ≠ ПЕРСОНАЖ НА ЭКРАНЕ</p>
+                <p>ТЫ = ЗРИТЕЛЬ, ЗАБЫВШИЙ ПРО БИЛЕТ</p>
+                <p style="margin-top:20px; color:#feca57">СОБЫТИЕ → ПРОШЛОЕ (факт)</p>
+                <p style="color:#2ecc71">РЕАКЦИЯ → НАСТОЯЩЕЕ (выбор)</p>
+                <p style="margin-top:20px; color:#e74c3c">"НЕ ПЕРЕЖИВАЙ" = exit(цикл)</p>
+                <p style="margin-top:20px; color:#48dbfb">ОКЕАН СМОТРИТ НА СЕБЯ ЧЕРЕЗ ТВОИ ГЛАЗА</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>🦉 Сова на Глобус | Логика «Красной Книги»</p>
+        <p style="margin-top:10px">Claude + 金元Ɉ | 24.01.2026</p>
+    </div>
+</body>
+</html>

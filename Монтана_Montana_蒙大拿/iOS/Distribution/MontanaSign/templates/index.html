@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Montana Install — Без App Store</title>
+    <link rel="apple-touch-icon" href="/static/icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <style>
+        :root {
+            --bg: #0F0F1A;
+            --card: #1A1A2E;
+            --primary: #4A90D9;
+            --success: #10B981;
+            --text: #FFFFFF;
+            --text-secondary: #888888;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+        }
+
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 40px 0 30px;
+        }
+
+        .logo {
+            font-size: 72px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), #8B5CF6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 16px;
+        }
+
+        .title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--card);
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin-top: 16px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Registration Card */
+        .register-card {
+            background: var(--card);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .register-card h2 {
+            font-size: 20px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .register-card p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .register-btn {
+            display: block;
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 14px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+
+        .register-btn:active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+
+        .register-btn.success {
+            background: var(--success);
+        }
+
+        /* Apps Grid */
+        .apps-section {
+            margin-top: 32px;
+        }
+
+        .apps-section h2 {
+            font-size: 20px;
+            margin-bottom: 16px;
+        }
+
+        .app-card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .app-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), #8B5CF6);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+
+        .app-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .app-name {
+            font-weight: 600;
+            font-size: 17px;
+            margin-bottom: 4px;
+        }
+
+        .app-desc {
+            color: var(--text-secondary);
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .install-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: opacity 0.2s;
+        }
+
+        .install-btn:disabled {
+            background: #333;
+            cursor: not-allowed;
+        }
+
+        .install-btn:not(:disabled):active {
+            opacity: 0.8;
+        }
+
+        /* Instructions */
+        .instructions {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 24px;
+        }
+
+        .instructions h3 {
+            font-size: 16px;
+            margin-bottom: 16px;
+            color: var(--text-secondary);
+        }
+
+        .step {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .step:last-child {
+            margin-bottom: 0;
+        }
+
+        .step-num {
+            width: 24px;
+            height: 24px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .step-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .footer p {
+            margin-bottom: 8px;
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--card);
+            border-radius: 20px;
+            padding: 32px 24px;
+            max-width: 360px;
+            width: 100%;
+            text-align: center;
+            transform: scale(0.9);
+            transition: transform 0.3s;
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .modal h3 {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .modal p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">Ɉ</div>
+            <h1 class="title">Montana Install</h1>
+            <p class="subtitle">Установка без App Store</p>
+            <div class="status-badge">
+                <span class="status-dot"></span>
+                <span>Apple не контролирует</span>
+            </div>
+        </div>
+
+        <!-- Registration -->
+        <div class="register-card" id="register-section">
+            <h2>📱 Регистрация устройства</h2>
+            <p>Для установки приложений нужно зарегистрировать твой iPhone. Это займёт 10 секунд.</p>
+            <a href="/enroll/profile" class="register-btn" id="register-btn">
+                Зарегистрировать устройство
+            </a>
+        </div>
+
+        <!-- Apps -->
+        <div class="apps-section">
+            <h2>Приложения</h2>
+
+            <div class="app-card">
+                <div class="app-icon">💰</div>
+                <div class="app-info">
+                    <div class="app-name">Montana Wallet</div>
+                    <div class="app-desc">Кошелёк Ɉ — баланс и переводы</div>
+                </div>
+                <button class="install-btn" onclick="install('wallet')" id="btn-wallet" disabled>
+                    Установить
+                </button>
+            </div>
+
+            <div class="app-card">
+                <div class="app-icon">🤖</div>
+                <div class="app-info">
+                    <div class="app-name">Junona AI</div>
+                    <div class="app-desc">Чат с ИИ Montana Protocol</div>
+                </div>
+                <button class="install-btn" onclick="install('junona')" id="btn-junona" disabled>
+                    Установить
+                </button>
+            </div>
+
+            <div class="app-card">
+                <div class="app-icon">📄</div>
+                <div class="app-info">
+                    <div class="app-name">Montana Contracts</div>
+                    <div class="app-desc">Контракты Bitcoin Pizza Style</div>
+                </div>
+                <button class="install-btn" onclick="install('contracts')" id="btn-contracts" disabled>
+                    Установить
+                </button>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="instructions">
+            <h3>После установки</h3>
+            <div class="step">
+                <span class="step-num">1</span>
+                <span class="step-text">Открой <b>Настройки</b></span>
+            </div>
+            <div class="step">
+                <span class="step-num">2</span>
+                <span class="step-text">Перейди в <b>Основные → VPN и управление устройством</b></span>
+            </div>
+            <div class="step">
+                <span class="step-num">3</span>
+                <span class="step-text">Нажми на сертификат <b>Montana Protocol</b> и выбери <b>Доверять</b></span>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Время — единственная реальная валюта</p>
+            <p>Apple не может удалить время. Ɉ</p>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal-overlay" id="success-modal">
+        <div class="modal">
+            <div class="modal-icon">✅</div>
+            <h3>Устройство зарегистрировано!</h3>
+            <p>Теперь можешь устанавливать приложения</p>
+            <button class="register-btn" onclick="closeModal()">Продолжить</button>
+        </div>
+    </div>
+
+    <script>
+        // Check if already registered
+        let registeredUDID = localStorage.getItem('montana_udid');
+
+        if (registeredUDID) {
+            showRegistered();
+        }
+
+        // Check URL params (after enrollment redirect)
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('enrolled') === 'true') {
+            const udid = params.get('udid');
+            if (udid) {
+                localStorage.setItem('montana_udid', udid);
+                registeredUDID = udid;
+                showRegistered();
+                showSuccessModal();
+                // Clean URL
+                history.replaceState({}, '', '/');
+            }
+        }
+
+        function showRegistered() {
+            const section = document.getElementById('register-section');
+            section.innerHTML = `
+                <h2>✅ Устройство зарегистрировано</h2>
+                <p style="margin-bottom: 0;">UDID: ${registeredUDID.substring(0, 8)}...${registeredUDID.substring(registeredUDID.length - 4)}</p>
+            `;
+
+            // Enable install buttons
+            document.querySelectorAll('.install-btn').forEach(btn => {
+                btn.disabled = false;
+            });
+        }
+
+        function showSuccessModal() {
+            document.getElementById('success-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('success-modal').classList.remove('active');
+        }
+
+        function install(appId) {
+            if (!registeredUDID) {
+                alert('Сначала зарегистрируй устройство');
+                return;
+            }
+
+            // Show loading
+            const btn = document.getElementById('btn-' + appId);
+            const originalText = btn.textContent;
+            btn.innerHTML = '<span class="loading"></span>';
+            btn.disabled = true;
+
+            // Trigger iOS install
+            const manifestUrl = encodeURIComponent(
+                window.location.origin + '/api/manifest/' + appId + '?udid=' + registeredUDID
+            );
+            window.location.href = 'itms-services://?action=download-manifest&url=' + manifestUrl;
+
+            // Reset button after delay
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }, 3000);
+        }
+
+        // Poll for enrollment completion (when returning from Settings)
+        if (!registeredUDID) {
+            const checkInterval = setInterval(async () => {
+                try {
+                    const res = await fetch('/api/check-enrollment');
+                    const data = await res.json();
+                    if (data.enrolled && data.udid) {
+                        localStorage.setItem('montana_udid', data.udid);
+                        registeredUDID = data.udid;
+                        showRegistered();
+                        showSuccessModal();
+                        clearInterval(checkInterval);
+                    }
+                } catch (e) {}
+            }, 2000);
+
+            // Stop polling after 5 minutes
+            setTimeout(() => clearInterval(checkInterval), 300000);
+        }
+    </script>
+</body>
+</html>

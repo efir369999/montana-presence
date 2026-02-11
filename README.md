@@ -4,7 +4,7 @@
 [![ML-DSA-65](https://img.shields.io/badge/Crypto-ML--DSA--65-7b2fff?style=for-the-badge)](https://csrc.nist.gov/publications/detail/fips/204/final)
 [![FIPS 204](https://img.shields.io/badge/FIPS-204-00d4ff?style=for-the-badge)](https://csrc.nist.gov/publications/detail/fips/204/final)
 [![Post-Quantum](https://img.shields.io/badge/Post--Quantum-MAINNET-brightgreen?style=for-the-badge)](Монтана_Montana_蒙大拿/English/protocol/007_POST_QUANTUM.md)
-[![Telegram](https://img.shields.io/badge/Bot-@JunonaMontanaAGIBot-blue?style=for-the-badge&logo=telegram)](https://t.me/JunonaMontanaAGIBot)
+[![Telegram](https://img.shields.io/badge/Bot-@junomontanaagibot-blue?style=for-the-badge&logo=telegram)](https://t.me/junomontanaagibot)
 
 ```
      ███╗   ███╗ ██████╗ ███╗   ██╗████████╗ █████╗ ███╗   ██╗ █████╗

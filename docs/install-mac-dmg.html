@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Montana - Установка DMG на Mac</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #888;
+            text-decoration: none;
+            margin-bottom: 32px;
+            font-size: 0.9em;
+        }
+        .back-btn:hover { color: #00d4ff; }
+
+        h1 {
+            font-size: 1.8em;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .subtitle {
+            color: #888;
+            margin-bottom: 32px;
+        }
+
+        .download-box {
+            background: rgba(85, 85, 85, 0.2);
+            border: 1px solid rgba(85, 85, 85, 0.4);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 16px 32px;
+            background: linear-gradient(90deg, #555, #333);
+            color: #fff;
+            text-decoration: none;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 1.1em;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(85, 85, 85, 0.3);
+        }
+        .file-info {
+            margin-top: 12px;
+            color: #888;
+            font-size: 0.85em;
+        }
+
+        .steps {
+            margin-bottom: 32px;
+        }
+        .step {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+        .step-num {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #555, #333);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .step-title {
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+        .step-content {
+            color: #aaa;
+            font-size: 0.95em;
+            line-height: 1.6;
+            padding-left: 48px;
+        }
+
+        .code-block {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0 16px 48px;
+            font-family: 'SF Mono', 'Menlo', monospace;
+            font-size: 0.9em;
+            color: #00d4ff;
+            overflow-x: auto;
+            position: relative;
+        }
+        .code-block .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            color: #888;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+        .code-block .copy-btn:hover {
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+        }
+
+        .note {
+            background: rgba(255, 165, 0, 0.1);
+            border: 1px solid rgba(255, 165, 0, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        .note h4 {
+            color: #FFA500;
+            margin-bottom: 8px;
+        }
+        .note p {
+            color: #aaa;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+        .note a {
+            color: #00d4ff;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 32px 0;
+            color: #555;
+            font-size: 0.85em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="wallet.html" class="back-btn">
+            <span>&#8592;</span> Назад к выбору
+        </a>
+
+        <h1>&#128187; Установка DMG на Mac</h1>
+        <p class="subtitle">Классический способ установки</p>
+
+        <div class="download-box">
+            <a href="downloads/Montana_2.0.0.dmg" class="download-btn" download>
+                &#11015; Скачать DMG
+            </a>
+            <p class="file-info">Montana_2.0.0.dmg &middot; 72 KB</p>
+        </div>
+
+        <div class="steps">
+            <div class="step">
+                <div class="step-header">
+                    <span class="step-num">1</span>
+                    <span class="step-title">Скачай DMG файл</span>
+                </div>
+                <div class="step-content">
+                    Нажми кнопку выше. Файл сохранится в папку Загрузки.
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-header">
+                    <span class="step-num">2</span>
+                    <span class="step-title">Открой DMG</span>
+                </div>
+                <div class="step-content">
+                    Дважды кликни на скачанный файл Montana_2.0.0.dmg.
+                    Откроется окно с приложением Montana.
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-header">
+                    <span class="step-num">3</span>
+                    <span class="step-title">Перетащи в Applications</span>
+                </div>
+                <div class="step-content">
+                    Перетащи Montana.app в папку Applications (или нажми на стрелку в окне DMG).
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-header">
+                    <span class="step-num">4</span>
+                    <span class="step-title">Открой Терминал</span>
+                </div>
+                <div class="step-content">
+                    Finder &#8594; Программы &#8594; Утилиты &#8594; Terminal<br>
+                    <span style="color:#666">(или Spotlight: &#8984;+Space, напиши "Terminal", Enter)</span>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-header">
+                    <span class="step-num">5</span>
+                    <span class="step-title">Выполни команду</span>
+                </div>
+                <div class="step-content">
+                    Скопируй и вставь эту команду:
+                </div>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+                    sudo xattr -cr /Applications/Montana.app && open /Applications/Montana.app
+                </div>
+                <div class="step-content">
+                    Введи пароль от Mac (символы не отображаются) и нажми Enter.
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-header">
+                    <span class="step-num">6</span>
+                    <span class="step-title">Готово!</span>
+                </div>
+                <div class="step-content">
+                    Montana откроется автоматически. В следующий раз можно открывать как обычное приложение.
+                </div>
+            </div>
+        </div>
+
+        <div class="note">
+            <h4>&#9888; Почему нужен Терминал?</h4>
+            <p>
+                Apple блокирует все приложения без платной подписи Developer ID ($99/год).
+                Montana Protocol — open source и бесплатный. Команда <code>xattr -cr</code> снимает карантин.
+                <a href="https://github.com/efir369999" target="_blank">Исходный код открыт</a>.
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>Montana Protocol &middot; ML-DSA-65 MAINNET</p>
+        </div>
+    </div>
+
+    <script>
+        function copyCode(btn) {
+            const code = btn.parentElement.textContent.replace('Копировать', '').trim();
+            navigator.clipboard.writeText(code);
+            btn.textContent = 'Скопировано!';
+            setTimeout(() => btn.textContent = 'Копировать', 2000);
+        }
+    </script>
+</body>
+</html>

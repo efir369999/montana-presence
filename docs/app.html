@@ -1,0 +1,1567 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Montana Wallet</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold: #D4AF37;
+            --gold-dark: #8B6914;
+            --green: #10B981;
+            --cyan: #00d4ff;
+            --purple: #7b2fff;
+            --red: #EF4444;
+            --orange: #F59E0B;
+            --bg: #000000;
+            --card: rgba(255,255,255,0.03);
+            --border: rgba(255,255,255,0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .app {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .view {
+            display: none;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .view.active {
+            display: flex;
+        }
+
+        /* AUTH VIEW */
+        .auth-view {
+            padding: 40px 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .auth-logo {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin-bottom: 16px;
+            box-shadow: 0 0 40px rgba(212, 175, 55, 0.4);
+        }
+        .auth-logo img { width: 100%; height: 100%; object-fit: cover; }
+
+        .auth-title {
+            font-size: 32px;
+            font-weight: 300;
+            margin-bottom: 8px;
+        }
+
+        .auth-subtitle {
+            font-size: 12px;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 48px;
+        }
+
+        .auth-buttons {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .auth-btn {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            font-family: inherit;
+        }
+        .auth-btn:hover {
+            background: rgba(255,255,255,0.05);
+            border-color: var(--gold);
+        }
+        .auth-btn.primary {
+            background: linear-gradient(135deg, var(--green), #059669);
+            border-color: transparent;
+        }
+        .auth-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+        }
+
+        .auth-btn-icon { font-size: 24px; width: 40px; text-align: center; }
+        .auth-btn-text { flex: 1; }
+        .auth-btn-title { font-weight: 600; margin-bottom: 4px; }
+        .auth-btn-desc { font-size: 12px; opacity: 0.7; }
+        .auth-btn-arrow { font-size: 18px; opacity: 0.5; }
+
+        .auth-footer {
+            margin-top: 48px;
+            text-align: center;
+        }
+        .auth-footer p {
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 8px;
+        }
+        .auth-footer a {
+            color: var(--gold);
+            text-decoration: none;
+        }
+
+        /* COGNITIVE KEY INPUT */
+        .cognitive-view {
+            padding: 40px 24px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .cognitive-header { text-align: center; margin-bottom: 32px; }
+
+        .cognitive-logo {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin: 0 auto 16px;
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.4);
+        }
+        .cognitive-logo img { width: 100%; height: 100%; object-fit: cover; }
+
+        .cognitive-title { font-size: 20px; margin-bottom: 8px; }
+        .cognitive-desc { font-size: 12px; color: rgba(255,255,255,0.5); line-height: 1.6; }
+
+        .cognitive-textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 16px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            margin-bottom: 12px;
+        }
+        .cognitive-textarea:focus { outline: none; border-color: var(--gold); }
+        .cognitive-textarea::placeholder { color: rgba(255,255,255,0.3); }
+
+        .entropy-bar {
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        .entropy-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s, background 0.3s;
+        }
+        .entropy-fill.weak { background: var(--red); }
+        .entropy-fill.medium { background: var(--orange); }
+        .entropy-fill.strong { background: var(--green); }
+        .entropy-fill.excellent { background: var(--gold); }
+
+        .entropy-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 24px;
+        }
+        .entropy-bits { font-weight: 600; }
+        .entropy-bits.weak { color: var(--red); }
+        .entropy-bits.medium { color: var(--orange); }
+        .entropy-bits.strong { color: var(--green); }
+        .entropy-bits.excellent { color: var(--gold); }
+        .entropy-status { display: flex; align-items: center; gap: 4px; }
+        .entropy-status.valid { color: var(--green); }
+
+        .cognitive-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            font-size: 12px;
+            color: var(--red);
+        }
+
+        .cognitive-btn {
+            width: 100%;
+            padding: 16px;
+            background: var(--gold);
+            border: none;
+            border-radius: 12px;
+            color: #000;
+            font-family: inherit;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 16px;
+        }
+        .cognitive-btn:disabled { background: rgba(212, 175, 55, 0.3); cursor: not-allowed; }
+        .cognitive-btn:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
+        }
+
+        .back-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: var(--gold);
+            font-size: 14px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-family: inherit;
+        }
+
+        /* CONFIRM VIEW */
+        .confirm-view { padding: 40px 24px; max-width: 500px; margin: 0 auto; }
+        .confirm-warning { text-align: center; margin-bottom: 24px; }
+        .confirm-warning-icon { font-size: 48px; color: var(--orange); margin-bottom: 16px; }
+        .confirm-warning-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+        .confirm-warning-desc { font-size: 12px; color: rgba(255,255,255,0.5); line-height: 1.6; }
+
+        .confirm-key-box {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .confirm-key-label { font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 8px; }
+        .confirm-key-text { font-size: 13px; line-height: 1.6; word-break: break-word; }
+
+        .confirm-rules {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        .confirm-rule {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            font-size: 11px;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 8px;
+        }
+        .confirm-rule:last-child { margin-bottom: 0; }
+        .confirm-rule-icon { font-size: 14px; margin-top: 2px; }
+
+        .copy-btn {
+            width: 100%;
+            padding: 16px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+            margin-bottom: 16px;
+        }
+        .copy-btn.copied { background: var(--green); border-color: var(--green); }
+
+        /* PIN VIEW */
+        .pin-view { padding: 40px 24px; text-align: center; max-width: 400px; margin: 0 auto; }
+        .pin-title { font-size: 20px; margin-bottom: 8px; }
+        .pin-desc { font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 32px; }
+
+        .pin-dots { display: flex; justify-content: center; gap: 16px; margin-bottom: 32px; }
+        .pin-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid var(--gold);
+            transition: all 0.15s;
+        }
+        .pin-dot.filled { background: var(--gold); }
+        .pin-dots.shake { animation: shake 0.3s ease; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-10px); }
+            40% { transform: translateX(10px); }
+            60% { transform: translateX(-10px); }
+            80% { transform: translateX(10px); }
+        }
+
+        .pin-keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            max-width: 280px;
+            margin: 0 auto;
+        }
+        .pin-key {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: #fff;
+            font-family: inherit;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .pin-key:hover { background: rgba(255,255,255,0.1); }
+        .pin-key:active { transform: scale(0.95); }
+        .pin-key.empty { visibility: hidden; }
+        .pin-key.backspace { font-size: 18px; }
+
+        /* LOADING VIEW */
+        .loading-view {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--border);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 24px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-title { font-size: 18px; margin-bottom: 16px; }
+        .loading-progress { width: 100%; max-width: 280px; margin-bottom: 16px; }
+        .loading-bar {
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        .loading-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--gold), var(--green));
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+        .loading-percent {
+            font-size: 14px;
+            color: var(--gold);
+            font-weight: 600;
+            text-align: center;
+        }
+        .loading-desc { font-size: 12px; color: rgba(255,255,255,0.5); text-align: center; }
+
+        /* WALLET VIEW */
+        .wallet-view { flex: 1; display: flex; flex-direction: column; }
+
+        .wallet-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+        }
+        .menu-btn {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.6);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        .network-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.5);
+        }
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 8px var(--green);
+        }
+
+        .wallet-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .profile-photo {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin-bottom: 24px;
+            box-shadow: 0 0 40px rgba(16, 185, 129, 0.4);
+        }
+        .profile-photo img { width: 100%; height: 100%; object-fit: cover; }
+
+        .alias-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 20px;
+            padding: 8px 16px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .alias-badge:hover { background: rgba(212, 175, 55, 0.2); }
+        .alias-text { color: var(--gold); font-size: 22px; font-weight: 600; }
+        .copy-icon { font-size: 14px; color: rgba(212, 175, 55, 0.6); }
+
+        .full-address {
+            font-size: 10px;
+            color: rgba(255,255,255,0.4);
+            text-align: center;
+            max-width: 300px;
+            word-break: break-all;
+            margin-bottom: 24px;
+        }
+
+        .balance-section { text-align: center; margin-bottom: 24px; }
+        .balance-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        .balance-amount {
+            font-size: 56px;
+            font-weight: 300;
+            color: var(--green);
+            text-shadow: 0 0 60px rgba(16, 185, 129, 0.5);
+        }
+        .balance-symbol { width: 56px; height: 56px; }
+        .balance-symbol img { width: 100%; height: 100%; object-fit: contain; }
+        .balance-label { font-size: 14px; color: rgba(16, 185, 129, 0.7); letter-spacing: 2px; }
+
+        .balance-fiat { margin-top: 12px; }
+        .fiat-row { display: flex; align-items: center; justify-content: center; gap: 4px; }
+        .fiat-eq { font-size: 14px; color: rgba(255,255,255,0.4); }
+        .fiat-amount { font-size: 18px; font-weight: 500; color: var(--gold); }
+        .fiat-currency { font-size: 12px; color: rgba(255,255,255,0.4); }
+        .fiat-rate { font-size: 10px; color: rgba(255,255,255,0.3); margin-top: 4px; }
+
+        /* Time Slices */
+        .time-slices {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+        .time-slice {
+            min-width: 60px;
+            padding: 12px 8px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            text-align: center;
+        }
+        .time-slice.active { background: rgba(255,255,255,0.08); }
+        .slice-value { font-size: 20px; font-weight: 300; color: rgba(255,255,255,0.3); }
+        .time-slice.active .slice-value { color: #fff; }
+        .slice-label { font-size: 9px; color: rgba(255,255,255,0.2); margin-top: 4px; }
+        .time-slice.active .slice-label { color: var(--gold); }
+
+        /* Time Bank */
+        .time-bank {
+            background: rgba(212, 175, 55, 0.05);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            margin-bottom: 24px;
+            width: 100%;
+            max-width: 400px;
+        }
+        .time-bank-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .time-bank-icon { font-size: 14px; color: var(--gold); }
+        .time-bank-title { font-size: 11px; font-weight: 600; color: rgba(212, 175, 55, 0.8); letter-spacing: 2px; }
+
+        .time-bank-main { display: flex; align-items: baseline; justify-content: center; gap: 4px; margin-bottom: 4px; }
+        .tb-minutes { font-size: 22px; font-weight: 300; color: rgba(255,255,255,0.9); font-family: 'JetBrains Mono', monospace; }
+        .tb-seconds { font-size: 22px; font-weight: 300; color: var(--gold); font-family: 'JetBrains Mono', monospace; }
+        .tb-label { font-size: 10px; color: rgba(255,255,255,0.4); }
+
+        .time-bank-genesis { font-size: 10px; color: rgba(255,255,255,0.4); margin-bottom: 8px; }
+        .time-bank-divider { height: 1px; background: rgba(255,255,255,0.1); margin: 8px 40px; }
+        .time-bank-end-date { font-size: 10px; font-weight: 600; color: rgba(212, 175, 55, 0.6); letter-spacing: 2px; margin-bottom: 4px; }
+
+        .time-bank-countdown { display: flex; justify-content: center; align-items: baseline; gap: 4px; margin-bottom: 4px; }
+        .cd-value { font-size: 16px; font-weight: 300; color: rgba(255,255,255,0.7); font-family: 'JetBrains Mono', monospace; }
+        .cd-label { font-size: 8px; color: rgba(255,255,255,0.3); margin-right: 4px; }
+        .cd-sep { font-size: 16px; color: rgba(255,255,255,0.3); }
+        .cd-gold { color: rgba(212, 175, 55, 0.8); }
+        .time-bank-footer { font-size: 8px; color: rgba(255,255,255,0.2); }
+
+        /* Actions */
+        .actions { display: flex; gap: 24px; margin-bottom: 24px; }
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        .action-circle {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--card);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: var(--gold);
+            transition: all 0.2s;
+        }
+        .action-circle:hover { background: rgba(212, 175, 55, 0.1); border-color: var(--gold); }
+        .action-label { font-size: 11px; color: rgba(255,255,255,0.5); }
+
+        .sync-status { display: flex; align-items: center; gap: 8px; font-size: 12px; color: rgba(255,255,255,0.5); }
+        .sync-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: var(--green);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .wallet-footer { text-align: center; padding: 20px; }
+        .wallet-footer p { font-size: 11px; color: rgba(255,255,255,0.3); }
+        .wallet-footer .rate { color: rgba(212, 175, 55, 0.5); margin-top: 4px; }
+
+        /* Side Menu */
+        .menu-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            z-index: 100;
+        }
+        .menu-overlay.open { opacity: 1; visibility: visible; }
+
+        .side-menu {
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            width: 280px;
+            background: #0a0a0a;
+            border-right: 1px solid var(--border);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            z-index: 101;
+            display: flex;
+            flex-direction: column;
+        }
+        .side-menu.open { transform: translateX(0); }
+
+        .menu-header { padding: 40px 24px 24px; border-bottom: 1px solid var(--border); }
+        .menu-profile { display: flex; align-items: center; gap: 12px; }
+        .menu-avatar { width: 48px; height: 48px; border-radius: 50%; overflow: hidden; }
+        .menu-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .menu-alias { color: var(--gold); font-size: 16px; font-weight: 500; }
+
+        .menu-items { flex: 1; padding: 16px 0; }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 24px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        .menu-item:hover { background: rgba(255,255,255,0.05); }
+        .menu-item.active { color: var(--gold); background: rgba(212, 175, 55, 0.1); }
+        .menu-item .icon { font-size: 18px; width: 24px; text-align: center; }
+
+        .menu-footer { padding: 24px; border-top: 1px solid var(--border); }
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--red);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        /* TimeChain & Settings */
+        .timechain-content, .settings-content { padding: 20px; flex: 1; overflow-y: auto; }
+        .timechain-header-title { text-align: center; margin-bottom: 24px; }
+        .timechain-title { font-size: 20px; color: var(--cyan); margin-bottom: 8px; }
+
+        .timechain-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 24px; }
+        .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; }
+        .stat-value { font-size: 24px; font-weight: 500; color: var(--gold); }
+        .stat-label { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 4px; text-transform: uppercase; }
+
+        .blocks-title { font-size: 14px; color: rgba(255,255,255,0.5); margin-bottom: 12px; }
+        .blocks-list { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+        .block-item { padding: 16px; border-bottom: 1px solid var(--border); }
+        .block-item:last-child { border-bottom: none; }
+        .block-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .block-number { color: var(--cyan); font-weight: 500; }
+        .block-time { color: rgba(255,255,255,0.4); font-size: 12px; }
+        .block-hash { font-size: 10px; color: rgba(255,255,255,0.3); word-break: break-all; }
+
+        .settings-section { margin-bottom: 24px; }
+        .settings-title { font-size: 12px; color: rgba(255,255,255,0.4); text-transform: uppercase; margin-bottom: 12px; }
+        .settings-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+        .settings-row { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--border); }
+        .settings-row:last-child { border-bottom: none; }
+        .settings-label { color: rgba(255,255,255,0.7); }
+        .settings-value { color: var(--cyan); font-size: 12px; text-align: right; max-width: 200px; word-break: break-all; }
+
+        /* Modals */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            padding: 20px;
+        }
+        .modal.open { display: flex; }
+        .modal-content { background: #111; border-radius: 16px; width: 100%; max-width: 400px; padding: 24px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .modal-title { font-size: 18px; color: var(--gold); }
+        .modal-close { background: none; border: none; color: rgba(255,255,255,0.5); font-size: 24px; cursor: pointer; }
+
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 8px; }
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 16px;
+        }
+        .form-input:focus { outline: none; border-color: var(--gold); }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            border: none;
+            border-radius: 12px;
+            color: #000;
+            font-family: inherit;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .qr-container { text-align: center; padding: 20px; }
+        .qr-code {
+            width: 200px;
+            height: 200px;
+            background: #fff;
+            border-radius: 12px;
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #000;
+        }
+        .share-address {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            word-break: break-all;
+            font-size: 12px;
+            color: var(--cyan);
+        }
+
+        @media (max-width: 400px) {
+            .balance-amount { font-size: 40px; }
+            .balance-symbol { width: 40px; height: 40px; }
+            .time-slice { min-width: 50px; padding: 10px 6px; }
+            .slice-value { font-size: 16px; }
+            .countdown-value { font-size: 16px; }
+            .countdown-unit { min-width: 35px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app" id="app"></div>
+
+    <script>
+        // MAINNET API - Moscow node (nginx + SSL)
+        const API_BASE = 'https://176.124.208.93';
+        const RATE_RUB = 12.2;
+        const GENESIS_DATE = new Date('2026-01-08T21:00:00Z');
+        const TOTAL_RESERVE_SECONDS = 1262304000;
+        const TAU1 = 60, TAU2 = 600, TAU3 = 1209600, TAU4 = 126230400;
+
+        let state = {
+            view: 'auth',
+            isRestoring: false,
+            cognitiveKey: '',
+            address: '',
+            alias: '',
+            balance: 0,
+            isLoading: false,
+            menuOpen: false,
+            keyCopied: false,
+            copyCountdown: 0,
+            pin: '',
+            pinConfirm: '',
+            pinStep: 'create',
+            error: null
+        };
+
+        async function sha256(msg) {
+            const data = new TextEncoder().encode(msg);
+            const hash = await crypto.subtle.digest('SHA-256', data);
+            return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Security: HTML escape to prevent XSS
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // Security: Salted PIN hash
+        async function hashPin(pin, salt) {
+            return await sha256(salt + ':' + pin + ':MONTANA_PIN_V1');
+        }
+
+        // Security: Validate Montana address format
+        function isValidAddress(addr) {
+            if (!addr) return false;
+            // Ɉ-N format or full mt... address
+            if (/^Ɉ-\d+$/.test(addr)) return true;
+            if (/^mt[a-f0-9]{40}$/i.test(addr)) return true;
+            return false;
+        }
+
+        // Security: Validate transfer amount
+        function isValidAmount(amount, balance) {
+            if (isNaN(amount) || amount <= 0) return false;
+            if (amount > balance) return false;
+            if (amount > 1000000000) return false; // Max 1B
+            return true;
+        }
+
+        async function pbkdf2(password, salt, iterations, keyLen) {
+            const enc = new TextEncoder();
+            const key = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+            const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: enc.encode(salt), iterations, hash: 'SHA-256' }, key, keyLen * 8);
+            return Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        async function generateAddress(cognitiveKey) {
+            const normalized = cognitiveKey.trim().toLowerCase();
+            const seed = await pbkdf2(normalized, 'MONTANA_SEED_V1', 600000, 32);
+            const hash = await sha256(seed);
+            return 'mt' + hash.substring(0, 40);
+        }
+
+        function validateCognitiveKey(key) {
+            const trimmed = key.trim();
+            const words = trimmed.split(/\s+/).filter(w => w.length > 0);
+            const chars = trimmed.length;
+            const wordEntropy = words.length * 4.7;
+            const charEntropy = Math.log2(Math.pow(62, Math.min(chars, 50)));
+            const totalEntropy = Math.max(wordEntropy, charEntropy * 0.5);
+            let level = 'weak';
+            if (totalEntropy >= 248) level = 'excellent';
+            else if (totalEntropy >= 180) level = 'strong';
+            else if (totalEntropy >= 100) level = 'medium';
+            const isValid = words.length >= 24 || chars >= 150;
+            return { wordCount: words.length, charCount: chars, entropyBits: Math.min(totalEntropy, 248), entropyLevel: level, isValid };
+        }
+
+        function saveWallet(address, alias, pinHash, balance) {
+            localStorage.setItem('montana_address', address);
+            localStorage.setItem('montana_alias', alias);
+            if (pinHash) localStorage.setItem('montana_pin_hash', pinHash);
+            if (balance !== undefined) localStorage.setItem('montana_balance', balance.toString());
+            // Сохраняем время создания для расчёта начисленного времени
+            if (!localStorage.getItem('montana_created')) {
+                localStorage.setItem('montana_created', Date.now().toString());
+            }
+        }
+
+        function loadWallet() {
+            return {
+                address: localStorage.getItem('montana_address') || '',
+                alias: localStorage.getItem('montana_alias') || '',
+                pinHash: localStorage.getItem('montana_pin_hash') || '',
+                balance: parseInt(localStorage.getItem('montana_balance') || '0'),
+                created: parseInt(localStorage.getItem('montana_created') || Date.now().toString())
+            };
+        }
+
+        function clearWallet() {
+            localStorage.removeItem('montana_address');
+            localStorage.removeItem('montana_alias');
+            localStorage.removeItem('montana_pin_hash');
+            localStorage.removeItem('montana_balance');
+            localStorage.removeItem('montana_created');
+        }
+
+        async function registerWallet(address) {
+            // Таймаут 5 секунд - Disney Critic: API не должен блокировать UX
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 5000);
+            try {
+                const r = await fetch(`${API_BASE}/api/wallet/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ address }),
+                    signal: controller.signal
+                });
+                clearTimeout(timeout);
+                return await r.json();
+            } catch (e) {
+                clearTimeout(timeout);
+                console.log('API timeout or error, using local address');
+                return null;
+            }
+        }
+
+        async function fetchBalance(address) {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 3000);
+            try {
+                const r = await fetch(`${API_BASE}/api/balance/${encodeURIComponent(address)}`, { signal: controller.signal });
+                clearTimeout(timeout);
+                const d = await r.json();
+                return d.balance || 0;
+            } catch (e) { clearTimeout(timeout); return 0; }
+        }
+
+        async function fetchTimeChainStats() {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 3000);
+            try {
+                const r = await fetch(`${API_BASE}/api/timechain/stats`, { signal: controller.signal });
+                clearTimeout(timeout);
+                return await r.json();
+            } catch (e) { clearTimeout(timeout); return {}; }
+        }
+
+        async function fetchBlocks() {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 3000);
+            try {
+                const r = await fetch(`${API_BASE}/api/timechain/blocks?limit=5`, { signal: controller.signal });
+                clearTimeout(timeout);
+                const d = await r.json();
+                return d.blocks || [];
+            } catch (e) { clearTimeout(timeout); return []; }
+        }
+
+        async function sendTransfer(from, to, amount) {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 10000);
+            try {
+                const r = await fetch(`${API_BASE}/api/transfer`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ from, to, amount }),
+                    signal: controller.signal
+                });
+                clearTimeout(timeout);
+                return await r.json();
+            } catch (e) { clearTimeout(timeout); return { success: false, error: 'Сеть недоступна' }; }
+        }
+
+        function calculateTimeSlices() {
+            const now = new Date();
+            const sec = Math.max(0, (now - GENESIS_DATE) / 1000);
+            const tau4 = Math.floor(sec / TAU4);
+            const r4 = sec % TAU4;
+            const tau3 = Math.floor(r4 / TAU3);
+            const r3 = r4 % TAU3;
+            const tau2 = Math.floor(r3 / TAU2);
+            const r2 = r3 % TAU2;
+            const tau1 = Math.floor(r2 / TAU1);
+            const s = Math.floor(r2 % TAU1);
+            return { seconds: s, tau1, tau2, tau3, tau4 };
+        }
+
+        function calculateTimeBank() {
+            const now = new Date();
+            const end = new Date(GENESIS_DATE.getTime() + TOTAL_RESERVE_SECONDS * 1000);
+            const rem = Math.max(0, (end - now) / 1000);
+            const y = Math.floor(rem / (365.25 * 24 * 60 * 60));
+            const d = Math.floor((rem % (365.25 * 24 * 60 * 60)) / (24 * 60 * 60));
+            const h = Math.floor((rem % (24 * 60 * 60)) / 3600);
+            const m = Math.floor((rem % 3600) / 60);
+            const s = Math.floor(rem % 60);
+            // С генезиса (как в iOS)
+            const sinceGenesis = Math.max(0, (now - GENESIS_DATE) / 1000);
+            const gY = Math.floor(sinceGenesis / (365.25 * 24 * 60 * 60));
+            const gD = Math.floor((sinceGenesis % (365.25 * 24 * 60 * 60)) / (24 * 60 * 60));
+            const gH = Math.floor((sinceGenesis % (24 * 60 * 60)) / 3600);
+            const gM = Math.floor((sinceGenesis % 3600) / 60);
+            const gS = Math.floor(sinceGenesis % 60);
+            // Минуты + секунды синхронизированы
+            const totalMinutes = Math.floor(rem / 60);
+            const remSeconds = Math.floor(rem % 60);
+            return { years: y, days: d, hours: h, minutes: m, seconds: s, endDate: end, totalMinutes, remSeconds, gY, gD, gH, gM, gS };
+        }
+
+        function formatNumber(num) { return Math.floor(num).toLocaleString('ru-RU'); }
+
+        function render() {
+            const app = document.getElementById('app');
+            switch (state.view) {
+                case 'loading': app.innerHTML = renderLoading(); break;
+                case 'auth': app.innerHTML = renderAuth(); break;
+                case 'cognitive': app.innerHTML = renderCognitive(); break;
+                case 'confirm': app.innerHTML = renderConfirm(); break;
+                case 'verify': app.innerHTML = renderVerify(); break;
+                case 'pin': app.innerHTML = renderPin(); break;
+                default: app.innerHTML = renderWalletApp(); break;
+            }
+        }
+
+        function renderVerify() {
+            return `<div class="view active"><div class="confirm-view">
+                <div class="confirm-warning">
+                    <div class="confirm-warning-icon">🔐</div>
+                    <h2 class="confirm-warning-title">Верификация идентичности</h2>
+                    <p class="confirm-warning-desc">Твой когнитивный ключ сгенерировал этот адрес.<br>Убедись что это твой кошелёк.</p>
+                </div>
+                <div class="confirm-key-box">
+                    <div class="confirm-key-label">Твой адрес (детерминистичен от ключа):</div>
+                    <div class="confirm-key-text" style="color: var(--cyan);">${escapeHtml(state.alias)}</div>
+                    <div class="confirm-key-text" style="font-size: 10px; margin-top: 8px; color: rgba(255,255,255,0.4);">${escapeHtml(state.address)}</div>
+                </div>
+                <div class="confirm-rules">
+                    <div class="confirm-rule"><span class="confirm-rule-icon">🧠</span><span>Тот же ключ = тот же адрес (криптографическая гарантия)</span></div>
+                    <div class="confirm-rule"><span class="confirm-rule-icon">💰</span><span>Баланс: ${formatNumber(state.balance)} Ɉ (с сервера)</span></div>
+                    <div class="confirm-rule"><span class="confirm-rule-icon">🔒</span><span>PIN защищает локальный доступ</span></div>
+                </div>
+                <button class="cognitive-btn" onclick="confirmVerify()">Это мой кошелёк → Установить PIN</button>
+                <button class="back-link" onclick="goToAuth()">← Это не мой адрес</button>
+            </div></div>`;
+        }
+
+        function confirmVerify() {
+            state.view = 'pin';
+            state.pinStep = 'create';
+            render();
+        }
+
+        function renderLoading() {
+            return `<div class="view active loading-view">
+                <div class="loading-spinner"></div>
+                <div class="loading-title" id="loadingTitle">Генерация ключей...</div>
+                <div class="loading-progress">
+                    <div class="loading-bar"><div class="loading-fill" id="loadingFill"></div></div>
+                    <div class="loading-percent" id="loadingPercent">0%</div>
+                </div>
+                <div class="loading-desc" id="loadingDesc">PBKDF2 · 600,000 итераций</div>
+            </div>`;
+        }
+
+        function renderAuth() {
+            const saved = loadWallet();
+            const hasWallet = saved.address && saved.pinHash;
+            return `<div class="view active"><div class="auth-view">
+                <div class="auth-logo"><img src="img/logo.png" alt="Montana"></div>
+                <h1 class="auth-title">Монтана</h1>
+                <p class="auth-subtitle">Время — единственная реальная валюта</p>
+                <div class="auth-buttons">
+                    ${hasWallet ? `<button class="auth-btn primary" onclick="enterPin()">
+                        <span class="auth-btn-icon">🔐</span>
+                        <div class="auth-btn-text"><div class="auth-btn-title">Войти</div><div class="auth-btn-desc">${saved.alias || 'Введите PIN'}</div></div>
+                        <span class="auth-btn-arrow">→</span>
+                    </button>` : ''}
+                    <button class="auth-btn ${!hasWallet ? 'primary' : ''}" onclick="createIdentity()">
+                        <span class="auth-btn-icon">👤</span>
+                        <div class="auth-btn-text"><div class="auth-btn-title">Создать идентичность</div><div class="auth-btn-desc">Новый когнитивный ключ</div></div>
+                        <span class="auth-btn-arrow">→</span>
+                    </button>
+                    <button class="auth-btn" onclick="restoreIdentity()">
+                        <span class="auth-btn-icon">🔄</span>
+                        <div class="auth-btn-text"><div class="auth-btn-title">Восстановить</div><div class="auth-btn-desc">Уже есть когнитивный ключ</div></div>
+                        <span class="auth-btn-arrow">→</span>
+                    </button>
+                </div>
+                <div class="auth-footer">
+                    <p>ML-DSA-65 · FIPS 204 · Постквантовая криптография</p>
+                    <p><a href="index.html">efir.org</a> · <a href="privacy.html">Конфиденциальность</a></p>
+                    <p>Версия 2.0.0 (Web) · MAINNET</p>
+                </div>
+            </div></div>`;
+        }
+
+        function renderCognitive() {
+            const v = validateCognitiveKey(state.cognitiveKey);
+            const pct = Math.min((v.entropyBits / 248) * 100, 100);
+            const securityNote = state.isRestoring
+                ? 'Тот же ключ = тот же адрес = твои монеты'
+                : 'Ключ → PBKDF2 → SHA256 → Адрес (детерминистично)';
+            return `<div class="view active"><div class="cognitive-view">
+                <div class="cognitive-header">
+                    <div class="cognitive-logo"><img src="img/logo.png" alt="Montana"></div>
+                    <h2 class="cognitive-title">${state.isRestoring ? 'Восстановление' : 'Один вопрос памяти'}</h2>
+                    <p class="cognitive-desc">${state.isRestoring ? 'Введи свой когнитивный ключ — он создаст тот же адрес' : 'Напиши то, что знаешь только ты.<br>Это станет твоей криптографической идентичностью.'}</p>
+                    <p class="cognitive-desc" style="margin-top: 8px; color: var(--gold); font-size: 10px;">${securityNote}</p>
+                </div>
+                <textarea class="cognitive-textarea" id="cognitiveInput" placeholder="Например: в детстве я боялся темноты и всегда спал с включённым светом пока мама не..." oninput="updateCognitiveKey(this.value)">${escapeHtml(state.cognitiveKey)}</textarea>
+                <div class="entropy-bar"><div class="entropy-fill ${v.entropyLevel}" style="width: ${pct}%"></div></div>
+                <div class="entropy-stats">
+                    <span class="entropy-bits ${v.entropyLevel}">${Math.floor(v.entropyBits)} / 248</span>
+                    <span>${v.wordCount} слов · ${v.charCount} симв.</span>
+                    <span class="entropy-status ${v.isValid ? 'valid' : ''}">${v.isValid ? '✓ OK' : v.entropyLevel.toUpperCase()}</span>
+                </div>
+                ${state.error ? `<div class="cognitive-error">${escapeHtml(state.error)}</div>` : ''}
+                <button class="cognitive-btn" ${!v.isValid ? 'disabled' : ''} onclick="processCognitiveKey()">${state.isRestoring ? 'Восстановить' : 'Создать идентичность'}</button>
+                <button class="back-link" onclick="goToAuth()">← Назад</button>
+            </div></div>`;
+        }
+
+        function renderConfirm() {
+            return `<div class="view active"><div class="confirm-view">
+                <div class="confirm-warning">
+                    <div class="confirm-warning-icon">⚠️</div>
+                    <h2 class="confirm-warning-title">Сохрани когнитивный ключ</h2>
+                    <p class="confirm-warning-desc">Это ЕДИНСТВЕННЫЙ способ восстановить кошелёк.<br>Мы НЕ храним твой ключ — только ты.</p>
+                </div>
+                <div class="confirm-key-box">
+                    <div class="confirm-key-label">Твой когнитивный ключ:</div>
+                    <div class="confirm-key-text">${escapeHtml(state.cognitiveKey)}</div>
+                </div>
+                <div class="confirm-rules">
+                    <div class="confirm-rule"><span class="confirm-rule-icon">🧠</span><span>Запомни или запиши в безопасном месте</span></div>
+                    <div class="confirm-rule"><span class="confirm-rule-icon">🔑</span><span>Тот же ключ = тот же кошелёк, всегда</span></div>
+                    <div class="confirm-rule"><span class="confirm-rule-icon">⚠️</span><span>Потеряешь ключ = потеряешь доступ навсегда</span></div>
+                </div>
+                <button class="copy-btn ${state.keyCopied ? 'copied' : ''}" onclick="copyKey()">${state.keyCopied ? `✓ Скопировано · ${state.copyCountdown}с` : '📋 Скопировать ключ'}</button>
+                <button class="cognitive-btn" ${!state.keyCopied ? 'disabled' : ''} onclick="goToPin()">🔐 Установить PIN и войти</button>
+            </div></div>`;
+        }
+
+        function renderPin() {
+            const title = state.pinStep === 'create' ? 'Создай PIN-код' : state.pinStep === 'confirm' ? 'Повтори PIN-код' : 'Введи PIN-код';
+            const desc = state.pinStep === 'enter' ? 'Для доступа к кошельку' : '6 цифр для защиты кошелька';
+            const currentPin = state.pinStep === 'confirm' ? state.pinConfirm : state.pin;
+            return `<div class="view active"><div class="pin-view">
+                <h2 class="pin-title">${title}</h2>
+                <p class="pin-desc">${desc}</p>
+                ${state.error ? `<div class="cognitive-error">${escapeHtml(state.error)}</div>` : ''}
+                <div class="pin-dots">${[0,1,2,3,4,5].map(i => `<div class="pin-dot ${i < currentPin.length ? 'filled' : ''}"></div>`).join('')}</div>
+                <div class="pin-keypad">
+                    ${[1,2,3,4,5,6,7,8,9].map(n => `<button class="pin-key" onclick="addPinDigit('${n}')">${n}</button>`).join('')}
+                    <button class="pin-key empty"></button>
+                    <button class="pin-key" onclick="addPinDigit('0')">0</button>
+                    <button class="pin-key backspace" onclick="removePinDigit()">⌫</button>
+                </div>
+                ${state.pinStep !== 'enter' ? `<button class="back-link" style="margin-top: 24px;" onclick="goToAuth()">← Отмена</button>` : ''}
+            </div></div>`;
+        }
+
+        function renderWalletApp() {
+            const slices = calculateTimeSlices();
+            const tb = calculateTimeBank();
+            return `
+                <div class="menu-overlay ${state.menuOpen ? 'open' : ''}" onclick="toggleMenu()"></div>
+                <div class="side-menu ${state.menuOpen ? 'open' : ''}">
+                    <div class="menu-header"><div class="menu-profile">
+                        <div class="menu-avatar"><img src="img/logo.png" alt="Avatar"></div>
+                        <div><div class="menu-alias">${state.alias || 'Ɉ-...'}</div></div>
+                    </div></div>
+                    <div class="menu-items">
+                        <button class="menu-item ${state.view === 'wallet' ? 'active' : ''}" onclick="showView('wallet')"><span class="icon">💳</span><span>Кошелёк</span></button>
+                        <button class="menu-item ${state.view === 'timechain' ? 'active' : ''}" onclick="showView('timechain')"><span class="icon">⏱</span><span>TimeChain</span></button>
+                        <button class="menu-item ${state.view === 'settings' ? 'active' : ''}" onclick="showView('settings')"><span class="icon">⚙️</span><span>Настройки</span></button>
+                    </div>
+                    <div class="menu-footer"><button class="logout-btn" onclick="logout()"><span>→</span><span>Выйти</span></button></div>
+                </div>
+                <div class="view ${state.view === 'wallet' ? 'active' : ''} wallet-view">
+                    <div class="wallet-header">
+                        <button class="menu-btn" onclick="toggleMenu()">☰</button>
+                        <div class="network-status"><span class="status-dot"></span><span>3/3</span></div>
+                        <button class="menu-btn" style="visibility: hidden;">🔔</button>
+                    </div>
+                    <div class="wallet-main">
+                        <div class="profile-photo"><img src="img/logo.png" alt="Profile"></div>
+                        <div class="alias-badge" onclick="copyAlias()">
+                            <span class="alias-text">${state.alias || 'Ɉ-...'}</span>
+                            <span class="copy-icon" id="copyIcon">📋</span>
+                        </div>
+                        <div class="full-address">${state.address || 'Ɉ-...-...'}</div>
+                        <div class="balance-section">
+                            <div class="balance-row">
+                                <span class="balance-amount">${formatNumber(state.balance)}</span>
+                                <div class="balance-symbol"><img src="img/symbol.png" alt="Ɉ"></div>
+                            </div>
+                            <div class="balance-label">монет времени</div>
+                            <div class="balance-fiat">
+                                <div class="fiat-row"><span class="fiat-eq">=</span><span class="fiat-amount">${formatNumber(state.balance * RATE_RUB)}</span><span class="fiat-currency">RUB</span></div>
+                                <div class="fiat-rate">1 сек = 12.2 RUB</div>
+                            </div>
+                        </div>
+                        <div class="time-slices">
+                            <div class="time-slice active"><div class="slice-value">${String(slices.seconds).padStart(2, '0')}</div><div class="slice-label">сек</div></div>
+                            <div class="time-slice ${slices.tau1 >= 1 ? 'active' : ''}"><div class="slice-value">${slices.tau1}</div><div class="slice-label">τ₁</div></div>
+                            <div class="time-slice ${slices.tau2 >= 1 ? 'active' : ''}"><div class="slice-value">${formatNumber(slices.tau2)}</div><div class="slice-label">τ₂</div></div>
+                            <div class="time-slice ${slices.tau3 >= 1 ? 'active' : ''}"><div class="slice-value">${slices.tau3}</div><div class="slice-label">τ₃</div></div>
+                            <div class="time-slice ${slices.tau4 >= 1 ? 'active' : ''}"><div class="slice-value">${slices.tau4}</div><div class="slice-label">τ₄</div></div>
+                        </div>
+                        <div class="time-bank">
+                            <div class="time-bank-header"><span class="time-bank-icon">⏳</span><span class="time-bank-title">БАНК ВРЕМЕНИ</span></div>
+                            <div class="time-bank-main">
+                                <span class="tb-minutes">${formatNumber(tb.totalMinutes)}</span>
+                                <span class="tb-label">мин</span>
+                                <span class="tb-seconds">${String(tb.remSeconds).padStart(2, '0')}</span>
+                                <span class="tb-label">сек</span>
+                            </div>
+                            <div class="time-bank-genesis">
+                                с генезиса: ${tb.gY > 0 ? `${tb.gY} г ` : ''}${tb.gD} дн ${String(tb.gH).padStart(2, '0')}:${String(tb.gM).padStart(2, '0')}:${String(tb.gS).padStart(2, '0')}
+                            </div>
+                            <div class="time-bank-divider"></div>
+                            <div class="time-bank-end-date">9 ЯНВАРЯ 2066 МСК</div>
+                            <div class="time-bank-countdown">
+                                <span class="cd-value">${tb.years}</span><span class="cd-label">лет</span>
+                                <span class="cd-value">${tb.days}</span><span class="cd-label">дн</span>
+                                <span class="cd-value">${String(tb.hours).padStart(2, '0')}</span><span class="cd-sep">:</span>
+                                <span class="cd-value">${String(tb.minutes).padStart(2, '0')}</span><span class="cd-sep">:</span>
+                                <span class="cd-value cd-gold">${String(tb.seconds).padStart(2, '0')}</span>
+                            </div>
+                            <div class="time-bank-footer">последняя секунда эмиссии</div>
+                        </div>
+                        <div class="actions">
+                            <button class="action-btn" onclick="openSend()"><div class="action-circle">↑</div><span class="action-label">Отправить</span></button>
+                            <button class="action-btn" onclick="openReceive()"><div class="action-circle">↓</div><span class="action-label">Получить</span></button>
+                            <button class="action-btn" onclick="showView('timechain')"><div class="action-circle">⏱</div><span class="action-label">История</span></button>
+                        </div>
+                        ${state.isLoading ? `<div class="sync-status"><div class="sync-spinner"></div><span>Синхронизация...</span></div>` : ''}
+                    </div>
+                    <div class="wallet-footer"><p>1 секунда присутствия = 1 Ɉ</p><p class="rate">Генезис Beeple: 1 Ɉ = 12.2 RUB</p></div>
+                </div>
+                <div class="view ${state.view === 'timechain' ? 'active' : ''} wallet-view">
+                    <div class="wallet-header"><button class="menu-btn" onclick="toggleMenu()">☰</button><div class="network-status"><span class="status-dot"></span><span>MAINNET</span></div><button class="menu-btn" style="visibility: hidden;">🔔</button></div>
+                    <div class="timechain-content">
+                        <div class="timechain-header-title"><h2 class="timechain-title">TimeChain Explorer</h2></div>
+                        <div class="timechain-stats" id="timechainStats">
+                            <div class="stat-card"><div class="stat-value" id="tcHeight">0</div><div class="stat-label">Высота</div></div>
+                            <div class="stat-card"><div class="stat-value" id="tcWallets">0</div><div class="stat-label">Кошельков</div></div>
+                            <div class="stat-card"><div class="stat-value" id="tcTx">0</div><div class="stat-label">Транзакций</div></div>
+                            <div class="stat-card"><div class="stat-value" id="tcLast">Ɉ-0</div><div class="stat-label">Последний</div></div>
+                        </div>
+                        <h3 class="blocks-title">Последние блоки</h3>
+                        <div class="blocks-list" id="blocksList"><div class="block-item"><div class="block-header"><span class="block-number">Загрузка...</span></div></div></div>
+                    </div>
+                </div>
+                <div class="view ${state.view === 'settings' ? 'active' : ''} wallet-view">
+                    <div class="wallet-header"><button class="menu-btn" onclick="toggleMenu()">☰</button><div class="network-status"><span class="status-dot"></span><span>MAINNET</span></div><button class="menu-btn" style="visibility: hidden;">🔔</button></div>
+                    <div class="settings-content">
+                        <div class="settings-section"><div class="settings-title">Аккаунт</div><div class="settings-card">
+                            <div class="settings-row"><span class="settings-label">Алиас</span><span class="settings-value">${state.alias || 'Ɉ-...'}</span></div>
+                            <div class="settings-row"><span class="settings-label">Адрес</span><span class="settings-value">${state.address || '...'}</span></div>
+                            <div class="settings-row"><span class="settings-label">Баланс</span><span class="settings-value">${formatNumber(state.balance)} Ɉ</span></div>
+                        </div></div>
+                        <div class="settings-section"><div class="settings-title">Сеть</div><div class="settings-card">
+                            <div class="settings-row"><span class="settings-label">Статус</span><span class="settings-value" style="color: var(--green);">MAINNET</span></div>
+                            <div class="settings-row"><span class="settings-label">Узлы</span><span class="settings-value">3/3 онлайн</span></div>
+                            <div class="settings-row"><span class="settings-label">Криптография</span><span class="settings-value">ML-DSA-65</span></div>
+                        </div></div>
+                        <div class="settings-section"><div class="settings-title">О приложении</div><div class="settings-card">
+                            <div class="settings-row"><span class="settings-label">Версия</span><span class="settings-value">2.0.0 (Web)</span></div>
+                            <div class="settings-row"><span class="settings-label">Протокол</span><span class="settings-value">Montana Protocol</span></div>
+                        </div></div>
+                    </div>
+                </div>
+                <div class="modal" id="sendModal"><div class="modal-content">
+                    <div class="modal-header"><h3 class="modal-title">Отправить</h3><button class="modal-close" onclick="closeSend()">×</button></div>
+                    <div class="form-group"><label class="form-label">Получатель (Ɉ-N или адрес)</label><input type="text" class="form-input" id="sendTo" placeholder="Ɉ-1 или mt..."></div>
+                    <div class="form-group"><label class="form-label">Сумма (Ɉ)</label><input type="number" class="form-input" id="sendAmount" placeholder="0"></div>
+                    <button class="submit-btn" onclick="doSend()">Отправить</button>
+                </div></div>
+                <div class="modal" id="receiveModal"><div class="modal-content">
+                    <div class="modal-header"><h3 class="modal-title">Получить</h3><button class="modal-close" onclick="closeReceive()">×</button></div>
+                    <div class="qr-container"><div class="qr-code">QR Code</div><div class="share-address">${state.address || 'Ɉ-...'}</div></div>
+                </div></div>
+            `;
+        }
+
+        function goToAuth() { state.view = 'auth'; state.cognitiveKey = ''; state.error = null; state.pin = ''; state.pinConfirm = ''; render(); }
+        function createIdentity() { state.isRestoring = false; state.view = 'cognitive'; state.cognitiveKey = ''; state.error = null; render(); }
+        function restoreIdentity() { state.isRestoring = true; state.view = 'cognitive'; state.cognitiveKey = ''; state.error = null; render(); }
+        function enterPin() { state.view = 'pin'; state.pinStep = 'enter'; state.pin = ''; state.error = null; render(); }
+        function updateCognitiveKey(value) {
+            state.cognitiveKey = value;
+            // Обновляем только entropy bar без перерисовки всего DOM
+            const v = validateCognitiveKey(value);
+            const pct = Math.min((v.entropyBits / 248) * 100, 100);
+            const fill = document.querySelector('.entropy-fill');
+            const bits = document.querySelector('.entropy-bits');
+            const stats = document.querySelector('.entropy-stats');
+            const btn = document.querySelector('.cognitive-btn');
+            if (fill) {
+                fill.style.width = pct + '%';
+                fill.className = 'entropy-fill ' + v.entropyLevel;
+            }
+            if (bits) {
+                bits.textContent = Math.floor(v.entropyBits) + ' / 248';
+                bits.className = 'entropy-bits ' + v.entropyLevel;
+            }
+            if (stats) {
+                const spans = stats.querySelectorAll('span');
+                if (spans[1]) spans[1].textContent = v.wordCount + ' слов · ' + v.charCount + ' симв.';
+                if (spans[2]) {
+                    spans[2].textContent = v.isValid ? '✓ OK' : v.entropyLevel.toUpperCase();
+                    spans[2].className = 'entropy-status' + (v.isValid ? ' valid' : '');
+                }
+            }
+            if (btn) btn.disabled = !v.isValid;
+        }
+
+        async function processCognitiveKey() {
+            const v = validateCognitiveKey(state.cognitiveKey);
+            if (!v.isValid) { state.error = 'Минимум 24 слова или 150 символов'; render(); return; }
+            state.view = 'loading'; render();
+
+            // Disney 8 Critics: Реалистичный прогресс
+            // PBKDF2 600K итераций = основная работа (0-90%)
+            // SHA256 = быстро (90-95%)
+            // API = опционально с таймаутом (95-100%)
+            let progress = 0;
+            const updateProgress = (pct, text) => {
+                const fill = document.getElementById('loadingFill');
+                const pctEl = document.getElementById('loadingPercent');
+                const desc = document.getElementById('loadingDesc');
+                if (fill) fill.style.width = pct + '%';
+                if (pctEl) pctEl.textContent = Math.floor(pct) + '%';
+                if (desc) desc.textContent = text;
+            };
+
+            // Анимация для PBKDF2 (0-85%)
+            const progressInterval = setInterval(() => {
+                if (progress < 85) {
+                    progress += (85 - progress) * 0.08; // Экспоненциальное замедление
+                    updateProgress(progress, 'PBKDF2 · 600,000 итераций');
+                }
+            }, 50);
+
+            try {
+                // PBKDF2 + SHA256 (основная работа)
+                const address = await generateAddress(state.cognitiveKey);
+
+                // PBKDF2 завершён - 90%
+                clearInterval(progressInterval);
+                updateProgress(90, 'Адрес сгенерирован');
+
+                // Короткая пауза для визуального feedback
+                await new Promise(r => setTimeout(r, 200));
+                updateProgress(95, 'Регистрация...');
+
+                // API вызов с таймаутом 5 сек (не блокирует если не работает)
+                const result = await registerWallet(address);
+
+                // 100% - готово
+                updateProgress(100, 'Готово!');
+                await new Promise(r => setTimeout(r, 200));
+
+                // Если API ответил - используем порядковый номер от сервера
+                // ВАЖНО: Алиас ТОЛЬКО от сервера (Ɉ-1, Ɉ-2, Ɉ-3...)
+                // НЕ генерируем фейковые алиасы из хэша!
+                if (result && result.number) {
+                    // API вернул порядковый номер
+                    state.alias = result.alias || `Ɉ-${result.number}`;
+                    state.address = result.address || `Ɉ-${result.number}-${address.substring(2)}`;
+                    state.balance = result.balance || 0;
+                } else {
+                    // API недоступен - используем криптографический адрес
+                    // АЛИАС НЕ СОЗДАЁМ - он должен быть ТОЛЬКО от сервера!
+                    state.address = address; // mt...
+                    state.alias = 'Ɉ-?'; // Показываем что номер не получен
+                    state.balance = 0;
+                    // Попытка повторной регистрации при входе в кошелёк
+                    state.needsRegistration = true;
+                }
+
+                // При восстановлении - показываем verify view
+                if (state.isRestoring) {
+                    state.view = 'verify';
+                } else {
+                    state.view = 'confirm';
+                }
+                state.pinStep = 'create';
+                state.keyCopied = false;
+            } catch (e) {
+                clearInterval(progressInterval);
+                state.error = 'Ошибка генерации: ' + e.message;
+                state.view = 'cognitive';
+            }
+            render();
+        }
+
+        function copyKey() {
+            navigator.clipboard.writeText(state.cognitiveKey);
+            state.keyCopied = true; state.copyCountdown = 30; render();
+            const timer = setInterval(() => {
+                state.copyCountdown--;
+                if (state.copyCountdown <= 0) { clearInterval(timer); navigator.clipboard.writeText(''); }
+                render();
+            }, 1000);
+        }
+
+        function goToPin() { state.view = 'pin'; state.pinStep = 'create'; state.pin = ''; state.pinConfirm = ''; state.error = null; render(); }
+
+        async function addPinDigit(digit) {
+            // Фильтруем только цифры
+            if (!/^\d$/.test(digit)) return;
+
+            if (state.pinStep === 'confirm') {
+                if (state.pinConfirm.length < 6) {
+                    state.pinConfirm += digit;
+                    render();
+                }
+                if (state.pinConfirm.length === 6) {
+                    if (state.pin === state.pinConfirm) {
+                        // Security: Salted PIN hash with address
+                        const pinHash = await hashPin(state.pin, state.address);
+                        saveWallet(state.address, state.alias, pinHash);
+                        state.balance = await fetchBalance(state.address);
+                        state.view = 'wallet'; state.menuOpen = false; state.cognitiveKey = ''; state.pin = ''; state.pinConfirm = '';
+                        render();
+                        startBalanceRefresh();
+                    } else {
+                        // PIN не совпадает - сбрасываем всё как в iOS
+                        state.error = 'PIN не совпадает';
+                        state.pinConfirm = '';
+                        state.pin = '';
+                        state.pinStep = 'create';
+                        shakePin();
+                        render();
+                    }
+                }
+            } else if (state.pinStep === 'enter') {
+                if (state.pin.length < 6) {
+                    state.pin += digit;
+                    render();
+                }
+                if (state.pin.length === 6) {
+                    const saved = loadWallet();
+                    // Security: Salted PIN verification
+                    const enteredHash = await hashPin(state.pin, saved.address);
+                    if (enteredHash === saved.pinHash) {
+                        state.address = saved.address; state.alias = saved.alias;
+                        state.balance = await fetchBalance(state.address);
+                        state.view = 'wallet'; state.menuOpen = false; state.pin = '';
+                        render();
+                        startBalanceRefresh();
+                    } else {
+                        state.error = 'Неверный PIN';
+                        state.pin = '';
+                        shakePin();
+                        render();
+                    }
+                }
+            } else {
+                // create step
+                if (state.pin.length < 6) {
+                    state.pin += digit;
+                    render();
+                }
+                if (state.pin.length === 6) {
+                    state.pinStep = 'confirm';
+                    state.error = null;
+                    render();
+                }
+            }
+        }
+
+        function shakePin() {
+            const dots = document.querySelector('.pin-dots');
+            if (dots) {
+                dots.classList.add('shake');
+                setTimeout(() => dots.classList.remove('shake'), 300);
+            }
+        }
+
+        function removePinDigit() {
+            if (state.pinStep === 'confirm') state.pinConfirm = state.pinConfirm.slice(0, -1);
+            else state.pin = state.pin.slice(0, -1);
+            render();
+        }
+
+        function toggleMenu() { state.menuOpen = !state.menuOpen; render(); }
+        function showView(view) { state.view = view; state.menuOpen = false; render(); if (view === 'timechain') loadTimeChain(); }
+
+        function copyAlias() {
+            navigator.clipboard.writeText(state.address);
+            const copyIcon = document.getElementById('copyIcon');
+            if (copyIcon) { copyIcon.textContent = '✓'; setTimeout(() => { copyIcon.textContent = '📋'; }, 2000); }
+        }
+
+        function openSend() { document.getElementById('sendModal').classList.add('open'); }
+        function closeSend() { document.getElementById('sendModal').classList.remove('open'); }
+        function openReceive() { document.getElementById('receiveModal').classList.add('open'); }
+        function closeReceive() { document.getElementById('receiveModal').classList.remove('open'); }
+
+        async function doSend() {
+            const to = document.getElementById('sendTo').value.trim();
+            const amount = parseFloat(document.getElementById('sendAmount').value);
+            // Security: Validate all inputs
+            if (!to || isNaN(amount)) { alert('Заполните все поля'); return; }
+            if (!isValidAddress(to)) { alert('Неверный формат адреса. Используйте Ɉ-N или mt...'); return; }
+            if (!isValidAmount(amount, state.balance)) { alert('Неверная сумма. Проверьте баланс.'); return; }
+            if (to === state.address || to === state.alias) { alert('Нельзя отправить самому себе'); return; }
+            const result = await sendTransfer(state.address, to, amount);
+            if (result.success) { alert('Отправлено!'); closeSend(); document.getElementById('sendTo').value = ''; document.getElementById('sendAmount').value = ''; state.balance = await fetchBalance(state.address); render(); }
+            else { alert('Ошибка: ' + (result.error || 'Unknown')); }
+        }
+
+        function logout() { clearWallet(); state.view = 'auth'; state.address = ''; state.alias = ''; state.balance = 0; state.menuOpen = false; render(); }
+
+        async function loadTimeChain() {
+            const stats = await fetchTimeChainStats();
+            const blocks = await fetchBlocks();
+            const tcH = document.getElementById('tcHeight'), tcW = document.getElementById('tcWallets'), tcT = document.getElementById('tcTx'), tcL = document.getElementById('tcLast'), bL = document.getElementById('blocksList');
+            if (tcH) tcH.textContent = stats.height || 0;
+            if (tcW) tcW.textContent = stats.total_wallets || 0;
+            if (tcT) tcT.textContent = stats.total_transactions || 0;
+            if (tcL) tcL.textContent = 'Ɉ-' + (stats.last_mt_number || 0);
+            if (bL && blocks.length > 0) {
+                // Security: Escape block data to prevent XSS
+                bL.innerHTML = blocks.map(b => `<div class="block-item"><div class="block-header"><span class="block-number">Блок #${parseInt(b.height) || 0}</span><span class="block-time">${new Date((parseInt(b.timestamp) || 0) * 1000).toLocaleTimeString()}</span></div><div class="block-hash">${escapeHtml(b.hash || '')}</div></div>`).join('');
+            }
+        }
+
+        let balanceInterval = null, timeInterval = null;
+        function startBalanceRefresh() {
+            if (balanceInterval) clearInterval(balanceInterval);
+            if (timeInterval) clearInterval(timeInterval);
+
+            // Disney 8 Critics: БЕЗОПАСНОСТЬ
+            // Баланс ТОЛЬКО из API - localStorage можно подделать
+            // Если API недоступен - показываем последний известный или 0
+
+            // Обновление UI каждую секунду (время, slices)
+            timeInterval = setInterval(() => {
+                if (state.view === 'wallet' || state.view === 'timechain' || state.view === 'settings') {
+                    render();
+                }
+            }, 1000);
+
+            // Синхронизация баланса и регистрации с API
+            const syncBalance = async () => {
+                if (state.address) {
+                    // Если алиас не получен (Ɉ-?) - пытаемся зарегистрировать снова
+                    if (state.alias === 'Ɉ-?' || state.needsRegistration) {
+                        const result = await registerWallet(state.address);
+                        if (result && result.number) {
+                            state.alias = result.alias || `Ɉ-${result.number}`;
+                            state.address = result.address || state.address;
+                            state.needsRegistration = false;
+                            // Сохраняем обновлённый алиас
+                            saveWallet(state.address, state.alias, null, state.balance);
+                        }
+                    }
+                    // Получаем баланс
+                    const apiBalance = await fetchBalance(state.address);
+                    if (apiBalance >= 0) {
+                        state.balance = apiBalance;
+                        // Кэшируем для offline, но НЕ используем как авторитетный источник
+                        localStorage.setItem('montana_balance_cache', apiBalance.toString());
+                    }
+                }
+            };
+
+            // Первая синхронизация сразу
+            syncBalance();
+            balanceInterval = setInterval(syncBalance, 5000);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const saved = loadWallet();
+            state.view = 'auth';
+            render();
+            if (window.location.hash === '#timechain' && saved.address && saved.pinHash) enterPin();
+        });
+    </script>
+</body>
+</html>

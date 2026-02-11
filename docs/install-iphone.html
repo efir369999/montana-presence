@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Montana - iPhone</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+        .container { max-width: 540px; margin: 0 auto; padding: 32px 20px; }
+        .back-btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            color: #888; text-decoration: none; margin-bottom: 24px; font-size: 0.9em;
+        }
+        .back-btn:hover { color: #00d4ff; }
+        h1 { font-size: 2em; text-align: center; margin-bottom: 6px; }
+        h1 span { color: #00d4ff; }
+        .subtitle { text-align: center; color: #888; margin-bottom: 28px; font-size: 15px; }
+
+        .btn-main {
+            display: block; width: 100%; padding: 18px;
+            background: linear-gradient(135deg, #00d4ff, #7b2fff);
+            color: #fff; text-align: center; font-size: 18px; font-weight: 700;
+            border: none; border-radius: 14px; cursor: pointer; text-decoration: none;
+            margin: 20px 0; transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-main:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,212,255,0.3); }
+
+        .btn-alt {
+            display: block; width: 100%; padding: 14px;
+            background: transparent; color: #00d4ff; text-align: center;
+            font-size: 16px; font-weight: 600;
+            border: 1px solid rgba(0,212,255,0.4); border-radius: 14px;
+            cursor: pointer; text-decoration: none; margin: 12px 0;
+        }
+        .btn-alt:hover { border-color: #00d4ff; background: rgba(0,212,255,0.05); }
+
+        .step {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px; padding: 18px; margin-bottom: 14px;
+        }
+        .step-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+        .step-num {
+            width: 30px; height: 30px; background: #00d4ff; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 14px; color: #000; flex-shrink: 0;
+        }
+        .step-title { font-size: 1.05em; font-weight: 600; }
+        .step p { color: #aaa; font-size: 0.93em; line-height: 1.5; padding-left: 42px; }
+        .step a { color: #00d4ff; text-decoration: none; font-weight: 600; }
+        .step a:hover { text-decoration: underline; }
+        .step code {
+            background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px;
+            font-family: 'SF Mono', monospace; font-size: 12px; color: #00d4ff;
+            word-break: break-all;
+        }
+
+        .divider { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 24px 0; }
+
+        .note {
+            background: rgba(255, 200, 0, 0.06);
+            border-left: 3px solid #ffcc00;
+            padding: 14px 16px; border-radius: 0 12px 12px 0; margin: 20px 0;
+        }
+        .note p { color: #ccbb66; font-size: 14px; line-height: 1.4; }
+
+        .footer { text-align: center; padding: 28px 0; color: #444; font-size: 13px; font-family: monospace; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a href="wallet.html" class="back-btn">&#8592; Montana Wallet</a>
+
+    <h1>Montana <span>&#x0248;</span></h1>
+    <p class="subtitle">Post-Quantum Money for iPhone</p>
+
+    <a class="btn-main" href="altstore://source?url=https://efir.org/altstore-source.json">
+        &#x2B07; &nbsp;&#1044;&#1086;&#1073;&#1072;&#1074;&#1080;&#1090;&#1100; &#1074; AltStore
+    </a>
+
+    <a class="btn-alt" href="downloads/Montana_2.0.0.ipa" download>
+        &#x2B07; &nbsp;&#1057;&#1082;&#1072;&#1095;&#1072;&#1090;&#1100; IPA (3.1 MB)
+    </a>
+
+    <hr class="divider">
+
+    <div class="step">
+        <div class="step-header">
+            <span class="step-num">1</span>
+            <span class="step-title">&#1059;&#1089;&#1090;&#1072;&#1085;&#1086;&#1074;&#1080; AltStore</span>
+        </div>
+        <p>&#1057;&#1082;&#1072;&#1095;&#1072;&#1081; <a href="https://altstore.io" target="_blank">AltStore</a> &#1085;&#1072; &#1082;&#1086;&#1084;&#1087;&#1100;&#1102;&#1090;&#1077;&#1088; (Mac/Windows).
+        &#1047;&#1072;&#1087;&#1091;&#1089;&#1090;&#1080; AltServer &#1080; &#1091;&#1089;&#1090;&#1072;&#1085;&#1086;&#1074;&#1080; AltStore &#1085;&#1072; iPhone &#1095;&#1077;&#1088;&#1077;&#1079; USB.</p>
+    </div>
+
+    <div class="step">
+        <div class="step-header">
+            <span class="step-num">2</span>
+            <span class="step-title">&#1044;&#1086;&#1073;&#1072;&#1074;&#1100; &#1080;&#1089;&#1090;&#1086;&#1095;&#1085;&#1080;&#1082; Montana</span>
+        </div>
+        <p>&#1054;&#1090;&#1082;&#1088;&#1086;&#1081; &#1101;&#1090;&#1091; &#1089;&#1090;&#1088;&#1072;&#1085;&#1080;&#1094;&#1091; &#1085;&#1072; iPhone &#1080; &#1085;&#1072;&#1078;&#1084;&#1080; &#1082;&#1085;&#1086;&#1087;&#1082;&#1091; &#171;&#1044;&#1086;&#1073;&#1072;&#1074;&#1080;&#1090;&#1100; &#1074; AltStore&#187;. &#1048;&#1083;&#1080; &#1074;&#1088;&#1091;&#1095;&#1085;&#1091;&#1102;:<br><br>
+        <code>https://efir.org/altstore-source.json</code></p>
+    </div>
+
+    <div class="step">
+        <div class="step-header">
+            <span class="step-num">3</span>
+            <span class="step-title">&#1059;&#1089;&#1090;&#1072;&#1085;&#1086;&#1074;&#1080; Montana</span>
+        </div>
+        <p>AltStore &#8594; Sources &#8594; Montana Protocol &#8594; <strong>Install</strong>. &#1055;&#1088;&#1080;&#1083;&#1086;&#1078;&#1077;&#1085;&#1080;&#1077; &#1087;&#1086;&#1103;&#1074;&#1080;&#1090;&#1089;&#1103; &#1085;&#1072; &#1076;&#1086;&#1084;&#1072;&#1096;&#1085;&#1077;&#1084; &#1101;&#1082;&#1088;&#1072;&#1085;&#1077;.</p>
+    </div>
+
+    <div class="note">
+        <p>&#128161; AltStore &#1072;&#1074;&#1090;&#1086;&#1084;&#1072;&#1090;&#1080;&#1095;&#1077;&#1089;&#1082;&#1080; &#1086;&#1073;&#1085;&#1086;&#1074;&#1083;&#1103;&#1077;&#1090; &#1087;&#1088;&#1080;&#1083;&#1086;&#1078;&#1077;&#1085;&#1080;&#1077; &#1082;&#1072;&#1078;&#1076;&#1099;&#1077; 7 &#1076;&#1085;&#1077;&#1081;.
+        AltServer &#1076;&#1086;&#1083;&#1078;&#1077;&#1085; &#1073;&#1099;&#1090;&#1100; &#1079;&#1072;&#1087;&#1091;&#1097;&#1077;&#1085; &#1085;&#1072; &#1082;&#1086;&#1084;&#1087;&#1100;&#1102;&#1090;&#1077;&#1088;&#1077; &#1074; &#1086;&#1076;&#1085;&#1086;&#1081; Wi-Fi &#1089;&#1077;&#1090;&#1080;.</p>
+    </div>
+
+    <hr class="divider">
+
+    <div class="step">
+        <div class="step-header">
+            <span class="step-num">&#x2699;</span>
+            <span class="step-title">&#1040;&#1083;&#1100;&#1090;&#1077;&#1088;&#1085;&#1072;&#1090;&#1080;&#1074;&#1072;: Sideloadly</span>
+        </div>
+        <p>&#1057;&#1082;&#1072;&#1095;&#1072;&#1081; IPA &#1080; &#1091;&#1089;&#1090;&#1072;&#1085;&#1086;&#1074;&#1080; &#1095;&#1077;&#1088;&#1077;&#1079; <a href="https://sideloadly.io" target="_blank">Sideloadly</a> &#8212;
+        &#1087;&#1086;&#1076;&#1082;&#1083;&#1102;&#1095;&#1080; iPhone, &#1074;&#1099;&#1073;&#1077;&#1088;&#1080; IPA, &#1085;&#1072;&#1078;&#1084;&#1080; Start.</p>
+    </div>
+
+    <div class="footer">
+        Montana Protocol v2.0.0 &middot; ML-DSA-65 &middot; FIPS 204
+    </div>
+</div>
+</body>
+</html>

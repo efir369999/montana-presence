@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Montana Protocol - Протокол Идеальных Денег. Постквантовая криптография ML-DSA-65. Время - единственная настоящая валюта.">
+    <meta name="keywords" content="Montana, Protocol, Cryptocurrency, Post-Quantum, ML-DSA-65, Time Bank">
+    <meta property="og:title" content="Montana Protocol">
+    <meta property="og:description" content="Протокол Идеальных Денег. Время - единственная настоящая валюта.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://efir.org">
+    <title>Montana Protocol - Протокол Идеальных Денег</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>Ɉ</text></svg>">
+    <style>
+        :root {
+            --gold: #D4AF37;
+            --gold-dark: #8B6914;
+            --cyan: #00d4ff;
+            --purple: #7b2fff;
+            --bg-dark: #0a0a0a;
+            --bg-card: rgba(255,255,255,0.03);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(212, 175, 55, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(123, 47, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(0, 212, 255, 0.05) 0%, transparent 70%);
+            z-index: -1;
+        }
+
+        /* Header */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(20px);
+            background: rgba(10, 10, 10, 0.8);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: #fff;
+        }
+
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .logo-text {
+            font-size: 1.5em;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        nav {
+            display: flex;
+            gap: 32px;
+        }
+
+        nav a {
+            color: #888;
+            text-decoration: none;
+            font-size: 0.95em;
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: var(--gold);
+        }
+
+        .header-btn {
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+            color: #000;
+            padding: 12px 24px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .header-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 120px 20px 80px;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(212, 175, 55, 0.15);
+            color: var(--gold);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin-bottom: 32px;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+        }
+
+        .hero-badge .dot {
+            width: 8px;
+            height: 8px;
+            background: var(--gold);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        .hero-symbol {
+            font-size: 120px;
+            font-weight: 200;
+            background: linear-gradient(135deg, var(--gold) 0%, #fff 50%, var(--gold) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 24px;
+            text-shadow: 0 0 100px rgba(212, 175, 55, 0.5);
+        }
+
+        h1 {
+            font-size: 4em;
+            font-weight: 700;
+            margin-bottom: 16px;
+            letter-spacing: -2px;
+            line-height: 1.1;
+        }
+
+        h1 span {
+            background: linear-gradient(135deg, var(--gold) 0%, var(--cyan) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 1.5em;
+            color: #888;
+            max-width: 600px;
+            margin-bottom: 48px;
+            line-height: 1.6;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+            color: #000;
+            padding: 18px 36px;
+            border-radius: 16px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1em;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 20px 40px rgba(212, 175, 55, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            padding: 18px 36px;
+            border-radius: 16px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1.1em;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: var(--gold);
+        }
+
+        /* Stats Section */
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            margin-top: 80px;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: var(--gold);
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 4px;
+        }
+
+        /* Features Section */
+        .features {
+            padding: 120px 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 16px;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 1.1em;
+            max-width: 600px;
+            margin: 0 auto 60px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 24px;
+            padding: 40px;
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            border-color: rgba(212, 175, 55, 0.3);
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .feature-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.2) 0%, rgba(123, 47, 255, 0.2) 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 24px;
+        }
+
+        .feature-card h3 {
+            font-size: 1.3em;
+            margin-bottom: 12px;
+        }
+
+        .feature-card p {
+            color: #888;
+            line-height: 1.6;
+        }
+
+        /* Protocol Section */
+        .protocol {
+            padding: 120px 40px;
+            background: linear-gradient(180deg, transparent 0%, rgba(212, 175, 55, 0.03) 50%, transparent 100%);
+        }
+
+        .protocol-content {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .protocol-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .protocol-visual {
+            position: relative;
+        }
+
+        .time-display {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 24px;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .time-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+
+        .time-value {
+            font-size: 3em;
+            font-weight: 700;
+            font-family: 'SF Mono', Monaco, monospace;
+            color: var(--gold);
+        }
+
+        .time-unit {
+            color: #888;
+            margin-top: 8px;
+        }
+
+        .protocol-text h2 {
+            font-size: 2em;
+            margin-bottom: 24px;
+        }
+
+        .protocol-text p {
+            color: #888;
+            line-height: 1.8;
+            margin-bottom: 16px;
+        }
+
+        .protocol-list {
+            list-style: none;
+            margin-top: 24px;
+        }
+
+        .protocol-list li {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .protocol-list li::before {
+            content: "Ɉ";
+            color: var(--gold);
+            font-weight: bold;
+        }
+
+        /* Network Section */
+        .network {
+            padding: 120px 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .nodes-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-top: 60px;
+        }
+
+        .node-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 32px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .node-card:hover {
+            border-color: rgba(0, 212, 255, 0.3);
+        }
+
+        .node-flag {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .node-name {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .node-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #4ade80;
+            font-size: 0.9em;
+        }
+
+        .node-status::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        /* Download Section */
+        .download {
+            padding: 120px 40px;
+            text-align: center;
+            background: linear-gradient(180deg, transparent 0%, rgba(123, 47, 255, 0.05) 100%);
+        }
+
+        .download-cards {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin-top: 60px;
+        }
+
+        .download-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 24px;
+            padding: 40px;
+            width: 280px;
+            transition: all 0.3s;
+        }
+
+        .download-card:hover {
+            border-color: var(--gold);
+            transform: translateY(-5px);
+        }
+
+        .download-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .download-card h3 {
+            margin-bottom: 8px;
+        }
+
+        .download-card p {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+        }
+
+        .download-card .btn-primary {
+            width: 100%;
+            justify-content: center;
+            padding: 14px 24px;
+            font-size: 1em;
+        }
+
+        /* Footer */
+        footer {
+            padding: 60px 40px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            text-align: center;
+        }
+
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 24px;
+        }
+
+        .footer-links a {
+            color: #666;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .footer-links a:hover {
+            color: var(--gold);
+        }
+
+        .copyright {
+            color: #444;
+            font-size: 0.9em;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header {
+                padding: 16px 20px;
+            }
+
+            nav {
+                display: none;
+            }
+
+            h1 {
+                font-size: 2.5em;
+            }
+
+            .hero-symbol {
+                font-size: 80px;
+            }
+
+            .hero-subtitle {
+                font-size: 1.1em;
+            }
+
+            .stats {
+                gap: 30px;
+            }
+
+            .protocol-grid {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .nodes-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .features {
+                padding: 80px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-gradient"></div>
+
+    <header>
+        <a href="/" class="logo">
+            <div class="logo-icon">Ɉ</div>
+            <span class="logo-text">Montana</span>
+        </a>
+        <nav>
+            <a href="#features">Возможности</a>
+            <a href="#protocol">Протокол</a>
+            <a href="#network">Сеть</a>
+            <a href="https://github.com/AlejandroMontana" target="_blank">GitHub</a>
+        </nav>
+        <a href="/wallet.html" class="header-btn">Скачать</a>
+    </header>
+
+    <section class="hero">
+        <div class="hero-badge">
+            <span class="dot"></span>
+            MAINNET LIVE
+        </div>
+        <div class="hero-symbol">Ɉ</div>
+        <h1>Montana <span>Protocol</span></h1>
+        <p class="hero-subtitle">
+            Протокол Идеальных Денег с постквантовой криптографией.<br>
+            Время — единственная настоящая валюта.
+        </p>
+        <div class="hero-buttons">
+            <a href="/wallet.html" class="btn-primary">
+                <span>Скачать Кошелёк</span>
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+            <a href="#protocol" class="btn-secondary">Узнать больше</a>
+        </div>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value" id="stat-nodes">3</div>
+                <div class="stat-label">Узла сети</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">ML-DSA-65</div>
+                <div class="stat-label">Постквантовая криптография</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">40 лет</div>
+                <div class="stat-label">Резерв Time Bank</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <h2 class="section-title">Возможности</h2>
+        <p class="section-subtitle">Montana Protocol — это новый подход к деньгам, основанный на времени и постквантовой безопасности</p>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🔐</div>
+                <h3>Постквантовая защита</h3>
+                <p>ML-DSA-65 (FIPS 204) — криптография, устойчивая к атакам квантовых компьютеров. Защита на десятилетия вперёд.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⏱</div>
+                <h3>Time Bank</h3>
+                <p>Эмиссия привязана к присутствию. 1 секунда = 1 Ɉ × коэффициент халвинга. Резерв на 40 лет.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🧠</div>
+                <h3>Когнитивный Ключ</h3>
+                <p>Ваша память — ваш ключ. Уникальная фраза с энтропией 248+ бит. Никаких серверов для восстановления.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⛓</div>
+                <h3>TimeChain</h3>
+                <p>Immutable ledger с NTS синхронизацией. Наносекундная точность времени, криптографические доказательства.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🌐</div>
+                <h3>Децентрализация</h3>
+                <p>3 независимых узла в разных странах. Leader Election, Breathing Sync, Event Sourcing.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📱</div>
+                <h3>Self-Custody</h3>
+                <p>Ключи только на вашем устройстве. Face ID/Touch ID, PIN-код, Secure Enclave. Полный контроль.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="protocol" id="protocol">
+        <div class="protocol-content">
+            <div class="protocol-grid">
+                <div class="protocol-visual">
+                    <div class="time-display">
+                        <div class="time-label">Время с Genesis</div>
+                        <div class="time-value" id="time-elapsed">--:--:--</div>
+                        <div class="time-unit">Когнитивный Генезис: 9 января 2026</div>
+                    </div>
+                </div>
+                <div class="protocol-text">
+                    <h2>Время — единственная настоящая валюта</h2>
+                    <p>Montana Protocol переосмысливает концепцию денег. Вместо майнинга — присутствие. Вместо proof-of-work — proof-of-presence.</p>
+                    <p>Каждая секунда вашего внимания создаёт ценность. Time Bank эмитирует Ɉ пропорционально времени присутствия всех участников сети.</p>
+                    <ul class="protocol-list">
+                        <li>Детерминированная генерация ключей из когнитивного ключа</li>
+                        <li>ML-DSA-65 подписи (3309 байт) для всех транзакций</li>
+                        <li>NTS-синхронизация времени с наносекундной точностью</li>
+                        <li>Халвинг каждые 4 года (τ₄ эпоха)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="network" id="network">
+        <h2 class="section-title">Сеть Montana</h2>
+        <p class="section-subtitle">Глобальная децентрализованная инфраструктура</p>
+
+        <div class="nodes-grid">
+            <div class="node-card">
+                <div class="node-flag">🇳🇱</div>
+                <div class="node-name">Amsterdam</div>
+                <div class="node-status">Online</div>
+            </div>
+            <div class="node-card">
+                <div class="node-flag">🇷🇺</div>
+                <div class="node-name">Moscow</div>
+                <div class="node-status">Online</div>
+            </div>
+            <div class="node-card">
+                <div class="node-flag">🇰🇿</div>
+                <div class="node-name">Almaty</div>
+                <div class="node-status">Online</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="download" id="download">
+        <h2 class="section-title">Скачать Montana Wallet</h2>
+        <p class="section-subtitle">Выберите платформу для установки</p>
+
+        <div class="download-cards">
+            <div class="download-card">
+                <div class="download-icon">📱</div>
+                <h3>iOS</h3>
+                <p>iPhone с Face ID</p>
+                <a href="/wallet.html#ios" class="btn-primary">Установить</a>
+            </div>
+            <div class="download-card">
+                <div class="download-icon">💻</div>
+                <h3>macOS</h3>
+                <p>Apple Silicon & Intel</p>
+                <a href="/wallet.html#macos" class="btn-primary">Скачать</a>
+            </div>
+            <div class="download-card">
+                <div class="download-icon">⌨️</div>
+                <h3>CLI</h3>
+                <p>Terminal для разработчиков</p>
+                <a href="/wallet.html#cli" class="btn-primary">Инструкция</a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer-logo">
+            <div class="logo-icon">Ɉ</div>
+            <span class="logo-text">Montana Protocol</span>
+        </div>
+        <div class="footer-links">
+            <a href="/wallet.html">Кошелёк</a>
+            <a href="/privacy.html">Конфиденциальность</a>
+            <a href="/terms.html">Условия</a>
+            <a href="https://github.com/AlejandroMontana" target="_blank">GitHub</a>
+        </div>
+        <p class="copyright">© 2026 Montana Protocol. Alejandro Montana.</p>
+    </footer>
+
+    <script>
+        // Calculate time since genesis
+        function updateTime() {
+            const genesis = new Date('2026-01-09T00:00:00+03:00');
+            const now = new Date();
+            const diff = Math.floor((now - genesis) / 1000);
+
+            if (diff > 0) {
+                const days = Math.floor(diff / 86400);
+                const hours = Math.floor((diff % 86400) / 3600);
+                const mins = Math.floor((diff % 3600) / 60);
+                const secs = diff % 60;
+
+                document.getElementById('time-elapsed').textContent =
+                    `${days}d ${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
+        }
+
+        updateTime();
+        setInterval(updateTime, 1000);
+
+        // Check network status
+        async function checkNetwork() {
+            const nodes = ['72.56.102.240', '176.124.208.93', '91.200.148.93'];
+            let online = 0;
+
+            for (const ip of nodes) {
+                try {
+                    const res = await fetch(`http://${ip}:8889/api/health`, { timeout: 3000 });
+                    if (res.ok) online++;
+                } catch (e) {}
+            }
+
+            document.getElementById('stat-nodes').textContent = online;
+        }
+
+        checkNetwork();
+    </script>
+</body>
+</html>

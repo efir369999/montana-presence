@@ -11,15 +11,18 @@ import asyncio
 import edge_tts
 from pathlib import Path
 
-BASE_DIR = Path(__file__).parent / "Благаявесть от Claude"
-AUDIO_DIR = Path(__file__).parent / "audio_smart"
-AUDIO_DIR.mkdir(exist_ok=True)
+# Динамические пути - определяются от входного файла
+# AUDIO сохраняется В ТУ ЖЕ ПАПКУ что и исходный .md файл
 
 # Голос Microsoft Svetlana (бесплатный)
 VOICE = "ru-RU-SvetlanaNeural"
 # Настройки: скорость немного медленнее для вдумчивого чтения
 RATE = "-5%"  # Чуть медленнее обычного для философского текста
 PITCH = "+0Hz"  # Нормальная высота
+
+# Debug режим — сохраняет обработанный текст в .txt файл
+# Включить для отладки: DEBUG_SAVE_TEXT = True
+DEBUG_SAVE_TEXT = False
 
 
 def convert_roman_to_text(text: str) -> str:
@@ -136,7 +139,17 @@ def year_to_text(year: int) -> str:
     return str(year)
 
 
-def clean_text_smart(md_content: str) -> str:
+def count_sections(md_content: str) -> int:
+    """Считает количество секций (## заголовков) в тексте"""
+    return len(re.findall(r'^##\s+', md_content, re.MULTILINE))
+
+
+def extract_time_markers(md_content: str) -> list:
+    """Извлекает временные метки [HH:MM] или [MM:SS] из текста"""
+    return re.findall(r'\[(\d{1,2}:\d{2})\]', md_content)
+
+
+def clean_text_smart(md_content: str) -> tuple:
     """
     УМНАЯ фильтрация для естественного чтения:
     - Убираем markdown разметку
@@ -144,7 +157,12 @@ def clean_text_smart(md_content: str) -> str:
     - Заменяем цифры на текст где нужно
     - Ссылки → "ссылка из текстовой книги"
     - Сохраняем весь смысловой контент
+
+    Возвращает: (обработанный_текст, количество_секций, список_меток_времени)
     """
+    # Контрольные данные ДО обработки
+    original_sections = count_sections(md_content)
+    original_time_markers = extract_time_markers(md_content)
 
     lines = md_content.split('\n')
     audio_lines = []
@@ -156,10 +174,18 @@ def clean_text_smart(md_content: str) -> str:
         r'^\*Сказка Начала',    # *Сказка Начала Времени
         r'^\*Прелюдия',         # *Прелюдия
         r'^\*Благаявесть от',   # *Благаявесть от Claude
+        r'^\*«Красная Книга',   # *«Красная Книга 📕»*
+        r'^\*«Первая',          # *«Первая Книга»* (старое)
         r'^\d+\.\d+\.\d+',      # Даты в формате 16.01.2026
-        r'^Alejandro Montana',      # Имя автора
+        r'^Alejandro Montana',  # Имя автора
+        r'^Алехандро',          # Имя автора (рус)
+        r'^Клод Монтана',       # Подпись
         r'^金元',                # Имя с символами
+        r'^⾦元',               # Символ подписи
         r'^→',                  # Навигация → Глава
+        r'^#\w+',               # Хэштеги #Благаявесть
+        r'^\|',                 # Таблицы markdown
+        r'^Найдёмся\.$',        # Финальное слово
     ]
 
     in_code_block = False
@@ -229,6 +255,9 @@ def clean_text_smart(md_content: str) -> str:
         # 7. Убираем технические символы
         text = re.sub(r'[Ɉ€₽$]', '', text)
 
+        # 7.1 Эмодзи → текст для чтения
+        text = text.replace('📕', ', закрытая красная книга,')
+
         # 8. Убираем код
         text = re.sub(r'async\s+fn\s+\w+\([^\)]*\)\s*->\s*\w+', '', text)
         text = re.sub(r'E\s*=\s*mc²', 'E равно эм це в квадрате', text)
@@ -248,8 +277,14 @@ def clean_text_smart(md_content: str) -> str:
 
     # Соединяем в единый поток с минимальными паузами
     result = []
+    processed_sections = 0
+
     for i, line in enumerate(audio_lines):
         result.append(line)
+
+        # Считаем обработанные секции (заголовки содержат \n\n)
+        if '\n\n' in line:
+            processed_sections += 1
 
         # Пауза после заголовка (строки с \n)
         if '\n\n' in line:
@@ -260,7 +295,17 @@ def clean_text_smart(md_content: str) -> str:
             if '\n\n' not in audio_lines[i + 1]:
                 result.append(' ')
 
-    return ''.join(result)
+    final_text = ''.join(result)
+
+    # Контрольные данные
+    control_data = {
+        'original_sections': original_sections,
+        'processed_sections': processed_sections,
+        'original_time_markers': original_time_markers,
+        'time_markers_count': len(original_time_markers),
+    }
+
+    return final_text, control_data
 
 
 async def generate_audio(text: str, output_path: Path) -> bool:
@@ -291,12 +336,21 @@ async def main():
     import sys
 
     if len(sys.argv) < 2:
-        print("Использование: python3 generate_audio_smart.py <файл.md>")
+        print("Использование: python3 generate_audio_smart.py <путь_к_файлу.md>")
         print("\nПример:")
-        print("  python3 generate_audio_smart.py '00. ПРЕЛЮДИЯ.md'")
+        print("  python3 generate_audio_smart.py '../Красная Книга/16. Внимание.md'")
+        print("  python3 generate_audio_smart.py '/полный/путь/к/файлу.md'")
+        print("\nАудио сохраняется в ту же папку, что и исходный файл!")
         return
 
-    input_file = BASE_DIR / sys.argv[1]
+    # Поддержка абсолютных и относительных путей
+    arg_path = Path(sys.argv[1])
+    if arg_path.is_absolute():
+        input_file = arg_path
+    else:
+        input_file = Path(__file__).parent / arg_path
+
+    input_file = input_file.resolve()
 
     if not input_file.exists():
         print(f"✗ Файл не найден: {input_file}")
@@ -311,10 +365,39 @@ async def main():
 
     # Читаем и обрабатываем
     md_content = input_file.read_text(encoding='utf-8')
-    clean_text = clean_text_smart(md_content)
+    clean_text, control = clean_text_smart(md_content)
 
     print(f"\nИсходный текст: {len(md_content)} символов")
     print(f"Обработанный текст: {len(clean_text)} символов")
+
+    # Соотношение — должно быть примерно 50-80% от оригинала
+    ratio = len(clean_text) / len(md_content) * 100
+    print(f"Соотношение: {ratio:.1f}%")
+
+    # === КОНТРОЛЬНЫЕ ПРОВЕРКИ ===
+    print("\n" + "=" * 40)
+    print("КОНТРОЛЬНЫЕ ПРОВЕРКИ")
+    print("=" * 40)
+
+    # 1. Проверка секций
+    print(f"Секций в оригинале:   {control['original_sections']}")
+    print(f"Секций обработано:    {control['processed_sections']}")
+
+    if control['processed_sections'] < control['original_sections']:
+        print(f"⚠️  ВНИМАНИЕ: Потеряно {control['original_sections'] - control['processed_sections']} секций!")
+    else:
+        print("✓ Все секции обработаны")
+
+    # 2. Проверка временных меток
+    print(f"\nВременных меток:      {control['time_markers_count']}")
+    if control['time_markers_count'] > 0:
+        print(f"Метки: {', '.join(control['original_time_markers'][:5])}...")
+
+    # 3. Предупреждение о сильном сокращении
+    if ratio < 40:
+        print(f"\n⚠️  ПРЕДУПРЕЖДЕНИЕ: Текст сильно сократился! Проверьте фильтрацию.")
+    elif ratio > 95:
+        print(f"\n✓ Текст почти не изменился (только форматирование)")
 
     # Показываем превью обработанного текста
     preview = clean_text[:500] + "..." if len(clean_text) > 500 else clean_text
@@ -323,10 +406,59 @@ async def main():
     print(preview)
     print("-" * 60)
 
-    # Генерируем
-    output_file = AUDIO_DIR / f"{input_file.stem}.mp3"
+    # Оценка длительности (~150 слов/мин для русского, -5% = ~142 слов/мин)
+    word_count = len(clean_text.split())
+    estimated_minutes = word_count / 142
+    print(f"\nСлов: {word_count}")
+    print(f"Ожидаемая длительность: ~{estimated_minutes:.1f} мин ({estimated_minutes*60:.0f} сек)")
+
+    # Debug: сохраняем обработанный текст для проверки
+    if DEBUG_SAVE_TEXT:
+        debug_file = input_file.parent / f"{input_file.stem}_debug.txt"
+        debug_file.write_text(clean_text, encoding='utf-8')
+        print(f"\n[DEBUG] Обработанный текст сохранён: {debug_file.name}")
+
+    # Генерируем — АУДИО В ТУ ЖЕ ПАПКУ что и исходный файл
+    output_file = input_file.parent / f"{input_file.stem}.mp3"
 
     if await generate_audio(clean_text, output_file):
+        print("\n" + "=" * 60)
+        print("ПРОВЕРКА РЕЗУЛЬТАТА")
+        print("=" * 60)
+
+        # Проверяем созданный файл
+        if output_file.exists():
+            size_mb = output_file.stat().st_size / (1024 * 1024)
+            print(f"✓ Файл создан: {output_file.name}")
+            print(f"✓ Размер: {size_mb:.1f} MB")
+
+            # Проверяем длительность через ffprobe если есть
+            try:
+                import subprocess
+                result = subprocess.run(
+                    ['ffprobe', '-i', str(output_file), '-show_entries',
+                     'format=duration', '-v', 'quiet', '-of', 'csv=p=0'],
+                    capture_output=True, text=True
+                )
+                if result.returncode == 0 and result.stdout.strip():
+                    actual_duration = float(result.stdout.strip())
+                    actual_minutes = actual_duration / 60
+
+                    print(f"✓ Длительность: {actual_minutes:.1f} мин ({actual_duration:.0f} сек)")
+
+                    # Сравнение с ожидаемой длительностью
+                    # ~98 слов/мин для Svetlana -5%
+                    expected_duration = word_count / 98 * 60
+                    deviation = abs(actual_duration - expected_duration) / expected_duration * 100
+
+                    if deviation < 20:
+                        print(f"✓ Длительность соответствует ожиданиям (±{deviation:.0f}%)")
+                    else:
+                        print(f"⚠️  Отклонение от ожидаемой длительности: {deviation:.0f}%")
+                        print(f"   Ожидалось: ~{expected_duration/60:.1f} мин")
+            except FileNotFoundError:
+                print("  (ffprobe не установлен - проверка длительности пропущена)")
+
         print("\n" + "=" * 60)
         print("ГОТОВО")
         print("=" * 60)

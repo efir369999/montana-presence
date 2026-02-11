@@ -1,0 +1,43 @@
+name: MontanaContracts
+options:
+  bundleIdPrefix: network.montana
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "15.0"
+
+settings:
+  base:
+    DEVELOPMENT_TEAM: ""
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+packages:
+  MontanaCore:
+    path: ../../MontanaCore
+
+targets:
+  MontanaContracts:
+    type: application
+    platform: iOS
+    sources:
+      - MontanaContracts
+    dependencies:
+      - package: MontanaCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: network.montana.contracts
+        INFOPLIST_FILE: MontanaContracts/Info.plist
+        CODE_SIGN_ENTITLEMENTS: MontanaContracts/MontanaContracts.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    info:
+      path: MontanaContracts/Info.plist
+    entitlements:
+      path: MontanaContracts/MontanaContracts.entitlements
+
+schemes:
+  MontanaContracts:
+    build:
+      targets:
+        MontanaContracts: all
+    run:
+      config: Debug

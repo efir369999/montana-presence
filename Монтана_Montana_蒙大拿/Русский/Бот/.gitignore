@@ -1,0 +1,19 @@
+.env
+*.pyc
+__pycache__/
+data/agent_keys.json
+data/node_keys.json
+data/mock_fido2.json
+
+# SECURITY: Приватные ключи — НИКОГДА не коммитить!
+author_key.json
+*_private_key.json
+*_key.json
+*.pem
+*.key
+
+# SECURITY: Пользовательские данные — приватность
+data/users.json
+data/montana.db
+data/proof_of_presence.json
+stream_of_consciousness.jsonl

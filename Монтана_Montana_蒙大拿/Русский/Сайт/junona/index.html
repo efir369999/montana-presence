@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Юнона">
+    <meta name="theme-color" content="#0F0F1A">
+    <title>Юнона</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        :root {
+            --primary: #4A90D9;
+            --secondary: #8B5CF6;
+            --bg: #0F0F1A;
+            --card: #1A1A2E;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --error: #EF4444;
+            --openai: #10A37F;
+            --claude: #D97706;
+            --safe-top: env(safe-area-inset-top, 20px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        html, body { height: 100%; overflow: hidden; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+            background: var(--bg);
+            color: white;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        .app {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: fixed;
+            inset: 0;
+        }
+        .header {
+            padding: calc(var(--safe-top) + 8px) 20px 12px;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .header h1 { font-size: 28px; font-weight: 700; flex: 1; }
+        .header h1.clickable { cursor: pointer; }
+        .header h1.clickable::after { content: ' ▾'; font-size: 16px; opacity: 0.5; }
+        .header-btn {
+            width: 36px; height: 36px;
+            border-radius: 18px;
+            background: var(--card);
+            border: none;
+            color: white;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .back-btn { display: none; background: none; font-size: 24px; }
+        .content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+        .page { display: none; flex-direction: column; height: 100%; overflow: hidden; }
+        .page.active { display: flex; }
+        .page-content { flex: 1; overflow-y: auto; padding: 12px 20px; -webkit-overflow-scrolling: touch; }
+
+        /* Lists */
+        .list-item {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.1s;
+        }
+        .list-item:active { transform: scale(0.98); opacity: 0.8; }
+        .item-icon {
+            width: 44px; height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        .item-icon.purple { background: rgba(139, 92, 246, 0.15); }
+        .item-icon.blue { background: rgba(74, 144, 217, 0.15); }
+        .item-icon.orange { background: rgba(245, 158, 11, 0.15); }
+        .item-info { flex: 1; min-width: 0; }
+        .item-title { font-size: 16px; font-weight: 600; margin-bottom: 2px; }
+        .item-subtitle { font-size: 13px; color: rgba(255,255,255,0.5); }
+        .item-badge {
+            font-size: 11px; font-weight: 600;
+            padding: 6px 10px; border-radius: 8px;
+            flex-shrink: 0;
+        }
+        .item-badge.purple { background: rgba(139, 92, 246, 0.15); color: var(--secondary); }
+        .item-badge.blue { background: rgba(74, 144, 217, 0.15); color: var(--primary); }
+        .item-chevron { color: rgba(255,255,255,0.3); font-size: 18px; }
+
+        /* Chat */
+        .chat-messages { flex: 1; overflow-y: auto; padding: 12px 20px; -webkit-overflow-scrolling: touch; }
+        .message {
+            max-width: 85%; padding: 12px 16px; margin-bottom: 8px;
+            font-size: 16px; line-height: 1.45; word-wrap: break-word;
+        }
+        .message.user {
+            background: var(--primary);
+            margin-left: auto;
+            border-radius: 20px 20px 4px 20px;
+        }
+        .message.assistant {
+            background: var(--card);
+            margin-right: auto;
+            border-radius: 20px 20px 20px 4px;
+        }
+        .message .model-tag {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            display: inline-block;
+        }
+        .message .model-tag.openai { background: rgba(16, 163, 127, 0.2); color: var(--openai); }
+        .message .model-tag.claude { background: rgba(217, 119, 6, 0.2); color: var(--claude); }
+        .message .model-tag.junona { background: rgba(139, 92, 246, 0.2); color: var(--secondary); }
+        .message .text { display: block; }
+        .cursor, .typing-cursor {
+            display: inline;
+            color: var(--primary);
+            font-weight: bold;
+            animation: blink 0.5s infinite;
+        }
+        @keyframes blink { 0%,50%{opacity:1} 51%,100%{opacity:0} }
+        .chat-input-area {
+            padding: 12px 20px calc(12px + var(--safe-bottom));
+            background: var(--bg);
+        }
+        .chat-input-wrap { display: flex; gap: 12px; align-items: center; }
+        .chat-input {
+            flex: 1; background: var(--card); border: none;
+            border-radius: 24px; padding: 14px 20px;
+            color: white; font-size: 16px; outline: none;
+        }
+        .chat-input::placeholder { color: rgba(255,255,255,0.4); }
+        .chat-input:disabled { opacity: 0.5; }
+        .send-btn {
+            width: 48px; height: 48px; border-radius: 24px;
+            border: none; background: var(--primary);
+            color: white; font-size: 22px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; flex-shrink: 0;
+        }
+        .send-btn:disabled { opacity: 0.5; }
+
+        /* Settings */
+        .settings-section { margin-bottom: 20px; }
+        .settings-header {
+            font-size: 12px; font-weight: 600;
+            color: rgba(255,255,255,0.4);
+            text-transform: uppercase;
+            margin-bottom: 8px; padding-left: 4px;
+        }
+        .settings-group { background: var(--card); border-radius: 16px; overflow: hidden; }
+        .settings-row {
+            padding: 16px; display: flex;
+            align-items: center; gap: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            cursor: pointer;
+        }
+        .settings-row:last-child { border-bottom: none; }
+        .settings-row:active { background: rgba(255,255,255,0.05); }
+        .settings-icon { font-size: 20px; width: 28px; text-align: center; }
+        .settings-label { flex: 1; font-size: 16px; }
+        .settings-value { color: rgba(255,255,255,0.4); font-size: 15px; }
+
+        /* Tab Bar */
+        .tabs {
+            display: flex;
+            background: rgba(26,26,46,0.98);
+            backdrop-filter: blur(20px);
+            padding: 8px 0 calc(8px + var(--safe-bottom));
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        .tab {
+            flex: 1; display: flex; flex-direction: column;
+            align-items: center; padding: 6px 0;
+            color: rgba(255,255,255,0.4);
+            font-size: 10px; font-weight: 500;
+            cursor: pointer;
+        }
+        .tab.active { color: var(--primary); }
+        .tab svg { width: 26px; height: 26px; margin-bottom: 3px; }
+
+        /* Modal */
+        .modal {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.6);
+            display: none; align-items: flex-end;
+            z-index: 100;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: var(--card);
+            width: 100%; border-radius: 20px 20px 0 0;
+            padding: 20px; padding-bottom: calc(20px + var(--safe-bottom));
+            max-height: 80vh; overflow-y: auto;
+        }
+        .modal-header {
+            display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 20px;
+        }
+        .modal-title { font-size: 18px; font-weight: 600; }
+        .modal-close {
+            width: 32px; height: 32px; border-radius: 16px;
+            background: rgba(255,255,255,0.1); border: none;
+            color: white; font-size: 18px; cursor: pointer;
+        }
+        .modal-input {
+            width: 100%; background: var(--bg);
+            border: none; border-radius: 12px;
+            padding: 14px 16px; color: white;
+            font-size: 16px; margin-bottom: 12px;
+        }
+        .modal-input::placeholder { color: rgba(255,255,255,0.4); }
+        .modal-btn {
+            width: 100%; padding: 16px;
+            border: none; border-radius: 12px;
+            font-size: 16px; font-weight: 600;
+            cursor: pointer; margin-top: 8px;
+        }
+        .modal-btn.primary { background: var(--primary); color: white; }
+        .modal-btn.secondary { background: rgba(255,255,255,0.1); color: white; }
+
+        /* Model selector */
+        .model-option {
+            padding: 16px; border-radius: 12px;
+            background: var(--bg); margin-bottom: 8px;
+            display: flex; align-items: center; gap: 12px;
+            cursor: pointer; border: 2px solid transparent;
+        }
+        .model-option.selected { border-color: var(--primary); }
+        .model-option .icon { font-size: 24px; }
+        .model-option .info { flex: 1; }
+        .model-option .title { font-weight: 600; margin-bottom: 2px; }
+        .model-option .desc { font-size: 12px; color: rgba(255,255,255,0.5); }
+        .model-check { color: var(--success); font-size: 20px; display: none; }
+        .model-option.selected .model-check { display: block; }
+
+        /* Detail View */
+        .detail-empty {
+            text-align: center; padding: 60px 20px;
+            color: rgba(255,255,255,0.4);
+        }
+        .detail-empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+        .add-btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 12px 24px; background: var(--primary);
+            border: none; border-radius: 12px;
+            color: white; font-size: 15px; font-weight: 600;
+            cursor: pointer; margin-top: 16px;
+        }
+
+        /* Privacy selector */
+        .privacy-option {
+            padding: 16px; border-radius: 12px;
+            background: var(--bg); margin-bottom: 8px;
+            display: flex; align-items: center; gap: 12px;
+            cursor: pointer; border: 2px solid transparent;
+        }
+        .privacy-option.selected { border-color: var(--primary); }
+        .privacy-option .icon { font-size: 24px; }
+        .privacy-option .info { flex: 1; }
+        .privacy-option .title { font-weight: 600; margin-bottom: 2px; }
+        .privacy-option .desc { font-size: 12px; color: rgba(255,255,255,0.5); }
+        .privacy-check { color: var(--success); font-size: 20px; }
+
+        .hint { text-align: center; padding: 20px; color: rgba(255,255,255,0.3); font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="header">
+            <button class="header-btn back-btn" id="backBtn" onclick="goBack()">‹</button>
+            <h1 id="pageTitle" class="clickable" onclick="showModelSelector()">Юнона</h1>
+            <button class="header-btn" id="addBtn" onclick="showAddModal()" style="display:none">+</button>
+        </div>
+
+        <div class="content">
+            <!-- CONTACTS -->
+            <div id="contacts" class="page">
+                <div class="page-content" id="contactsList"></div>
+            </div>
+
+            <!-- FOLDERS -->
+            <div id="folders" class="page">
+                <div class="page-content" id="foldersList"></div>
+            </div>
+
+            <!-- FOLDER DETAIL -->
+            <div id="folderDetail" class="page">
+                <div class="page-content" id="folderItems"></div>
+            </div>
+
+            <!-- JUNONA CHAT -->
+            <div id="junona" class="page active">
+                <div class="chat-messages" id="chatMessages"></div>
+                <div class="chat-input-area">
+                    <div class="chat-input-wrap">
+                        <input type="text" class="chat-input" id="chatInput" placeholder="Сообщение..." autocomplete="off">
+                        <button class="send-btn" id="sendBtn" onclick="sendMessage()">↑</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SETTINGS -->
+            <div id="settings" class="page">
+                <div class="page-content" id="settingsContent"></div>
+            </div>
+        </div>
+
+        <div class="tabs" id="tabBar">
+            <div class="tab" data-page="contacts" onclick="navigate('contacts')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Контакты
+            </div>
+            <div class="tab" data-page="folders" onclick="navigate('folders')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                Папки
+            </div>
+            <div class="tab active" data-page="junona" onclick="navigate('junona')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Юнона
+            </div>
+            <div class="tab" data-page="settings" onclick="navigate('settings')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Настройки
+            </div>
+        </div>
+    </div>
+
+    <!-- MODEL SELECTOR MODAL -->
+    <div class="modal" id="modelModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Выбор AI модели</div>
+                <button class="modal-close" onclick="closeModal('modelModal')">×</button>
+            </div>
+            <div class="model-option" data-model="claude" onclick="selectModel('claude')">
+                <div class="icon">🟠</div>
+                <div class="info">
+                    <div class="title">Claude</div>
+                    <div class="desc">Anthropic Claude 3.5 Haiku</div>
+                </div>
+                <div class="model-check">✓</div>
+            </div>
+            <div class="model-option" data-model="openai" onclick="selectModel('openai')">
+                <div class="icon">🟢</div>
+                <div class="info">
+                    <div class="title">OpenAI</div>
+                    <div class="desc">GPT-4o mini</div>
+                </div>
+                <div class="model-check">✓</div>
+            </div>
+            <div class="model-option" data-model="council" onclick="selectModel('council')">
+                <div class="icon">👥</div>
+                <div class="info">
+                    <div class="title">Совет</div>
+                    <div class="desc">Все модели отвечают по очереди, видят ответы друг друга</div>
+                </div>
+                <div class="model-check">✓</div>
+            </div>
+            <div class="hint">Модели видят весь диалог и могут дискутировать в режиме Совет</div>
+        </div>
+    </div>
+
+    <!-- OTHER MODALS -->
+    <div class="modal" id="addContactModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Новый контакт</div>
+                <button class="modal-close" onclick="closeModal('addContactModal')">×</button>
+            </div>
+            <button class="modal-btn secondary" onclick="importContacts()" id="importContactsBtn" style="margin-bottom:16px;display:none">
+                📱 Импортировать из телефона
+            </button>
+            <div style="text-align:center;color:rgba(255,255,255,0.4);margin-bottom:12px;font-size:13px" id="importDivider" style="display:none">или добавить вручную</div>
+            <input class="modal-input" id="contactName" placeholder="Имя">
+            <input class="modal-input" id="contactPhone" type="tel" placeholder="Телефон +7...">
+            <button class="modal-btn primary" onclick="addContact()">Добавить</button>
+        </div>
+    </div>
+
+    <div class="modal" id="addFolderModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Новая папка</div>
+                <button class="modal-close" onclick="closeModal('addFolderModal')">×</button>
+            </div>
+            <input class="modal-input" id="folderName" placeholder="Название папки">
+            <div style="margin: 16px 0 8px; font-size: 14px; color: rgba(255,255,255,0.6);">Уровень приватности:</div>
+            <div class="privacy-option selected" onclick="selectPrivacy(this, 'intimate')">
+                <div class="icon">🔐</div>
+                <div class="info">
+                    <div class="title">Интимное</div>
+                    <div class="desc">ML-KEM-768 постквантовое шифрование</div>
+                </div>
+                <div class="privacy-check">✓</div>
+            </div>
+            <div class="privacy-option" onclick="selectPrivacy(this, 'private')">
+                <div class="icon">🔒</div>
+                <div class="info">
+                    <div class="title">Приватное</div>
+                    <div class="desc">E2E шифрование</div>
+                </div>
+                <div class="privacy-check" style="display:none">✓</div>
+            </div>
+            <div class="privacy-option" onclick="selectPrivacy(this, 'public')">
+                <div class="icon">🌐</div>
+                <div class="info">
+                    <div class="title">Публичное</div>
+                    <div class="desc">Без шифрования</div>
+                </div>
+                <div class="privacy-check" style="display:none">✓</div>
+            </div>
+            <button class="modal-btn primary" onclick="addFolder()">Создать</button>
+        </div>
+    </div>
+
+    <div class="modal" id="addItemModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Добавить в папку</div>
+                <button class="modal-close" onclick="closeModal('addItemModal')">×</button>
+            </div>
+            <input class="modal-input" id="itemName" placeholder="Название">
+            <button class="modal-btn secondary" onclick="addItem('note')">📝 Заметка</button>
+            <button class="modal-btn secondary" onclick="addItem('photo')">📷 Фото</button>
+            <button class="modal-btn secondary" onclick="addItem('file')">📄 Файл</button>
+        </div>
+    </div>
+
+    <div class="modal" id="transferModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Перевод Ɉ</div>
+                <button class="modal-close" onclick="closeModal('transferModal')">×</button>
+            </div>
+            <div id="transferTo" style="text-align:center;margin-bottom:16px;font-size:18px;font-weight:600"></div>
+            <div id="transferPhone" style="text-align:center;font-family:monospace;font-size:14px;color:rgba(255,255,255,0.5);margin-bottom:16px"></div>
+            <div style="text-align:center;margin-bottom:8px;color:rgba(255,255,255,0.6)">Ваш баланс: <span id="transferBalance" style="color:var(--success)">0 Ɉ</span></div>
+            <input class="modal-input" id="transferAmount" type="number" placeholder="Сумма Ɉ" min="1">
+            <button class="modal-btn primary" onclick="executeTransfer()">Отправить</button>
+        </div>
+    </div>
+
+    <div class="modal" id="verifyModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Верификация</div>
+                <button class="modal-close" onclick="closeModal('verifyModal')">×</button>
+            </div>
+            <div style="text-align:center;margin-bottom:20px;color:rgba(255,255,255,0.7)">
+                Подтвердите номер через Telegram
+            </div>
+            <button class="modal-btn primary" onclick="verifyViaTelegram()" style="background:linear-gradient(135deg,#0088cc,#229ED9)">
+                📱 Открыть @junomontanaagibot
+            </button>
+            <div class="hint" style="margin-top:16px">Бот запросит ваш номер телефона.<br>Это подтверждает вашу личность.</div>
+        </div>
+    </div>
+
+    <script>
+        // DATA
+        let contacts = JSON.parse(localStorage.getItem('contacts') || '[]');
+        let folders = JSON.parse(localStorage.getItem('folders') || '[{"id":1,"name":"Личное","privacy":"intimate","items":[]},{"id":2,"name":"Заметки","privacy":"intimate","items":[]},{"id":3,"name":"Медиа","privacy":"private","items":[]}]');
+        let currentFolder = null;
+        let currentPage = 'junona';
+        let selectedPrivacy = 'intimate';
+        let history = [];
+
+        // AI CONFIG
+        let selectedModel = localStorage.getItem('selectedModel') || 'claude';
+        let chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+        let chatMessages = JSON.parse(localStorage.getItem('chatMessages') || '[]');
+        let isTyping = false;
+
+        // WALLET
+        let deviceId = localStorage.getItem('deviceId');
+        let wallet = JSON.parse(localStorage.getItem('wallet') || 'null');
+        let presenceInterval = null;
+        let presenceSeconds = 0;
+        let presenceActive = false;
+        let loginSessionId = null;
+
+        async function initWallet() {
+            // Если нет deviceId — показываем экран входа через Telegram
+            if (!deviceId) {
+                showLoginScreen();
+                return;
+            }
+            try {
+                const resp = await fetch('/api/user', {
+                    headers: { 'X-Device-ID': deviceId }
+                });
+                if (resp.ok) {
+                    wallet = await resp.json();
+                    localStorage.setItem('wallet', JSON.stringify(wallet));
+                } else {
+                    // Аккаунт не найден — показываем вход
+                    localStorage.removeItem('deviceId');
+                    deviceId = null;
+                    showLoginScreen();
+                }
+            } catch(e) {
+                console.error('Wallet init failed:', e);
+            }
+        }
+
+        function showLoginScreen() {
+            // Генерируем session для входа
+            loginSessionId = crypto.randomUUID().slice(0, 8);
+            document.querySelector('.app').innerHTML = `
+                <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:40px;text-align:center">
+                    <div style="font-size:64px;margin-bottom:24px">Ɉ</div>
+                    <h1 style="font-size:28px;margin-bottom:8px">Montana Protocol</h1>
+                    <p style="color:rgba(255,255,255,0.6);margin-bottom:40px">Время — единственная реальная валюта</p>
+                    <button onclick="loginViaTelegram()" style="background:linear-gradient(135deg,#0088cc,#229ED9);border:none;color:white;padding:16px 32px;border-radius:12px;font-size:18px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:12px">
+                        <span style="font-size:24px">📱</span> Войти через Telegram
+                    </button>
+                    <p style="color:rgba(255,255,255,0.4);margin-top:24px;font-size:14px">Нажми кнопку → откроется @junomontanaagibot</p>
+                </div>`;
+            // Проверяем статус входа каждые 2 сек
+            setInterval(checkLoginStatus, 2000);
+        }
+
+        function loginViaTelegram() {
+            window.open(`https://t.me/junomontanaagibot?start=login_${loginSessionId}`, '_blank');
+        }
+
+        async function checkLoginStatus() {
+            if (!loginSessionId) return;
+            try {
+                const resp = await fetch(`/api/login-status?session=${loginSessionId}`);
+                const data = await resp.json();
+                if (data.device_id) {
+                    deviceId = data.device_id;
+                    localStorage.setItem('deviceId', deviceId);
+                    wallet = data;
+                    localStorage.setItem('wallet', JSON.stringify(wallet));
+                    location.reload();
+                }
+            } catch(e) {}
+        }
+
+        async function refreshWallet() {
+            if (!deviceId) return;
+            try {
+                const resp = await fetch('/api/user', {
+                    headers: { 'X-Device-ID': deviceId }
+                });
+                if (resp.ok) {
+                    wallet = await resp.json();
+                    localStorage.setItem('wallet', JSON.stringify(wallet));
+                }
+            } catch(e) {}
+        }
+
+        function startPresence() {
+            if (presenceActive) return;
+            presenceActive = true;
+            presenceSeconds = 0;
+            presenceInterval = setInterval(async () => {
+                presenceSeconds++;
+                updatePresenceUI();
+                // Каждые 60 секунд отправляем на сервер
+                if (presenceSeconds % 60 === 0) {
+                    try {
+                        const resp = await fetch('/api/presence', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-Device-ID': deviceId },
+                            body: JSON.stringify({ seconds: 60 })
+                        });
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            wallet.balance = data.balance;
+                            localStorage.setItem('wallet', JSON.stringify(wallet));
+                        }
+                    } catch(e) {}
+                }
+            }, 1000);
+        }
+
+        function stopPresence() {
+            if (!presenceActive) return;
+            presenceActive = false;
+            clearInterval(presenceInterval);
+            // Отправляем оставшиеся секунды
+            const remaining = presenceSeconds % 60;
+            if (remaining > 0 && deviceId) {
+                fetch('/api/presence', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Device-ID': deviceId },
+                    body: JSON.stringify({ seconds: remaining })
+                }).then(r => r.json()).then(data => {
+                    wallet.balance = data.balance;
+                    localStorage.setItem('wallet', JSON.stringify(wallet));
+                }).catch(() => {});
+            }
+        }
+
+        function updatePresenceUI() {
+            const el = document.getElementById('presenceTimer');
+            if (el) {
+                const h = Math.floor(presenceSeconds / 3600);
+                const m = Math.floor((presenceSeconds % 3600) / 60);
+                const s = presenceSeconds % 60;
+                el.textContent = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+            }
+            const balEl = document.getElementById('balanceDisplay');
+            if (balEl && wallet) {
+                balEl.textContent = (wallet.balance + presenceSeconds).toLocaleString() + ' Ɉ';
+            }
+        }
+
+        async function transfer(toPhone, amount) {
+            if (!deviceId || !wallet) return { error: 'Кошелёк не инициализирован' };
+            if (!wallet.verified) return { error: 'Подтвердите номер телефона' };
+            try {
+                const resp = await fetch('/api/transfer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Device-ID': deviceId },
+                    body: JSON.stringify({ to: toPhone, amount: amount })
+                });
+                return await resp.json();
+            } catch(e) {
+                return { error: e.message };
+            }
+        }
+
+        function showVerifyModal() {
+            document.getElementById('verifyModal').classList.add('active');
+        }
+
+        function verifyViaTelegram() {
+            // Открываем бота с device_id для связывания
+            window.open(`https://t.me/junomontanaagibot?start=verify_${deviceId}`, '_blank');
+            closeModal('verifyModal');
+        }
+
+        // Проверка статуса верификации (вызывать после возврата из Telegram)
+        async function checkVerification() {
+            await refreshWallet();
+            if (wallet?.verified) {
+                renderSettings();
+            }
+        }
+
+        // Проверяем верификацию при фокусе окна (возврат из Telegram)
+        window.addEventListener('focus', checkVerification);
+
+        function saveChatToStorage() {
+            localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+            localStorage.setItem('chatMessages', JSON.stringify(chatMessages));
+        }
+
+        function clearChat() {
+            if (!confirm('Очистить всю историю чата?')) return;
+            chatHistory = [];
+            chatMessages = [];
+            saveChatToStorage();
+            document.getElementById('chatMessages').innerHTML = '';
+            initChat();
+            renderSettings();
+        }
+
+        const MODEL_NAMES = {
+            claude: 'Claude',
+            openai: 'OpenAI',
+            council: 'Совет'
+        };
+
+        const PRIVACY = {
+            intimate: { icon: '🔐', label: 'Интимное', color: 'purple' },
+            private: { icon: '🔒', label: 'Приватное', color: 'blue' },
+            public: { icon: '🌐', label: 'Публичное', color: 'orange' }
+        };
+
+        // NAVIGATION
+        function navigate(page, title) {
+            if (currentPage === page) return;
+            history = [];
+            currentPage = page;
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(page).classList.add('active');
+            document.querySelector(`[data-page="${page}"]`)?.classList.add('active');
+
+            const titles = { contacts: 'Контакты', folders: 'Папки', junona: 'Юнона', settings: 'Настройки' };
+            const pageTitle = document.getElementById('pageTitle');
+            pageTitle.textContent = title || titles[page];
+            pageTitle.classList.toggle('clickable', page === 'junona');
+            pageTitle.onclick = page === 'junona' ? showModelSelector : null;
+
+            document.getElementById('backBtn').style.display = 'none';
+            document.getElementById('addBtn').style.display = (page === 'contacts' || page === 'folders') ? 'flex' : 'none';
+            document.getElementById('tabBar').style.display = 'flex';
+
+            if (page === 'contacts') renderContacts();
+            if (page === 'folders') renderFolders();
+            if (page === 'settings') renderSettings();
+            if (page === 'junona') initChat();
+        }
+
+        function goBack() {
+            if (history.length > 0) {
+                const prev = history.pop();
+                navigate(prev.page, prev.title);
+            }
+        }
+
+        function openFolder(id) {
+            history.push({ page: 'folders', title: 'Папки' });
+            currentFolder = folders.find(f => f.id === id);
+            currentPage = 'folderDetail';
+
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('folderDetail').classList.add('active');
+            document.getElementById('pageTitle').textContent = currentFolder.name;
+            document.getElementById('pageTitle').classList.remove('clickable');
+            document.getElementById('backBtn').style.display = 'flex';
+            document.getElementById('addBtn').style.display = 'flex';
+            document.getElementById('tabBar').style.display = 'none';
+
+            renderFolderItems();
+        }
+
+        // MODEL SELECTOR
+        function showModelSelector() {
+            if (currentPage !== 'junona') return;
+            updateModelSelection();
+            document.getElementById('modelModal').classList.add('active');
+        }
+
+        function updateModelSelection() {
+            document.querySelectorAll('.model-option').forEach(o => {
+                o.classList.toggle('selected', o.dataset.model === selectedModel);
+            });
+        }
+
+        function selectModel(model) {
+            selectedModel = model;
+            localStorage.setItem('selectedModel', model);
+            updateModelSelection();
+            closeModal('modelModal');
+            document.getElementById('pageTitle').textContent = MODEL_NAMES[model] || 'Юнона';
+        }
+
+        // RENDER
+        let transferTarget = null;
+
+        function renderContacts() {
+            const el = document.getElementById('contactsList');
+            if (contacts.length === 0) {
+                el.innerHTML = `
+                    <div class="detail-empty">
+                        <div class="detail-empty-icon">👥</div>
+                        <div>Нет контактов</div>
+                        <button class="add-btn" onclick="showAddModal()">+ Добавить контакт</button>
+                    </div>`;
+                return;
+            }
+            el.innerHTML = contacts.map((c, i) => `
+                <div class="list-item" onclick="showTransferModal(${i})">
+                    <div class="item-icon purple">${c.name[0].toUpperCase()}</div>
+                    <div class="item-info">
+                        <div class="item-title">${c.name}</div>
+                        <div class="item-subtitle" style="font-family:monospace">${c.phone || 'Без номера'}</div>
+                    </div>
+                    <div class="item-chevron">›</div>
+                </div>
+            `).join('') + '<div class="hint">Нажмите на контакт для перевода Ɉ</div>';
+        }
+
+        function showTransferModal(idx) {
+            const c = contacts[idx];
+            if (!c.phone) {
+                alert('У контакта нет номера телефона');
+                return;
+            }
+            transferTarget = c;
+            document.getElementById('transferTo').textContent = c.name;
+            document.getElementById('transferPhone').textContent = c.phone;
+            document.getElementById('transferBalance').textContent = (wallet ? wallet.balance : 0).toLocaleString() + ' Ɉ';
+            document.getElementById('transferAmount').value = '';
+            document.getElementById('transferModal').classList.add('active');
+        }
+
+        async function executeTransfer() {
+            const amount = parseInt(document.getElementById('transferAmount').value);
+            if (!amount || amount <= 0) {
+                alert('Введите сумму');
+                return;
+            }
+            if (!transferTarget || !transferTarget.phone) {
+                alert('Ошибка: нет получателя');
+                return;
+            }
+            if (!wallet || wallet.balance < amount) {
+                alert('Недостаточно средств');
+                return;
+            }
+            if (!wallet.verified) {
+                alert('Сначала подтвердите свой номер телефона');
+                showVerifyModal();
+                return;
+            }
+            const result = await transfer(transferTarget.phone, amount);
+            if (result.success) {
+                wallet.balance = result.new_balance;
+                localStorage.setItem('wallet', JSON.stringify(wallet));
+                closeModal('transferModal');
+                alert(`✅ Отправлено ${amount} Ɉ для ${transferTarget.name}`);
+            } else {
+                alert('Ошибка: ' + (result.error || 'Неизвестная ошибка'));
+            }
+        }
+
+        function renderFolders() {
+            const el = document.getElementById('foldersList');
+            el.innerHTML = folders.map(f => {
+                const p = PRIVACY[f.privacy];
+                return `
+                <div class="list-item" onclick="openFolder(${f.id})">
+                    <div class="item-icon ${p.color}">${p.icon}</div>
+                    <div class="item-info">
+                        <div class="item-title">${f.name}</div>
+                        <div class="item-subtitle">${f.items.length} элементов</div>
+                    </div>
+                    <div class="item-badge ${p.color}">${p.label}</div>
+                    <div class="item-chevron">›</div>
+                </div>`;
+            }).join('') + '<div class="hint">🔐 Интимное = постквантовое шифрование (по умолчанию)</div>';
+        }
+
+        function renderFolderItems() {
+            const el = document.getElementById('folderItems');
+            const p = PRIVACY[currentFolder.privacy];
+
+            if (currentFolder.items.length === 0) {
+                el.innerHTML = `
+                    <div class="list-item" style="cursor:default">
+                        <div class="item-icon ${p.color}">${p.icon}</div>
+                        <div class="item-info">
+                            <div class="item-title">${p.label}</div>
+                            <div class="item-subtitle">${currentFolder.privacy === 'intimate' ? 'ML-KEM-768 постквантовое' : currentFolder.privacy === 'private' ? 'E2E шифрование' : 'Без шифрования'}</div>
+                        </div>
+                    </div>
+                    <div class="detail-empty">
+                        <div class="detail-empty-icon">📁</div>
+                        <div>Папка пуста</div>
+                        <button class="add-btn" onclick="showAddModal()">+ Добавить</button>
+                    </div>`;
+                return;
+            }
+
+            el.innerHTML = `
+                <div class="list-item" style="cursor:default">
+                    <div class="item-icon ${p.color}">${p.icon}</div>
+                    <div class="item-info">
+                        <div class="item-title">${p.label}</div>
+                        <div class="item-subtitle">${currentFolder.privacy === 'intimate' ? 'ML-KEM-768' : currentFolder.privacy === 'private' ? 'E2E' : 'Открытое'}</div>
+                    </div>
+                </div>` +
+                currentFolder.items.map((item, i) => `
+                <div class="list-item" onclick="alert('${item.name}')">
+                    <div class="item-icon blue">${item.type === 'note' ? '📝' : item.type === 'photo' ? '📷' : '📄'}</div>
+                    <div class="item-info">
+                        <div class="item-title">${item.name}</div>
+                        <div class="item-subtitle">${item.type}</div>
+                    </div>
+                    <div class="item-chevron">›</div>
+                </div>
+            `).join('');
+        }
+
+        function renderSettings() {
+            const phone = wallet?.phone || null;
+            const verified = wallet?.verified || false;
+            const balance = wallet ? (wallet.balance + (presenceActive ? presenceSeconds : 0)) : 0;
+
+            const phoneSection = verified ? `
+                        <div class="settings-row" onclick="copyPhone()">
+                            <div class="settings-icon">📱</div>
+                            <div class="settings-label">Телефон</div>
+                            <div class="settings-value" style="color:var(--success)">${phone} ✓</div>
+                        </div>` : `
+                        <div class="settings-row" onclick="showVerifyModal()">
+                            <div class="settings-icon">⚠️</div>
+                            <div class="settings-label">Верификация</div>
+                            <div class="settings-value" style="color:var(--warning)">Подтвердить номер →</div>
+                        </div>`;
+
+            document.getElementById('settingsContent').innerHTML = `
+                <div class="settings-section">
+                    <div class="settings-header">Кошелёк</div>
+                    <div class="settings-group">
+                        <div class="settings-row" style="cursor:default">
+                            <div class="settings-icon">💰</div>
+                            <div class="settings-label">Баланс</div>
+                            <div class="settings-value" id="balanceDisplay" style="color:var(--success);font-weight:600">${balance.toLocaleString()} Ɉ</div>
+                        </div>
+                        ${phoneSection}
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <div class="settings-header">Presence (1 сек = 1 Ɉ)</div>
+                    <div class="settings-group">
+                        <div class="settings-row" onclick="togglePresence()">
+                            <div class="settings-icon">${presenceActive ? '🟢' : '⚪'}</div>
+                            <div class="settings-label">Зарабатывать Ɉ</div>
+                            <div class="settings-value" id="presenceTimer" style="font-family:monospace;color:${presenceActive ? 'var(--success)' : 'inherit'}">${presenceActive ? formatTime(presenceSeconds) : 'Выключено'}</div>
+                        </div>
+                    </div>
+                    <div class="hint" style="margin-top:8px">Включи Presence — получай 1 Ɉ за каждую секунду в приложении</div>
+                </div>
+                <div class="settings-section">
+                    <div class="settings-header">AI</div>
+                    <div class="settings-group">
+                        <div class="settings-row" onclick="showModelSelector(); navigate('junona')">
+                            <div class="settings-icon">🤖</div>
+                            <div class="settings-label">Модель</div>
+                            <div class="settings-value">${MODEL_NAMES[selectedModel]}</div>
+                        </div>
+                        <div class="settings-row" onclick="clearChat()">
+                            <div class="settings-icon">🗑️</div>
+                            <div class="settings-label">Очистить чат</div>
+                            <div class="settings-value">${chatMessages.length} сообщений</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <div class="settings-header">Приватность</div>
+                    <div class="settings-group">
+                        <div class="settings-row" onclick="alert('Интимное — ML-KEM-768 постквантовое шифрование')">
+                            <div class="settings-icon">🔐</div>
+                            <div class="settings-label">Уровень по умолчанию</div>
+                            <div class="settings-value">Интимное</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <div class="settings-header">VPN (WireGuard)</div>
+                    <div class="settings-group">
+                        <div class="settings-row" onclick="generateVPN()">
+                            <div class="settings-icon">🛡️</div>
+                            <div class="settings-label">Скачать конфиг</div>
+                            <div class="settings-value" style="color:var(--primary)">Получить →</div>
+                        </div>
+                    </div>
+                    <div class="hint" style="margin-top:8px">Бесплатный VPN через Amsterdam</div>
+                </div>
+                <div class="settings-section">
+                    <div class="settings-header">О Montana Protocol</div>
+                    <div class="settings-group">
+                        <div class="settings-row"><div class="settings-icon">🌐</div><div class="settings-label">Корень</div><div class="settings-value" style="font-family:monospace">72.56.102.240</div></div>
+                        <div class="settings-row"><div class="settings-icon">📱</div><div class="settings-label">Версия</div><div class="settings-value">1.0.0</div></div>
+                        <div class="settings-row"><div class="settings-icon">🔑</div><div class="settings-label">Криптография</div><div class="settings-value">ML-DSA-65</div></div>
+                        <div class="settings-row"><div class="settings-icon">📅</div><div class="settings-label">Genesis</div><div class="settings-value">2026-01-09</div></div>
+                    </div>
+                </div>
+                <div class="hint">⏱️ Время — единственная реальная валюта</div>`;
+        }
+
+        function formatTime(sec) {
+            const h = Math.floor(sec / 3600);
+            const m = Math.floor((sec % 3600) / 60);
+            const s = sec % 60;
+            return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        }
+
+        function togglePresence() {
+            if (presenceActive) {
+                stopPresence();
+            } else {
+                startPresence();
+            }
+            renderSettings();
+        }
+
+        function copyPhone() {
+            if (wallet && wallet.phone) {
+                navigator.clipboard.writeText(wallet.phone).then(() => {
+                    alert('Номер скопирован: ' + wallet.phone);
+                });
+            }
+        }
+
+        // Проверяем поддержку Contact Picker API
+        if ('contacts' in navigator && 'ContactsManager' in window) {
+            document.getElementById('importContactsBtn').style.display = 'block';
+            document.getElementById('importDivider').style.display = 'block';
+        }
+
+        async function importContacts() {
+            try {
+                const props = ['name', 'tel'];
+                const opts = { multiple: true };
+                const selected = await navigator.contacts.select(props, opts);
+
+                for (const c of selected) {
+                    const name = c.name?.[0] || 'Без имени';
+                    const phone = c.tel?.[0] || null;
+                    if (!contacts.find(x => x.phone === phone)) {
+                        contacts.push({ name, phone });
+                    }
+                }
+                localStorage.setItem('contacts', JSON.stringify(contacts));
+                closeModal('addContactModal');
+                renderContacts();
+                alert(`Импортировано ${selected.length} контактов`);
+            } catch(e) {
+                if (e.name !== 'TypeError') {
+                    alert('Не удалось импортировать контакты');
+                }
+            }
+        }
+
+        async function generateVPN() {
+            if (!deviceId) {
+                alert('Сначала зарегистрируйтесь');
+                return;
+            }
+            try {
+                const resp = await fetch('/api/vpn/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Device-ID': deviceId }
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    // Скачиваем как файл
+                    const blob = new Blob([data.config], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'montana-vpn.conf';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    alert(`VPN готов!\n\nIP: ${data.ip}\n\n1. Установи WireGuard\n2. Импортируй скачанный файл\n3. Включи VPN`);
+                } else {
+                    alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+                }
+            } catch(e) {
+                alert('Ошибка генерации VPN: ' + e.message);
+            }
+        }
+
+        // CHAT
+        function initChat() {
+            const el = document.getElementById('chatMessages');
+            document.getElementById('pageTitle').textContent = MODEL_NAMES[selectedModel] || 'Юнона';
+
+            // Восстанавливаем сообщения из localStorage
+            if (chatMessages.length > 0 && el.children.length === 0) {
+                chatMessages.forEach(msg => {
+                    const textEl = addMessage(msg.role, '', msg.model);
+                    textEl.textContent = msg.text;
+                });
+            } else if (el.children.length === 0) {
+                // Первый запуск — приветствие
+                const textEl = addMessage('assistant', '', 'Юнона');
+                textEl.textContent = 'Я — Юнона, AI-проводник Montana Protocol. Время — единственная реальная валюта. Чем могу помочь?';
+                chatMessages.push({ role: 'assistant', model: 'Юнона', text: 'Я — Юнона, AI-проводник Montana Protocol. Время — единственная реальная валюта. Чем могу помочь?' });
+                saveChatToStorage();
+            }
+        }
+
+        function addMessage(role, text, model) {
+            const msgs = document.getElementById('chatMessages');
+            const msg = document.createElement('div');
+            msg.className = `message ${role}`;
+
+            if (role === 'assistant' && model) {
+                const modelClass = model === 'OpenAI' ? 'openai' : model === 'Claude' ? 'claude' : 'junona';
+                msg.innerHTML = `<span class="model-tag ${modelClass}">${model}</span><span class="text"></span>`;
+            } else {
+                msg.innerHTML = `<span class="text"></span>`;
+            }
+
+            msgs.appendChild(msg);
+            msgs.scrollTop = msgs.scrollHeight;
+            return msg.querySelector('.text');
+        }
+
+        function typeText(el, text, cb) {
+            const words = text.split(' ');
+            let i = 0;
+            el.innerHTML = '<span class="typing-cursor">▌</span>';
+
+            function type() {
+                if (i < words.length) {
+                    const cursor = el.querySelector('.typing-cursor');
+                    if (cursor) cursor.remove();
+                    el.innerHTML += (i > 0 ? ' ' : '') + words[i] + '<span class="typing-cursor">▌</span>';
+                    i++;
+                    document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+                    // Скорость как в Telegram — 50-80ms на слово
+                    setTimeout(type, 50 + Math.random() * 30);
+                } else {
+                    const cursor = el.querySelector('.typing-cursor');
+                    if (cursor) cursor.remove();
+                    if (cb) cb();
+                }
+            }
+            type();
+        }
+
+        async function sendMessage() {
+            if (isTyping) return;
+
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            // Add user message
+            const userText = addMessage('user', text);
+            userText.textContent = text;
+            chatHistory.push({ role: 'user', content: text });
+            chatMessages.push({ role: 'user', model: null, text: text });
+            saveChatToStorage();
+            input.value = '';
+
+            // Disable input
+            isTyping = true;
+            input.disabled = true;
+            document.getElementById('sendBtn').disabled = true;
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: text,
+                        model: selectedModel,
+                        history: chatHistory
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.council) {
+                    // Council mode - multiple responses
+                    for (const r of data.council) {
+                        const textEl = addMessage('assistant', '', r.model);
+                        await new Promise(resolve => typeText(textEl, r.response, resolve));
+                        chatHistory.push({ role: 'assistant', content: `[${r.model}]: ${r.response}` });
+                        chatMessages.push({ role: 'assistant', model: r.model, text: r.response });
+                    }
+                    saveChatToStorage();
+                } else if (data.response) {
+                    // Single model response
+                    const textEl = addMessage('assistant', '', data.model);
+                    await new Promise(resolve => typeText(textEl, data.response, resolve));
+                    chatHistory.push({ role: 'assistant', content: data.response });
+                    chatMessages.push({ role: 'assistant', model: data.model, text: data.response });
+                    saveChatToStorage();
+                } else if (data.error) {
+                    const textEl = addMessage('assistant', '', 'Юнона');
+                    textEl.textContent = `Ошибка: ${data.error}`;
+                }
+            } catch (error) {
+                const textEl = addMessage('assistant', '', 'Юнона');
+                textEl.textContent = `Сеть недоступна. Проверьте подключение.`;
+            }
+
+            // Re-enable input
+            isTyping = false;
+            input.disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+            input.focus();
+        }
+
+        document.getElementById('chatInput').addEventListener('keypress', e => { if (e.key === 'Enter') sendMessage(); });
+
+        // MODALS
+        function showAddModal() {
+            if (currentPage === 'contacts') document.getElementById('addContactModal').classList.add('active');
+            else if (currentPage === 'folders') document.getElementById('addFolderModal').classList.add('active');
+            else if (currentPage === 'folderDetail') document.getElementById('addItemModal').classList.add('active');
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        function selectPrivacy(el, privacy) {
+            selectedPrivacy = privacy;
+            document.querySelectorAll('.privacy-option').forEach(o => {
+                o.classList.remove('selected');
+                o.querySelector('.privacy-check').style.display = 'none';
+            });
+            el.classList.add('selected');
+            el.querySelector('.privacy-check').style.display = 'block';
+        }
+
+        function addContact() {
+            const name = document.getElementById('contactName').value.trim();
+            const phone = document.getElementById('contactPhone').value.trim();
+            if (!name) return alert('Введите имя');
+            contacts.push({ name, phone: phone || null });
+            localStorage.setItem('contacts', JSON.stringify(contacts));
+            closeModal('addContactModal');
+            document.getElementById('contactName').value = '';
+            document.getElementById('contactPhone').value = '';
+            renderContacts();
+        }
+
+        function addFolder() {
+            const name = document.getElementById('folderName').value.trim();
+            if (!name) return alert('Введите название');
+            folders.push({ id: Date.now(), name, privacy: selectedPrivacy, items: [] });
+            localStorage.setItem('folders', JSON.stringify(folders));
+            closeModal('addFolderModal');
+            document.getElementById('folderName').value = '';
+            renderFolders();
+        }
+
+        function addItem(type) {
+            const name = document.getElementById('itemName').value.trim() || `${type}_${Date.now()}`;
+            currentFolder.items.push({ name, type });
+            localStorage.setItem('folders', JSON.stringify(folders));
+            closeModal('addItemModal');
+            document.getElementById('itemName').value = '';
+            renderFolderItems();
+        }
+
+        // INIT
+        initWallet();
+        initChat();
+    </script>
+</body>
+</html>

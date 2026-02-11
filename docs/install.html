@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Montana — Установить</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro', system-ui, sans-serif;
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .header {
+            background: linear-gradient(180deg, #1a1a2e 0%, #0a0a0a 100%);
+            padding: 60px 20px 40px;
+            text-align: center;
+        }
+
+        .app-icon {
+            width: 120px; height: 120px;
+            border-radius: 27px;
+            background: linear-gradient(135deg, #0a0a0a, #1a1a2e);
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 10px 40px rgba(0, 212, 255, 0.15);
+        }
+        .app-icon svg {
+            width: 60px; height: 60px;
+        }
+
+        .app-name {
+            font-size: 28px; font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .app-name span { color: #00d4ff; }
+
+        .app-developer {
+            color: #00d4ff; font-size: 15px;
+            margin-bottom: 16px;
+        }
+
+        .app-meta {
+            display: flex; justify-content: center; gap: 24px;
+            color: #666; font-size: 13px;
+        }
+        .app-meta .meta-item {
+            display: flex; flex-direction: column; align-items: center; gap: 2px;
+        }
+        .app-meta .meta-value {
+            color: #aaa; font-size: 16px; font-weight: 600;
+        }
+
+        .container { max-width: 500px; margin: 0 auto; padding: 0 20px; }
+
+        .install-btn {
+            display: block; width: 100%; padding: 18px;
+            background: linear-gradient(135deg, #00d4ff, #7b2fff);
+            color: #fff; text-align: center;
+            font-size: 18px; font-weight: 700;
+            border: none; border-radius: 14px;
+            cursor: pointer; text-decoration: none;
+            margin: 24px 0 16px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .install-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,212,255,0.3); }
+        .install-btn:active { transform: scale(0.98); }
+
+        .install-hint {
+            text-align: center; color: #555; font-size: 13px;
+            margin-bottom: 32px;
+        }
+
+        .section { margin-bottom: 28px; }
+        .section-title {
+            font-size: 13px; font-weight: 600; color: #555;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            margin-bottom: 12px; padding-left: 4px;
+        }
+
+        .info-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px; padding: 16px;
+        }
+
+        .info-row {
+            display: flex; justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { color: #888; font-size: 14px; }
+        .info-value { color: #fff; font-size: 14px; font-weight: 500; }
+        .info-value.cyan { color: #00d4ff; }
+        .info-value.green { color: #34c759; }
+
+        .description {
+            color: #999; font-size: 14px; line-height: 1.6;
+            padding: 16px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+        }
+
+        .features {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+        }
+        .feature {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px; padding: 14px;
+            text-align: center;
+        }
+        .feature-icon { font-size: 24px; margin-bottom: 6px; }
+        .feature-name { font-size: 12px; color: #aaa; }
+
+        .badge {
+            display: inline-block;
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+            padding: 4px 10px; border-radius: 6px;
+            font-size: 12px; font-weight: 600;
+        }
+
+        .footer {
+            text-align: center; padding: 40px 20px;
+            color: #333; font-size: 12px;
+            font-family: 'SF Mono', monospace;
+        }
+
+        .alt-methods {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .alt-link {
+            color: #555; font-size: 13px; text-decoration: none;
+        }
+        .alt-link:hover { color: #00d4ff; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="app-icon">
+        <svg viewBox="0 0 100 100" fill="none">
+            <polygon points="50,10 85,75 15,75" stroke="#00d4ff" stroke-width="3" fill="none"/>
+            <polygon points="50,25 72,68 28,68" stroke="rgba(123,47,255,0.6)" stroke-width="2" fill="none"/>
+            <circle cx="50" cy="52" r="4" fill="#00d4ff"/>
+        </svg>
+    </div>
+    <div class="app-name">Montana <span>&#x0248;</span></div>
+    <div class="app-developer">Alejandro Montana</div>
+    <div class="app-meta">
+        <div class="meta-item">
+            <span class="meta-value">2.0.0</span>
+            <span>Версия</span>
+        </div>
+        <div class="meta-item">
+            <span class="meta-value">3.1 MB</span>
+            <span>Размер</span>
+        </div>
+        <div class="meta-item">
+            <span class="meta-value">iOS 17+</span>
+            <span>Требуется</span>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <a class="install-btn" id="installBtn" href="itms-services://?action=download-manifest&url=https://efir.org/manifest.plist">
+        Установить Montana
+    </a>
+    <p class="install-hint">Нажми и подтверди установку в диалоговом окне iOS</p>
+
+    <div class="section">
+        <div class="section-title">Возможности</div>
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">&#x23F1;</div>
+                <div class="feature-name">Presence Mining</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">&#x1F510;</div>
+                <div class="feature-name">Post-Quantum</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">&#x1F4B8;</div>
+                <div class="feature-name">Переводы</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">&#x1F30D;</div>
+                <div class="feature-name">3 узла сети</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">О приложении</div>
+        <div class="description">
+            Montana Protocol — деньги, обеспеченные временем. Каждая монета &#x0248; равна одной секунде
+            доказанного присутствия. Постквантовая криптография ML-DSA-65 (FIPS 204) защищает
+            от атак квантовых компьютеров. Ваше время — единственная настоящая валюта.
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Информация</div>
+        <div class="info-card">
+            <div class="info-row">
+                <span class="info-label">Протокол</span>
+                <span class="info-value cyan">Montana v2.0.0</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Криптография</span>
+                <span class="info-value">ML-DSA-65 (FIPS 204)</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Режим</span>
+                <span class="info-value green">MAINNET</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Genesis</span>
+                <span class="info-value">27.01.2026</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Bundle ID</span>
+                <span class="info-value" style="font-family: monospace; font-size: 12px;">network.montana.junona</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="alt-methods">
+        <a class="alt-link" href="install-iphone.html">Другие способы установки (AltStore / Sideloadly) &rarr;</a>
+    </div>
+
+    <div class="footer">
+        Montana Protocol &middot; ML-DSA-65 &middot; FIPS 204<br>
+        Time is the only real currency
+    </div>
+</div>
+
+</body>
+</html>

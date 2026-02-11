@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script minSpecVersion="2">
+    <title>Montana Wallet</title>
+    <organization>network.montana</organization>
+    <domains enable_localSystem="true"/>
+    <options customize="never" require-scripts="false" rootVolumeOnly="true"/>
+    <welcome file="welcome.txt"/>
+    <choices-outline>
+        <line choice="default">
+            <line choice="network.montana.wallet"/>
+        </line>
+    </choices-outline>
+    <choice id="default"/>
+    <choice id="network.montana.wallet" visible="false">
+        <pkg-ref id="network.montana.wallet"/>
+    </choice>
+    <pkg-ref id="network.montana.wallet" version="1.5.0" onConclusion="none">Montana.pkg</pkg-ref>
+</installer-gui-script>

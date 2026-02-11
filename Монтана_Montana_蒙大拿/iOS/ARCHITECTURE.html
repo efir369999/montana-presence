@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Junona iOS Architecture | Montana Protocol</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            font-weight: bold;
+            margin: 0 auto 20px;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        h1 {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 18px;
+        }
+
+        .architecture {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .layer {
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .layer-title {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #667eea;
+            margin-bottom: 20px;
+            padding-left: 20px;
+            border-left: 3px solid #667eea;
+        }
+
+        .cards {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            min-width: 200px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(102, 126, 234, 0.5);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .card-file {
+            font-size: 12px;
+            color: #667eea;
+            font-family: 'SF Mono', monospace;
+            margin-bottom: 12px;
+        }
+
+        .card-desc {
+            font-size: 13px;
+            color: #888;
+            line-height: 1.5;
+        }
+
+        .card.main {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
+            border-color: rgba(102, 126, 234, 0.3);
+            min-width: 300px;
+        }
+
+        .card.auth {
+            background: linear-gradient(135deg, rgba(240, 147, 251, 0.1), rgba(245, 87, 108, 0.1));
+            border-color: rgba(240, 147, 251, 0.3);
+        }
+
+        .card.view {
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(56, 142, 60, 0.1));
+            border-color: rgba(76, 175, 80, 0.3);
+        }
+
+        .card.core {
+            background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(255, 152, 0, 0.1));
+            border-color: rgba(255, 193, 7, 0.3);
+        }
+
+        .card.crypto {
+            background: linear-gradient(135deg, rgba(0, 188, 212, 0.1), rgba(0, 150, 136, 0.1));
+            border-color: rgba(0, 188, 212, 0.3);
+        }
+
+        .connection {
+            position: relative;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .connection::before {
+            content: '';
+            position: absolute;
+            width: 2px;
+            height: 100%;
+            background: linear-gradient(180deg, rgba(102, 126, 234, 0.5), rgba(102, 126, 234, 0.1));
+        }
+
+        .connection-label {
+            background: #1a1a2e;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #667eea;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+        }
+
+        .tabs-preview {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        .tab-item {
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            font-size: 11px;
+            color: #ccc;
+        }
+
+        .tab-item.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+        }
+
+        .flow-diagram {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            margin: 60px 0;
+        }
+
+        .flow-title {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 40px;
+            color: #f093fb;
+        }
+
+        .flow-steps {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .flow-step {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            min-width: 140px;
+        }
+
+        .flow-step-num {
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .flow-step-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .flow-step-desc {
+            font-size: 11px;
+            color: #888;
+        }
+
+        .flow-arrow {
+            font-size: 24px;
+            color: #667eea;
+        }
+
+        .tech-stack {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 60px;
+        }
+
+        .tech-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .tech-title {
+            font-size: 14px;
+            color: #667eea;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .tech-list {
+            list-style: none;
+        }
+
+        .tech-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 13px;
+            color: #ccc;
+        }
+
+        .tech-list li:last-child {
+            border-bottom: none;
+        }
+
+        .tech-list li span {
+            color: #888;
+            font-size: 11px;
+            display: block;
+            margin-top: 2px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-left: 8px;
+        }
+
+        .status-ready {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+        }
+
+        .status-demo {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+
+        .status-wip {
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 80px;
+            padding-top: 40px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer-text {
+            color: #555;
+            font-size: 14px;
+        }
+
+        .footer-symbol {
+            font-size: 24px;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 32px;
+            }
+            .cards {
+                flex-direction: column;
+            }
+            .card {
+                min-width: 100%;
+            }
+            .flow-steps {
+                flex-direction: column;
+            }
+            .flow-arrow {
+                transform: rotate(90deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">Ɉ</div>
+        <h1>Junona Architecture</h1>
+        <p class="subtitle">Montana Protocol iOS Messenger</p>
+    </div>
+
+    <div class="architecture">
+        <!-- App Entry Point -->
+        <div class="layer">
+            <div class="layer-title">Entry Point</div>
+            <div class="cards">
+                <div class="card main">
+                    <div class="card-icon">📱</div>
+                    <div class="card-title">JunonaAIApp</div>
+                    <div class="card-file">JunonaAIApp.swift</div>
+                    <div class="card-desc">
+                        Главная точка входа. SwiftUI App с условным рендерингом:
+                        авторизован → MainTabView, иначе → AuthView
+                    </div>
+                    <div class="tabs-preview">
+                        <div class="tab-item active">Чаты</div>
+                        <div class="tab-item">Папки</div>
+                        <div class="tab-item">Юнона</div>
+                        <div class="tab-item">Звонки</div>
+                        <div class="tab-item">Ещё</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="connection">
+            <span class="connection-label">@StateObject auth</span>
+        </div>
+
+        <!-- Auth Layer -->
+        <div class="layer">
+            <div class="layer-title">Authentication</div>
+            <div class="cards">
+                <div class="card auth">
+                    <div class="card-icon">🔐</div>
+                    <div class="card-title">AuthService <span class="status-badge status-demo">DEMO</span></div>
+                    <div class="card-file">Auth/AuthService.swift</div>
+                    <div class="card-desc">
+                        Singleton сервис авторизации. Состояния: unauthorized → sendingCode →
+                        waitingForCode → verifying → creatingKeys → authorized
+                    </div>
+                </div>
+                <div class="card auth">
+                    <div class="card-icon">📝</div>
+                    <div class="card-title">AuthView <span class="status-badge status-ready">READY</span></div>
+                    <div class="card-file">Auth/AuthView.swift</div>
+                    <div class="card-desc">
+                        UI авторизации: ввод телефона (+7), код подтверждения (5 цифр),
+                        анимация генерации ключей
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="connection">
+            <span class="connection-label">TabView Navigation</span>
+        </div>
+
+        <!-- Views Layer -->
+        <div class="layer">
+            <div class="layer-title">Main Views (Telegram-style)</div>
+            <div class="cards">
+                <div class="card view">
+                    <div class="card-icon">💬</div>
+                    <div class="card-title">ChatsView</div>
+                    <div class="card-file">Views/ChatsView.swift</div>
+                    <div class="card-desc">Список чатов с превью сообщений</div>
+                </div>
+                <div class="card view">
+                    <div class="card-icon">📁</div>
+                    <div class="card-title">FoldersView</div>
+                    <div class="card-file">Views/FoldersView.swift</div>
+                    <div class="card-desc">Папки для организации чатов</div>
+                </div>
+                <div class="card view">
+                    <div class="card-icon">🤖</div>
+                    <div class="card-title">JunonaView</div>
+                    <div class="card-file">Views/JunonaView.swift</div>
+                    <div class="card-desc">AI ассистент Юнона</div>
+                </div>
+                <div class="card view">
+                    <div class="card-icon">📞</div>
+                    <div class="card-title">CallsView</div>
+                    <div class="card-file">Views/CallsView.swift</div>
+                    <div class="card-desc">История звонков</div>
+                </div>
+                <div class="card view">
+                    <div class="card-icon">⚙️</div>
+                    <div class="card-title">SettingsView</div>
+                    <div class="card-file">Views/SettingsView.swift</div>
+                    <div class="card-desc">Профиль, VPN, приватность, выход</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="connection">
+            <span class="connection-label">import MontanaCore</span>
+        </div>
+
+        <!-- Core Framework -->
+        <div class="layer">
+            <div class="layer-title">Shared Framework</div>
+            <div class="cards">
+                <div class="card core">
+                    <div class="card-icon">🏔</div>
+                    <div class="card-title">MontanaCore</div>
+                    <div class="card-file">MontanaCore/Sources/MontanaCore/</div>
+                    <div class="card-desc">
+                        Swift Package: MontanaTheme, PrivacyLevel, MontanaAddress,
+                        MontanaVPNManager, общие UI компоненты
+                    </div>
+                </div>
+                <div class="card crypto">
+                    <div class="card-icon">🔑</div>
+                    <div class="card-title">ML-DSA-65</div>
+                    <div class="card-file">FIPS 204 Post-Quantum</div>
+                    <div class="card-desc">
+                        Private: 4032 bytes | Public: 1952 bytes | Sig: 3309 bytes
+                        Address: mt + SHA256(pubkey)[:20]
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auth Flow Diagram -->
+        <div class="flow-diagram">
+            <h2 class="flow-title">Authentication Flow</h2>
+            <div class="flow-steps">
+                <div class="flow-step">
+                    <div class="flow-step-num">1</div>
+                    <div class="flow-step-title">Телефон</div>
+                    <div class="flow-step-desc">+7 XXX XXX XXXX</div>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step">
+                    <div class="flow-step-num">2</div>
+                    <div class="flow-step-title">SMS Код</div>
+                    <div class="flow-step-desc">Demo: 12345</div>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step">
+                    <div class="flow-step-num">3</div>
+                    <div class="flow-step-title">ML-DSA-65</div>
+                    <div class="flow-step-desc">Генерация ключей</div>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step">
+                    <div class="flow-step-num">4</div>
+                    <div class="flow-step-title">Keychain</div>
+                    <div class="flow-step-desc">Сохранение</div>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step">
+                    <div class="flow-step-num">5</div>
+                    <div class="flow-step-title">MainTabView</div>
+                    <div class="flow-step-desc">Authorized</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tech Stack -->
+        <div class="tech-stack">
+            <div class="tech-card">
+                <div class="tech-title">iOS Framework</div>
+                <ul class="tech-list">
+                    <li>SwiftUI <span>Declarative UI</span></li>
+                    <li>Combine <span>Reactive bindings</span></li>
+                    <li>Security.framework <span>Keychain access</span></li>
+                    <li>CommonCrypto <span>SHA-256 hashing</span></li>
+                    <li>NetworkExtension <span>VPN tunnel</span></li>
+                </ul>
+            </div>
+            <div class="tech-card">
+                <div class="tech-title">Cryptography</div>
+                <ul class="tech-list">
+                    <li>ML-DSA-65 <span>Post-quantum signatures</span></li>
+                    <li>ML-KEM-768 <span>Key encapsulation (VPN)</span></li>
+                    <li>SHA-256 <span>Address derivation</span></li>
+                    <li>SecRandomCopyBytes <span>Entropy source</span></li>
+                </ul>
+            </div>
+            <div class="tech-card">
+                <div class="tech-title">Backend API</div>
+                <ul class="tech-list">
+                    <li>/api/v1/auth/send-code <span>SMS verification</span></li>
+                    <li>/api/v1/auth/verify <span>Code validation</span></li>
+                    <li>/api/v1/auth/register <span>Account creation</span></li>
+                    <li>/api/v1/user/profile <span>Profile loading</span></li>
+                </ul>
+            </div>
+            <div class="tech-card">
+                <div class="tech-title">Storage</div>
+                <ul class="tech-list">
+                    <li>Keychain <span>Private/Public keys</span></li>
+                    <li>UserDefaults <span>User session</span></li>
+                    <li>montana_user <span>Profile JSON</span></li>
+                    <li>montana_session <span>Auth token</span></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- File Structure -->
+        <div class="flow-diagram" style="margin-top: 40px;">
+            <h2 class="flow-title">Project Structure</h2>
+            <pre style="text-align: left; font-family: 'SF Mono', monospace; font-size: 13px; color: #888; line-height: 1.8; padding: 20px;">
+iOS/
+├── Apps/
+│   └── JunonaAI/
+│       ├── JunonaAI.xcodeproj
+│       └── JunonaAI/
+│           ├── <span style="color: #667eea;">JunonaAIApp.swift</span>     ← Entry point
+│           ├── Auth/
+│           │   ├── <span style="color: #f093fb;">AuthService.swift</span>   ← Auth logic
+│           │   └── <span style="color: #f093fb;">AuthView.swift</span>      ← Auth UI
+│           ├── Views/
+│           │   ├── <span style="color: #4caf50;">ChatsView.swift</span>
+│           │   ├── <span style="color: #4caf50;">FoldersView.swift</span>
+│           │   ├── <span style="color: #4caf50;">ContactsView.swift</span>
+│           │   ├── <span style="color: #4caf50;">SettingsView.swift</span>
+│           │   └── <span style="color: #4caf50;">VPNView.swift</span>
+│           └── VPN/
+│               ├── <span style="color: #00bcd4;">MontanaVPN.swift</span>
+│               └── <span style="color: #00bcd4;">PostQuantumTunnel.swift</span>
+│
+└── MontanaCore/                    ← Swift Package
+    └── Sources/MontanaCore/
+        └── <span style="color: #ffc107;">MontanaCore.swift</span>       ← Shared code
+            </pre>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="footer-symbol">Ɉ</div>
+        <p class="footer-text">Montana Protocol — Time is the only real currency</p>
+        <p class="footer-text" style="margin-top: 8px; color: #333;">Genesis: 2025-01-09 | Crypto: ML-DSA-65 (FIPS 204)</p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,482 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 63;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0F4A5B03AB28E4D7017D6CAE /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C6DB97674EF6B093B8EAD98 /* SettingsView.swift */; };
+		20F6FA2D8822AF8BFEB727E5 /* MontanaCore in Frameworks */ = {isa = PBXBuildFile; productRef = 3E3B13494B5D8D9A9860A808 /* MontanaCore */; };
+		MLDSA65000001DEADBEEF0001 /* MLDSA65.swift in Sources */ = {isa = PBXBuildFile; fileRef = MLDSA65000002DEADBEEF0002 /* MLDSA65.swift */; };
+		MLKEM768000001DEADBEEF001 /* MLKEM768.swift in Sources */ = {isa = PBXBuildFile; fileRef = MLKEM768000002DEADBEEF002 /* MLKEM768.swift */; };
+		MONTANASEED001DEADBEEF01 /* MontanaSeed.swift in Sources */ = {isa = PBXBuildFile; fileRef = MONTANASEED002DEADBEEF02 /* MontanaSeed.swift */; };
+		LIBOQS000001DEADBEEF0001 /* liboqs.a in Frameworks */ = {isa = PBXBuildFile; fileRef = LIBOQS000002DEADBEEF0002 /* liboqs.a */; };
+		7DDC4CF91E4B94FA4214C41B /* MontanaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D788EB3AD772F0178A3ADAD4 /* MontanaApp.swift */; };
+		8DEC6ECCCC188D2F0451B6EF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B23AC508AABF8DA2663F4A28 /* Assets.xcassets */; };
+		A1B2C3D4E5F60001DEADBEEF /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60002DEADBEEF /* AuthService.swift */; };
+		A1B2C3D4E5F60003DEADBEEF /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60004DEADBEEF /* AuthView.swift */; };
+		A1B2C3D4E5F60007DEADBEEF /* CognitiveKeyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60006DEADBEEF /* CognitiveKeyView.swift */; };
+		BIOAUTH00001DEADBEEF0001 /* BiometricAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = BIOAUTH00002DEADBEEF0002 /* BiometricAuth.swift */; };
+		PASSKEY00001DEADBEEF0001 /* PasskeyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = PASSKEY00002DEADBEEF0002 /* PasskeyService.swift */; };
+		TIMECHAINEX001DEADBEEF01 /* TimeChainExplorerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = TIMECHAINEX002DEADBEEF02 /* TimeChainExplorerView.swift */; };
+		KEYCHAINMGR001DEADBEEF01 /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = KEYCHAINMGR002DEADBEEF02 /* KeychainManager.swift */; };
+		PINVIEW00001DEADBEEF0001 /* PinView.swift in Sources */ = {isa = PBXBuildFile; fileRef = PINVIEW00002DEADBEEF0002 /* PinView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		CAA5A4515CC0D495038E3ACF /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		0632AB6ED627B8D5C8CBF2BF /* MontanaCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MontanaCore; path = ../../MontanaCore; sourceTree = SOURCE_ROOT; };
+		MLDSA65000002DEADBEEF0002 /* MLDSA65.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MLDSA65.swift; sourceTree = "<group>"; };
+		MLKEM768000002DEADBEEF002 /* MLKEM768.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MLKEM768.swift; sourceTree = "<group>"; };
+		MONTANASEED002DEADBEEF02 /* MontanaSeed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MontanaSeed.swift; sourceTree = "<group>"; };
+		LIBOQS000002DEADBEEF0002 /* liboqs.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = liboqs.a; sourceTree = "<group>"; };
+		BRIDGE000001DEADBEEF0001 /* Montana-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Montana-Bridging-Header.h"; sourceTree = "<group>"; };
+		80982EAE94E570D3DC2F969A /* Montana.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Montana.entitlements; sourceTree = "<group>"; };
+		9C6DB97674EF6B093B8EAD98 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		TIMECHAINEX002DEADBEEF02 /* TimeChainExplorerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeChainExplorerView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60002DEADBEEF /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60004DEADBEEF /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60006DEADBEEF /* CognitiveKeyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CognitiveKeyView.swift; sourceTree = "<group>"; };
+		BIOAUTH00002DEADBEEF0002 /* BiometricAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuth.swift; sourceTree = "<group>"; };
+		PASSKEY00002DEADBEEF0002 /* PasskeyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasskeyService.swift; sourceTree = "<group>"; };
+		KEYCHAINMGR002DEADBEEF02 /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
+		PINVIEW00002DEADBEEF0002 /* PinView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinView.swift; sourceTree = "<group>"; };
+		B23AC508AABF8DA2663F4A28 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B25D621CBE42DE8BB99C019B /* Montana.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Montana.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CAEA86D52924E45002EFB91E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		D788EB3AD772F0178A3ADAD4 /* MontanaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MontanaApp.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D187B553E534289AB8BBB665 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				20F6FA2D8822AF8BFEB727E5 /* MontanaCore in Frameworks */,
+				LIBOQS000001DEADBEEF0001 /* liboqs.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		0FA900A7D109A8AFD439F604 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				9C6DB97674EF6B093B8EAD98 /* SettingsView.swift */,
+				TIMECHAINEX002DEADBEEF02 /* TimeChainExplorerView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		3B24AD78DCA507020AC1996A = {
+			isa = PBXGroup;
+			children = (
+				3D93E2187ABEA106163C5496 /* Montana */,
+				CC4C85E7DA811B677357C2E2 /* Packages */,
+				730798D81CDDB54C6AF06D01 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		3D93E2187ABEA106163C5496 /* Montana */ = {
+			isa = PBXGroup;
+			children = (
+				B23AC508AABF8DA2663F4A28 /* Assets.xcassets */,
+				CAEA86D52924E45002EFB91E /* Info.plist */,
+				80982EAE94E570D3DC2F969A /* Montana.entitlements */,
+				D788EB3AD772F0178A3ADAD4 /* MontanaApp.swift */,
+				A1B2C3D4E5F60005DEADBEEF /* Auth */,
+				CRYPTO00001DEADBEEF0001 /* Crypto */,
+				0FA900A7D109A8AFD439F604 /* Views */,
+			);
+			path = Montana;
+			sourceTree = "<group>";
+		};
+		730798D81CDDB54C6AF06D01 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B25D621CBE42DE8BB99C019B /* Montana.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F60005DEADBEEF /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F60002DEADBEEF /* AuthService.swift */,
+				A1B2C3D4E5F60004DEADBEEF /* AuthView.swift */,
+				BIOAUTH00002DEADBEEF0002 /* BiometricAuth.swift */,
+				A1B2C3D4E5F60006DEADBEEF /* CognitiveKeyView.swift */,
+				KEYCHAINMGR002DEADBEEF02 /* KeychainManager.swift */,
+				PASSKEY00002DEADBEEF0002 /* PasskeyService.swift */,
+				PINVIEW00002DEADBEEF0002 /* PinView.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		CRYPTO00001DEADBEEF0001 /* Crypto */ = {
+			isa = PBXGroup;
+			children = (
+				MLDSA65000002DEADBEEF0002 /* MLDSA65.swift */,
+				MLKEM768000002DEADBEEF002 /* MLKEM768.swift */,
+				MONTANASEED002DEADBEEF02 /* MontanaSeed.swift */,
+				BRIDGE000001DEADBEEF0001 /* Montana-Bridging-Header.h */,
+				LIBOQSG0001DEADBEEF0001 /* liboqs */,
+			);
+			path = Crypto;
+			sourceTree = "<group>";
+		};
+		LIBOQSG0001DEADBEEF0001 /* liboqs */ = {
+			isa = PBXGroup;
+			children = (
+				LIBOQS000002DEADBEEF0002 /* liboqs.a */,
+			);
+			path = liboqs;
+			sourceTree = "<group>";
+		};
+		CC4C85E7DA811B677357C2E2 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				0632AB6ED627B8D5C8CBF2BF /* MontanaCore */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		C8D39E11E59B33F32BC2ECC1 /* Montana */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2DC128CA714EE78D063F1395 /* Build configuration list for PBXNativeTarget "Montana" */;
+			buildPhases = (
+				2EE4F7319A53253C8BB97A55 /* Sources */,
+				EFD7B3D443FE9CEF42FCEAC5 /* Resources */,
+				D187B553E534289AB8BBB665 /* Frameworks */,
+				CAA5A4515CC0D495038E3ACF /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Montana;
+			packageProductDependencies = (
+				3E3B13494B5D8D9A9860A808 /* MontanaCore */,
+			);
+			productName = Montana;
+			productReference = B25D621CBE42DE8BB99C019B /* Montana.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		6FCFB9F7F5D6747ABF1C6B6E /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1500;
+			};
+			buildConfigurationList = 8E967EB56E3413A71569233E /* Build configuration list for PBXProject "Montana" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 3B24AD78DCA507020AC1996A;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				DD2B8D24AF9B7F25E009BF5C /* XCLocalSwiftPackageReference "../../MontanaCore" */,
+			);
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C8D39E11E59B33F32BC2ECC1 /* Montana */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		EFD7B3D443FE9CEF42FCEAC5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8DEC6ECCCC188D2F0451B6EF /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		2EE4F7319A53253C8BB97A55 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B2C3D4E5F60001DEADBEEF /* AuthService.swift in Sources */,
+				A1B2C3D4E5F60003DEADBEEF /* AuthView.swift in Sources */,
+				BIOAUTH00001DEADBEEF0001 /* BiometricAuth.swift in Sources */,
+				A1B2C3D4E5F60007DEADBEEF /* CognitiveKeyView.swift in Sources */,
+				KEYCHAINMGR001DEADBEEF01 /* KeychainManager.swift in Sources */,
+				7DDC4CF91E4B94FA4214C41B /* MontanaApp.swift in Sources */,
+				MLDSA65000001DEADBEEF0001 /* MLDSA65.swift in Sources */,
+				MLKEM768000001DEADBEEF001 /* MLKEM768.swift in Sources */,
+				MONTANASEED001DEADBEEF01 /* MontanaSeed.swift in Sources */,
+				PASSKEY00001DEADBEEF0001 /* PasskeyService.swift in Sources */,
+				PINVIEW00001DEADBEEF0001 /* PinView.swift in Sources */,
+				0F4A5B03AB28E4D7017D6CAE /* SettingsView.swift in Sources */,
+				TIMECHAINEX001DEADBEEF01 /* TimeChainExplorerView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		067EF75CA2D88B7E34B667F0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 21;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.9.3;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		0F5E0626AF9E614198CD0B19 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Montana/Montana.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 21;
+				DEVELOPMENT_TEAM = 5U4V57QT55;
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/Montana/Crypto",
+					"$(PROJECT_DIR)/Montana/Crypto/liboqs",
+				);
+				INFOPLIST_FILE = Montana/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Montana;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/Montana/Crypto/liboqs";
+				MARKETING_VERSION = 1.9.3;
+				PRODUCT_BUNDLE_IDENTIFIER = network.montana.junona;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "Montana/Crypto/Montana-Bridging-Header.h";
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		962DA8A9247390EA2C6B7FE2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Montana/Montana.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 21;
+				DEVELOPMENT_TEAM = 5U4V57QT55;
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/Montana/Crypto",
+					"$(PROJECT_DIR)/Montana/Crypto/liboqs",
+				);
+				INFOPLIST_FILE = Montana/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Montana;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/Montana/Crypto/liboqs";
+				MARKETING_VERSION = 1.9.3;
+				PRODUCT_BUNDLE_IDENTIFIER = network.montana.junona;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "Montana/Crypto/Montana-Bridging-Header.h";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		C71826FC555EC81FD0CBBE6C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 21;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.9.3;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		2DC128CA714EE78D063F1395 /* Build configuration list for PBXNativeTarget "Montana" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0F5E0626AF9E614198CD0B19 /* Debug */,
+				962DA8A9247390EA2C6B7FE2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		8E967EB56E3413A71569233E /* Build configuration list for PBXProject "Montana" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				067EF75CA2D88B7E34B667F0 /* Debug */,
+				C71826FC555EC81FD0CBBE6C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		DD2B8D24AF9B7F25E009BF5C /* XCLocalSwiftPackageReference "../../MontanaCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../MontanaCore;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		3E3B13494B5D8D9A9860A808 /* MontanaCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MontanaCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 6FCFB9F7F5D6747ABF1C6B6E /* Project object */;
+}
