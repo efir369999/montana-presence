@@ -16,21 +16,14 @@ class VPNManager: ObservableObject {
     private let confName = "montana"
 
     private init() {
-        startMonitoring()
-        DispatchQueue.global().async { [weak self] in
-            self?.checkConfigured()
-            self?.checkStatusAsync()
-        }
+        checkConfigured()
     }
 
-    nonisolated private func checkConfigured() {
+    private func checkConfigured() {
         let fm = FileManager.default
         let hasWg = fm.fileExists(atPath: "/opt/homebrew/bin/wg-quick") || fm.fileExists(atPath: "/usr/local/bin/wg-quick")
         let hasConf = fm.fileExists(atPath: "/etc/wireguard/montana.conf") || fm.fileExists(atPath: "/opt/homebrew/etc/wireguard/montana.conf")
-        let configured = hasWg && hasConf
-        DispatchQueue.main.async { [weak self] in
-            self?.isConfigured = configured
-        }
+        isConfigured = hasWg && hasConf
     }
 
     func startMonitoring() {
@@ -87,6 +80,7 @@ class VPNManager: ObservableObject {
     func connect() {
         guard !isConnected, !isConnecting else { return }
         isConnecting = true
+        startMonitoring()
 
         DispatchQueue.global().async { [weak self] in
             let task = Process()

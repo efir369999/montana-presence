@@ -9,6 +9,7 @@ struct MenuBarView: View {
     @State private var showSend = false
     @State private var showReceive = false
     @State private var showSensorInfo: String? = nil
+    @State private var showNetworkNodes = false
 
     // Montana palette — gold coin aesthetic
     private let gold = Color(red: 0.85, green: 0.68, blue: 0.25)
@@ -203,7 +204,8 @@ struct MenuBarView: View {
                     sensorRow(icon: "person.fill", name: "\u{041f}\u{0440}\u{0438}\u{0441}\u{0443}\u{0442}\u{0441}\u{0442}\u{0432}\u{0438}\u{0435}", rate: "+1 \u{0248}/\u{0441}", enabled: true, isFixed: true)
 
                     ForEach(engine.sensors) { sensor in
-                        let isActive = engine.sensorPermissions[sensor.id] ?? false
+                        let hasPermission = engine.sensorPermissions[sensor.id] ?? false
+                        let isActive = sensor.enabled && hasPermission
                         HStack(spacing: 6) {
                             Image(systemName: sensor.icon)
                                 .font(.system(size: 12))
@@ -233,10 +235,12 @@ struct MenuBarView: View {
                             }
 
                             Toggle("", isOn: Binding(
-                                get: { isActive },
+                                get: { sensor.enabled },
                                 set: { _ in
-                                    if !isActive {
+                                    if !sensor.enabled && !hasPermission {
                                         engine.requestPermission(for: sensor.id)
+                                    } else {
+                                        engine.toggleSensor(sensor.id)
                                     }
                                 }
                             ))
@@ -321,34 +325,47 @@ struct MenuBarView: View {
 
                 // ── NETWORK NODES ──
                 VStack(spacing: 4) {
-                    HStack {
-                        Image(systemName: "network")
-                            .font(.system(size: 12))
-                            .frame(width: 18)
-                            .foregroundColor(gold)
-                        Text("\u{0421}\u{0435}\u{0442}\u{044c} Montana")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(Color.white.opacity(0.8))
-                        Spacer()
-                        Text("\(engine.networkOnline)/\(engine.networkTotal) \u{0443}\u{0437}\u{043b}\u{043e}\u{0432}")
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundColor(engine.networkOnline == engine.networkTotal ? .green : .orange)
-                    }
-
-                    ForEach(Array(engine.networkNodes.enumerated()), id: \.offset) { _, node in
-                        HStack(spacing: 6) {
-                            Circle()
-                                .fill(node.online ? Color.green : Color.red)
-                                .frame(width: 5, height: 5)
-                            Text(node.name)
-                                .font(.system(size: 10))
-                                .foregroundColor(Color.white.opacity(0.5))
-                            Spacer()
-                            Text(node.online ? "\u{043e}\u{043d}\u{043b}\u{0430}\u{0439}\u{043d}" : "\u{043e}\u{0444}\u{043b}\u{0430}\u{0439}\u{043d}")
-                                .font(.system(size: 9, design: .monospaced))
-                                .foregroundColor(node.online ? .green : .red)
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showNetworkNodes.toggle()
                         }
-                        .padding(.leading, 24)
+                    }) {
+                        HStack {
+                            Image(systemName: "network")
+                                .font(.system(size: 12))
+                                .frame(width: 18)
+                                .foregroundColor(gold)
+                            Text("\u{0421}\u{0435}\u{0442}\u{044c} Montana")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(Color.white.opacity(0.8))
+                            Spacer()
+                            Text("\(engine.networkOnline)/\(engine.networkTotal) \u{0443}\u{0437}\u{043b}\u{043e}\u{0432}")
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundColor(engine.networkOnline == engine.networkTotal ? .green : .orange)
+                            Image(systemName: showNetworkNodes ? "chevron.up" : "chevron.down")
+                                .font(.system(size: 8))
+                                .foregroundColor(Color.white.opacity(0.2))
+                        }
+                    }
+                    .buttonStyle(.plain)
+
+                    if showNetworkNodes {
+                        ForEach(Array(engine.networkNodes.enumerated()), id: \.offset) { _, node in
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .fill(node.online ? Color.green : Color.red)
+                                    .frame(width: 5, height: 5)
+                                Text(node.name)
+                                    .font(.system(size: 10))
+                                    .foregroundColor(Color.white.opacity(0.5))
+                                Spacer()
+                                Text(node.online ? "\u{043e}\u{043d}\u{043b}\u{0430}\u{0439}\u{043d}" : "\u{043e}\u{0444}\u{043b}\u{0430}\u{0439}\u{043d}")
+                                    .font(.system(size: 9, design: .monospaced))
+                                    .foregroundColor(node.online ? .green : .red)
+                            }
+                            .padding(.leading, 24)
+                        }
+                        .transition(.opacity)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -381,7 +398,7 @@ struct MenuBarView: View {
                             .font(.system(size: 11))
                             .foregroundColor(Color.white.opacity(0.4))
                         Spacer()
-                        Text("27.01.2026")
+                        Text("09.01.2026")
                             .font(.system(size: 10, design: .monospaced))
                             .foregroundColor(Color.white.opacity(0.3))
                     }
@@ -395,20 +412,20 @@ struct MenuBarView: View {
                             .font(.system(size: 11))
                             .foregroundColor(Color.white.opacity(0.4))
                         Spacer()
-                        Text("$\(String(format: "%.6f", PresenceEngine.genesisPriceUSD))")
+                        Text("$\(String(format: "%.4f", PresenceEngine.genesisPriceUSD))")
                             .font(.system(size: 10, design: .monospaced))
                             .foregroundColor(Color.white.opacity(0.3))
-                        Text("\(String(format: "%.4f", PresenceEngine.genesisPriceRUB))\u{20bd}")
+                        Text("\(String(format: "%.2f", PresenceEngine.genesisPriceRUB))\u{20bd}")
                             .font(.system(size: 10, design: .monospaced))
                             .foregroundColor(Color.white.opacity(0.3))
                     }
 
                     HStack(spacing: 6) {
-                        Image(systemName: "doc.text")
+                        Image(systemName: "banknote")
                             .font(.system(size: 11))
                             .frame(width: 18)
                             .foregroundColor(goldDim)
-                        Text("\u{0424}\u{0438}\u{043d}\u{0430}\u{043b}")
+                        Text("\u{0413}\u{0435}\u{043d}\u{0435}\u{0437}\u{0438}\u{0441} \u{0426}\u{0435}\u{043d}\u{044b}")
                             .font(.system(size: 11))
                             .foregroundColor(Color.white.opacity(0.4))
                         Spacer()

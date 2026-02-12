@@ -44,35 +44,26 @@ class PresenceEngine: ObservableObject {
     @Published var showRateInMenuBar: Bool = true
     @Published var genesisDate: Date = {
         var c = DateComponents()
-        c.year = 2026; c.month = 1; c.day = 27; c.hour = 0; c.minute = 0
+        c.year = 2026; c.month = 1; c.day = 9; c.hour = 0; c.minute = 0
         return Calendar.current.date(from: c) ?? Date()
     }()
 
     var displayBalance: Int { serverBalance + pendingSeconds }
 
     // ── GENESIS ECONOMICS ──
-    // Genesis: 27.01.2026 — network launch
-    // Price determination: 12.03.2026 — final transaction, bill settlement
-    // Period: 44 days (27 Jan → 12 Mar)
-    // Model: infrastructure cost / total supply = genesis price per Ɉ
+    // Montana Genesis: 09.01.2026 — network launch
+    // Price Genesis: 12.03.2021 — BIPL (Bill Payment) price anchor
     //
-    // Infrastructure bill (3 nodes × 44 days):
-    //   Moscow:    799 RUB/mo  × 44/30 = 1,172 RUB
-    //   Amsterdam: 799 RUB/mo  × 44/30 = 1,172 RUB
-    //   Almaty:    799 RUB/mo  × 44/30 = 1,172 RUB
-    //   Total: 3,516 RUB ≈ $39 USD (at 90 RUB/USD)
+    // Model: 1 second of human presence = 1 Ɉ (base rate)
+    // BIPL price: 1 second = $0.1605 USD
+    // RUB rate at price genesis (12.03.2021): ~75 ₽/$
+    // 1 Ɉ = $0.1605 = ₽12.04
     //
-    // Supply by Mar 12 (1 user, avg weight 5):
-    //   44 days × 86,400 sec × 5 = 19,008,000 Ɉ
+    // Source: https://x.com/tojesatoshi/status/2012823709858275473
     //
-    // Genesis price:
-    //   RUB: 3,516 / 19,008,000 = 0.000185 RUB/Ɉ
-    //   USD: 39 / 19,008,000    = 0.00000205 USD/Ɉ
-    //
-    // Rounded genesis rates:
-    static let genesisPriceUSD: Double = 0.000002   // $0.000002 per Ɉ
-    static let genesisPriceRUB: Double = 0.000185    // ₽0.000185 per Ɉ
-    static let genesisSettlementDate = "12.03.2026"
+    static let genesisPriceUSD: Double = 0.1605     // $0.1605 per Ɉ (BIPL)
+    static let genesisPriceRUB: Double = 12.04      // ₽12.04 per Ɉ ($0.1605 × 75 ₽/$)
+    static let genesisSettlementDate = "12.03.2021"
 
     var balanceUSD: Double { Double(displayBalance) * Self.genesisPriceUSD }
     var balanceRUB: Double { Double(displayBalance) * Self.genesisPriceRUB }
@@ -256,7 +247,6 @@ class PresenceEngine: ObservableObject {
     }
 
     func toggleSensor(_ id: String) {
-        guard sensorPermissions[id] ?? true else { return }
         if let idx = sensors.firstIndex(where: { $0.id == id }) {
             sensors[idx].enabled.toggle()
             UserDefaults.standard.set(sensors[idx].enabled, forKey: "sensor_\(id)")
@@ -275,19 +265,16 @@ class PresenceEngine: ObservableObject {
             "mic": micStatus == .authorized,
             "location": locStatus == .authorizedAlways || locStatus == .authorized,
             "bluetooth": btAuth == .allowedAlways,
-            "activity": AXIsProcessTrusted(),
+            "activity": true,  // User-controlled; AXIsProcessTrusted() unreliable with ad-hoc signing
             "appdata": true,
             "wifi": true,
             "autostart": true,
         ]
 
-        // Auto-disable sensors without permission, auto-enable with permission
+        // Auto-disable sensors that lost permission (camera/mic/location/bluetooth only)
         for (id, allowed) in sensorPermissions {
-            if let idx = sensors.firstIndex(where: { $0.id == id }) {
-                if allowed && !sensors[idx].enabled {
-                    sensors[idx].enabled = true
-                    UserDefaults.standard.set(true, forKey: "sensor_\(id)")
-                } else if !allowed && sensors[idx].enabled {
+            if !allowed, let idx = sensors.firstIndex(where: { $0.id == id }) {
+                if sensors[idx].enabled {
                     sensors[idx].enabled = false
                     UserDefaults.standard.set(false, forKey: "sensor_\(id)")
                 }
