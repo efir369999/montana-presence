@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Montana v2.11.0 menu bar app
+# Build Montana v2.12.0 menu bar app
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$DIR/Montana.app"
 
-echo "Building Montana v2.11.0..."
+echo "Building Montana v2.12.0..."
 
 # Clean
 rm -rf "$APP"
@@ -22,6 +22,7 @@ swiftc \
     -framework CoreLocation \
     -framework CoreBluetooth \
     -framework ApplicationServices \
+    -framework Network \
     -target arm64-apple-macos14.0 \
     -parse-as-library \
     "$DIR/MontanaAPIClient.swift" \

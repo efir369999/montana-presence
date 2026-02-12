@@ -199,7 +199,15 @@ struct MenuBarView: View {
 
                 sep()
 
-                // ── SENSORS ──
+                // ╔══════════════════════════════════════════════════════════════════╗
+                // ║  IMMUTABLE BLOCK — SENSOR UI                                    ║
+                // ║  НЕ МЕНЯТЬ. Это неизменяемый блок кода.                         ║
+                // ║                                                                 ║
+                // ║  Тумблер ON + разрешение = золотой, показывает +N Ɉ/с           ║
+                // ║  Тумблер OFF или нет разрешения = серый, без рейта              ║
+                // ║  Клик на выключенный без разрешения → запрос разрешения          ║
+                // ║  Клик на включённый → выключить                                 ║
+                // ╚══════════════════════════════════════════════════════════════════╝
                 VStack(spacing: 2) {
                     sensorRow(icon: "person.fill", name: "\u{041f}\u{0440}\u{0438}\u{0441}\u{0443}\u{0442}\u{0441}\u{0442}\u{0432}\u{0438}\u{0435}", rate: "+1 \u{0248}/\u{0441}", enabled: true, isFixed: true)
 
@@ -260,48 +268,91 @@ struct MenuBarView: View {
                     }
 
                     // ── VPN ──
-                    HStack(spacing: 6) {
-                        Image(systemName: "lock.shield.fill")
-                            .font(.system(size: 12))
-                            .frame(width: 18)
-                            .foregroundColor(vpn.isConnected ? gold : Color.white.opacity(0.2))
-                        Text("VPN")
-                            .font(.system(size: 12))
-                            .foregroundColor(Color.white.opacity(vpn.isConnected ? 0.7 : 0.35))
+                    VStack(spacing: 2) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "lock.shield.fill")
+                                .font(.system(size: 12))
+                                .frame(width: 18)
+                                .foregroundColor(vpn.isConnected ? gold : Color.white.opacity(0.2))
+                            Text("VPN")
+                                .font(.system(size: 12))
+                                .foregroundColor(Color.white.opacity(vpn.isConnected ? 0.7 : 0.35))
 
-                        if vpn.isConnected {
-                            Text(vpn.vpnIP)
-                                .font(.system(size: 9, design: .monospaced))
-                                .foregroundColor(Color.white.opacity(0.3))
-                            if vpn.pingMs > 0 {
-                                Text("\(vpn.pingMs)ms")
+                            if vpn.isConnected {
+                                Text(vpn.vpnIP)
                                     .font(.system(size: 9, design: .monospaced))
                                     .foregroundColor(Color.white.opacity(0.3))
+                                if vpn.pingMs > 0 {
+                                    Text("\(vpn.pingMs)ms")
+                                        .font(.system(size: 9, design: .monospaced))
+                                        .foregroundColor(Color.white.opacity(0.3))
+                                }
+                            }
+
+                            Spacer()
+
+                            if vpn.isConnected {
+                                Text("+1 \u{0248}/\u{0441}")
+                                    .font(.system(size: 10, design: .monospaced))
+                                    .foregroundColor(goldLight)
+                            }
+
+                            if !vpn.isProfileInstalled {
+                                Button(action: { vpn.installProfile() }) {
+                                    Text("\u{0423}\u{0441}\u{0442}\u{0430}\u{043d}\u{043e}\u{0432}\u{0438}\u{0442}\u{044c}")
+                                        .font(.system(size: 10, weight: .medium))
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundColor(gold)
+                            } else if vpn.isConnecting {
+                                ProgressView()
+                                    .controlSize(.mini)
+                            } else {
+                                Toggle("", isOn: Binding(
+                                    get: { vpn.isConnected },
+                                    set: { _ in vpn.toggle() }
+                                ))
+                                .toggleStyle(.switch)
+                                .controlSize(.mini)
+                                .labelsHidden()
                             }
                         }
+                        .padding(.vertical, 1)
 
-                        Spacer()
-
-                        if vpn.isConnected {
-                            Text("+1 \u{0248}/\u{0441}")
-                                .font(.system(size: 10, design: .monospaced))
-                                .foregroundColor(goldLight)
+                        // Connection error
+                        if let error = vpn.connectionError {
+                            HStack(spacing: 4) {
+                                Image(systemName: "exclamationmark.circle.fill")
+                                    .font(.system(size: 9))
+                                    .foregroundColor(.red)
+                                Text(error)
+                                    .font(.system(size: 9))
+                                    .foregroundColor(.red)
+                                    .lineLimit(1)
+                            }
+                            .padding(.leading, 24)
                         }
 
-                        if vpn.isConnecting {
-                            ProgressView()
-                                .controlSize(.mini)
-                        } else {
-                            Toggle("", isOn: Binding(
-                                get: { vpn.isConnected },
-                                set: { _ in vpn.toggle() }
-                            ))
-                            .toggleStyle(.switch)
-                            .controlSize(.mini)
-                            .labelsHidden()
+                        // Conflict warning
+                        if vpn.hasConflictingVPN {
+                            HStack(spacing: 4) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 9))
+                                    .foregroundColor(.orange)
+                                Text("\u{0414}\u{0440}\u{0443}\u{0433}\u{043e}\u{0439} VPN: \(vpn.conflictingVPNName)")
+                                    .font(.system(size: 9))
+                                    .foregroundColor(.orange)
+                                Spacer()
+                                Button(action: { vpn.openVPNSettings() }) {
+                                    Text("\u{041d}\u{0430}\u{0441}\u{0442}\u{0440}\u{043e}\u{0439}\u{043a}\u{0438}")
+                                        .font(.system(size: 9))
+                                        .foregroundColor(gold)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            .padding(.leading, 24)
                         }
                     }
-                    .padding(.vertical, 1)
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 6)

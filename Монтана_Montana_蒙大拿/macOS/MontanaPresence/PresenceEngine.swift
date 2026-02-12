@@ -75,6 +75,18 @@ class PresenceEngine: ObservableObject {
 
     var epochNumber: Int { epochDays / 7 + 1 }
 
+    // ╔══════════════════════════════════════════════════════════════════╗
+    // ║  IMMUTABLE BLOCK — SENSOR MODEL                                 ║
+    // ║  НЕ МЕНЯТЬ. Это неизменяемый блок кода.                         ║
+    // ║                                                                 ║
+    // ║  Правила:                                                       ║
+    // ║  1. Разрешение есть + тумблер ON = датчик активен               ║
+    // ║     (якорь присутствия, данные НЕ собирает/НЕ отправляет)       ║
+    // ║  2. Разрешения нет ИЛИ тумблер OFF = всё выключено              ║
+    // ║     (ничего не собирает, никуда не отправляет)                   ║
+    // ║  3. На старте: тумблер ON без разрешения → автоотключение        ║
+    // ║  4. Вес = активные датчики + 1 (базовое присутствие) + VPN      ║
+    // ╚══════════════════════════════════════════════════════════════════╝
     var weight: Int {
         sensors.filter { $0.enabled && (sensorPermissions[$0.id] ?? false) }.reduce(0) { $0 + $1.rate } + 1 + (VPNManager.shared.isConnected ? 1 : 0)
     }
@@ -285,10 +297,30 @@ class PresenceEngine: ObservableObject {
             "autostart": true,
         ]
 
-        // Sync only on TRANSITIONS:
-        // - Permission false → true: auto-enable sensor
-        // - Permission true → false: auto-disable sensor
-        // - No change: respect user's toggle choice
+        // ╔══════════════════════════════════════════════════════════════════╗
+        // ║  IMMUTABLE BLOCK — PERMISSION SYNC                              ║
+        // ║  НЕ МЕНЯТЬ. Это неизменяемый блок кода.                         ║
+        // ║                                                                 ║
+        // ║  Первый вызов (старт приложения):                               ║
+        // ║  - НЕ включать датчики автоматически                            ║
+        // ║  - ВЫКЛЮЧИТЬ датчики у которых тумблер ON но разрешения нет     ║
+        // ║  → UI не врёт: если тумблер ON, датчик реально считается        ║
+        // ║                                                                 ║
+        // ║  Последующие вызовы (transition sync):                          ║
+        // ║  - Разрешение дано → автовключение                              ║
+        // ║  - Разрешение отозвано → автоотключение                         ║
+        // ║  - Без изменений → уважаем выбор пользователя                   ║
+        // ╚══════════════════════════════════════════════════════════════════╝
+        if oldPermissions.isEmpty {
+            // First call: don't auto-enable, but auto-disable sensors without permission
+            for (id, allowed) in sensorPermissions {
+                if !allowed, let idx = sensors.firstIndex(where: { $0.id == id }), sensors[idx].enabled {
+                    sensors[idx].enabled = false
+                    UserDefaults.standard.set(false, forKey: "sensor_\(id)")
+                }
+            }
+            return
+        }
         for (id, allowed) in sensorPermissions {
             let wasAllowed = oldPermissions[id] ?? false
             if let idx = sensors.firstIndex(where: { $0.id == id }) {
