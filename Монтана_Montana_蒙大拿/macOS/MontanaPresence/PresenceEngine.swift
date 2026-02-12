@@ -116,26 +116,30 @@ class PresenceEngine: ObservableObject {
         refreshPermissions()
     }
 
-    // One-time fix: old code auto-disabled activity via AXIsProcessTrusted() cache
+    // Migration: reset all sensors to OFF on first run with new defaults
     private func migrateActivitySensor() {
-        if !UserDefaults.standard.bool(forKey: "activity_anchor_fix_v1") {
-            UserDefaults.standard.set(true, forKey: "sensor_activity")
-            UserDefaults.standard.set(true, forKey: "activity_anchor_fix_v1")
+        if !UserDefaults.standard.bool(forKey: "sensor_defaults_off_v1") {
+            for key in ["sensor_camera", "sensor_mic", "sensor_location", "sensor_activity",
+                        "sensor_appdata", "sensor_bluetooth", "sensor_wifi", "sensor_autostart"] {
+                UserDefaults.standard.set(false, forKey: key)
+            }
+            UserDefaults.standard.set(true, forKey: "sensor_defaults_off_v1")
         }
     }
 
     private func registerSensorDefaults() {
         // Sensors are ANCHORS of presence — they verify sensor availability,
         // NOT collect or transmit data. Each permission = proof of anchor = +1 weight.
+        // Default: ALL OFF. User grants permission → sensor auto-enables via transition sync.
         let defaults: [String: Any] = [
-            "sensor_camera": true,
-            "sensor_mic": true,
-            "sensor_location": true,
-            "sensor_activity": true,
-            "sensor_appdata": true,
-            "sensor_bluetooth": true,
-            "sensor_wifi": true,
-            "sensor_autostart": true
+            "sensor_camera": false,
+            "sensor_mic": false,
+            "sensor_location": false,
+            "sensor_activity": false,
+            "sensor_appdata": false,
+            "sensor_bluetooth": false,
+            "sensor_wifi": false,
+            "sensor_autostart": false
         ]
         UserDefaults.standard.register(defaults: defaults)
     }
