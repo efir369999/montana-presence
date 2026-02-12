@@ -1037,18 +1037,16 @@ def api_presence():
         return jsonify({"error": "INVALID_SECONDS"}), 400
 
     try:
-        from time_bank import TimeBank
-        tb = TimeBank()
-        tb.activity(address, "presence_app")
-
         # Credit reported seconds directly (client is the presence authority)
         if seconds > 0:
-            wallets = load_wallets()
-            if address not in wallets:
-                wallets[address] = {"balance": 0, "type": "presence_app"}
-            wallets[address]["balance"] = wallets.get(address, {}).get("balance", 0) + seconds
-            wallets[address]["pq_verified"] = verified
-            save_wallets(wallets)
+            with _wallet_lock:
+                wallets = load_wallets()
+                if address not in wallets:
+                    wallets[address] = {"balance": 0, "type": "presence_app"}
+                wallets[address]["balance"] = wallets.get(address, {}).get("balance", 0) + seconds
+                wallets[address]["pq_verified"] = verified
+                wallets[address]["last_seen"] = datetime.utcnow().isoformat()
+                save_wallets(wallets)
 
             # Record in EventLedger for P2P replication
             if EVENT_LEDGER_AVAILABLE:
