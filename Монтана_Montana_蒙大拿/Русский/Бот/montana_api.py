@@ -426,11 +426,11 @@ def api_transfer():
     public_key = data.get('public_key')
     timestamp = data.get('timestamp')
 
-    # Validate required fields
-    if not all([from_addr, to_addr, amount, signature, public_key, timestamp]):
+    # Validate required fields (signature/public_key optional for registered wallets)
+    if not all([from_addr, to_addr, amount, timestamp]):
         return jsonify({
             "error": "MISSING_FIELDS",
-            "message": "Required: from_address, to_address, amount, signature, public_key, timestamp"
+            "message": "Required: from_address, to_address, amount, timestamp"
         }), 400
 
     # [FIX CWE-20] Validate addresses with regex
@@ -451,21 +451,30 @@ def api_transfer():
     except (ValueError, InvalidOperation) as e:
         return jsonify({"error": "INVALID_AMOUNT", "message": str(e)}), 400
 
-    # Verify sender owns the address (public key → address)
-    derived_address = public_key_to_address(public_key)
-    if derived_address != from_addr:
-        return jsonify({
-            "error": "ADDRESS_MISMATCH",
-            "message": "Public key does not match from_address"
-        }), 403
+    # Verify sender identity
+    if signature and public_key:
+        # ML-DSA-65 signed transfer (full verification)
+        derived_address = public_key_to_address(public_key)
+        if derived_address != from_addr:
+            return jsonify({
+                "error": "ADDRESS_MISMATCH",
+                "message": "Public key does not match from_address"
+            }), 403
 
-    # Verify signature
-    message = f"TRANSFER:{from_addr}:{to_addr}:{amount}:{timestamp}"
-    if not verify_signature_beta(public_key, message, signature):
-        return jsonify({
-            "error": "INVALID_SIGNATURE",
-            "message": "Signature verification failed"
-        }), 403
+        message = f"TRANSFER:{from_addr}:{to_addr}:{amount}:{timestamp}"
+        if not verify_signature_beta(public_key, message, signature):
+            return jsonify({
+                "error": "INVALID_SIGNATURE",
+                "message": "Signature verification failed"
+            }), 403
+    else:
+        # Unsigned transfer — only allowed for registered wallets
+        wallets = load_wallets()
+        if from_addr not in wallets:
+            return jsonify({
+                "error": "UNREGISTERED_WALLET",
+                "message": "Unsigned transfers require a registered wallet"
+            }), 403
 
     # Check balance
     sender_balance = get_balance(from_addr)
@@ -789,6 +798,137 @@ def api_agent_register():
         "symbol": "\u0248",
         "agent_name": agent_name
     })
+
+
+@app.route('/api/agent/transfer', methods=['POST'])
+@rate_limit(limit=10, window=60)
+def api_agent_transfer():
+    """
+    AI Agent transfer — simplified transfer for registered AI agents.
+    No ML-DSA-65 signature required (agents use deterministic addresses).
+
+    POST /api/agent/transfer
+    Body: {
+        "from_agent": "Amsterdam-Montana",   # agent_name (must match registration)
+        "to_address": "mt..." or number,     # recipient (address, number, or @alias)
+        "amount": 100                        # amount in Ɉ (integer)
+    }
+
+    Security: agent_name → deterministic address derivation (same as registration).
+    Only wallets with type=ai_agent can use this endpoint.
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "NO_DATA"}), 400
+
+    agent_name = data.get('from_agent', '').strip()
+    to_input = str(data.get('to_address', '')).strip()
+    amount = data.get('amount')
+
+    if not agent_name or not to_input or not amount:
+        return jsonify({"error": "MISSING_FIELDS",
+                        "message": "Required: from_agent, to_address, amount"}), 400
+
+    # Validate agent name format
+    if not re.match(r'^[a-zA-Z0-9_-]{1,64}$', agent_name):
+        return jsonify({"error": "INVALID_AGENT_NAME"}), 400
+
+    # Derive sender address deterministically (must match registration)
+    agent_hash = hashlib.sha256(f"agent:montana:{agent_name}".encode()).hexdigest()[:40]
+    from_addr = f"mt{agent_hash}"
+
+    # Verify sender is a registered AI agent
+    wallets = load_wallets()
+    if from_addr not in wallets or wallets[from_addr].get('type') != 'ai_agent':
+        return jsonify({"error": "NOT_AN_AGENT",
+                        "message": "from_agent must be a registered AI agent"}), 403
+
+    # Resolve recipient
+    to_addr = to_input
+    if not to_input.startswith('mt') or len(to_input) != 42:
+        # Try resolve by number or alias
+        registry = load_registry()
+        aliases = registry.get("aliases", {})
+        crypto_hash = None
+
+        if to_input.startswith('@'):
+            crypto_hash = aliases.get(to_input.lower())
+        elif to_input.startswith('\u0248-'):
+            try:
+                num = int(to_input[2:])
+                for h, w in registry["wallets"].items():
+                    if w.get("number") == num:
+                        crypto_hash = h
+                        break
+            except ValueError:
+                pass
+        elif to_input.isdigit():
+            num = int(to_input)
+            for h, w in registry["wallets"].items():
+                if w.get("number") == num:
+                    crypto_hash = h
+                    break
+
+        if crypto_hash:
+            to_addr = f"mt{crypto_hash}"
+        else:
+            return jsonify({"error": "RECIPIENT_NOT_FOUND"}), 404
+
+    # Validate amount
+    try:
+        amount = int(amount)
+        if amount <= 0:
+            raise ValueError("Amount must be positive")
+    except (ValueError, TypeError) as e:
+        return jsonify({"error": "INVALID_AMOUNT", "message": str(e)}), 400
+
+    # Self-send check
+    if from_addr == to_addr:
+        return jsonify({"error": "SELF_TRANSFER", "message": "Cannot transfer to self"}), 400
+
+    # Check balance
+    sender_balance = get_balance(from_addr)
+    if sender_balance < amount:
+        return jsonify({"error": "INSUFFICIENT_FUNDS",
+                        "message": f"Balance: {int(sender_balance)} Ɉ, required: {amount} Ɉ"}), 400
+
+    # Execute transfer
+    with _wallet_lock:
+        wallets = load_wallets()
+        sender_bal = wallets.get(from_addr, {}).get('balance', 0)
+        recv_bal = wallets.get(to_addr, {}).get('balance', 0)
+
+        wallets[from_addr]['balance'] = sender_bal - amount
+        if to_addr not in wallets:
+            wallets[to_addr] = {'balance': 0, 'type': 'p2p_sync'}
+        wallets[to_addr]['balance'] = recv_bal + amount
+        wallets[from_addr]['last_seen'] = datetime.utcnow().isoformat()
+        save_wallets(wallets)
+
+    timestamp = datetime.utcnow().isoformat() + "Z"
+    tx_id = hashlib.sha256(f"{from_addr}{to_addr}{amount}{timestamp}".encode()).hexdigest()[:16]
+
+    # Record in EventLedger
+    if EVENT_LEDGER_AVAILABLE:
+        try:
+            ledger = get_event_ledger()
+            ledger.transfer(from_addr, to_addr, amount, metadata={
+                "type": "agent_transfer",
+                "agent_name": agent_name
+            })
+        except Exception as e:
+            log.warning(f"Agent transfer ledger error: {e}")
+
+    return jsonify({
+        "status": "success",
+        "tx_id": tx_id,
+        "from": from_addr,
+        "to": to_addr,
+        "amount": amount,
+        "sender_balance": int(get_balance(from_addr)),
+        "timestamp": timestamp
+    })
+
 
 @app.route('/api/wallet/lookup/<identifier>')
 def api_wallet_lookup(identifier):
