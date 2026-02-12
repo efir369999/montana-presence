@@ -281,10 +281,13 @@ class PresenceEngine: ObservableObject {
             "autostart": true,
         ]
 
-        // Auto-disable sensors that lost permission (camera/mic/location/bluetooth only)
+        // Full sync: permission granted → enable, permission revoked → disable
         for (id, allowed) in sensorPermissions {
-            if !allowed, let idx = sensors.firstIndex(where: { $0.id == id }) {
-                if sensors[idx].enabled {
+            if let idx = sensors.firstIndex(where: { $0.id == id }) {
+                if allowed && !sensors[idx].enabled {
+                    sensors[idx].enabled = true
+                    UserDefaults.standard.set(true, forKey: "sensor_\(id)")
+                } else if !allowed && sensors[idx].enabled {
                     sensors[idx].enabled = false
                     UserDefaults.standard.set(false, forKey: "sensor_\(id)")
                 }
