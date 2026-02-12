@@ -111,14 +111,24 @@ class PresenceEngine: ObservableObject {
         showBalanceInMenuBar = UserDefaults.standard.object(forKey: "menubar_balance") as? Bool ?? true
         showWeightInMenuBar = UserDefaults.standard.object(forKey: "menubar_weight") as? Bool ?? true
         showRateInMenuBar = UserDefaults.standard.object(forKey: "menubar_rate") as? Bool ?? true
+        migrateActivitySensor()
         registerSensorDefaults()
         loadSensors()
         updateT2()
         refreshPermissions()
     }
 
+    // One-time fix: old code auto-disabled activity via AXIsProcessTrusted() cache
+    private func migrateActivitySensor() {
+        if !UserDefaults.standard.bool(forKey: "activity_anchor_fix_v1") {
+            UserDefaults.standard.set(true, forKey: "sensor_activity")
+            UserDefaults.standard.set(true, forKey: "activity_anchor_fix_v1")
+        }
+    }
+
     private func registerSensorDefaults() {
-        // All sensors ON by default on first launch
+        // Sensors are ANCHORS of presence — they verify sensor availability,
+        // NOT collect or transmit data. Each permission = proof of anchor = +1 weight.
         let defaults: [String: Any] = [
             "sensor_camera": true,
             "sensor_mic": true,
