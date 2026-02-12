@@ -29,7 +29,7 @@ struct ReceiveView: View {
                     .foregroundColor(cyan)
                     .textSelection(.enabled)
 
-                Text("Просто назовите отправителю этот номер")
+                Text("Назовите номер отправителю или нажмите Копировать")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -38,7 +38,7 @@ struct ReceiveView: View {
             Divider()
 
             if let addr = engine.address, !addr.isEmpty {
-                let qrString = walletNum > 0 ? "\u{0248}-\(walletNum)" : addr
+                let qrString = walletNum > 0 ? "\(walletNum)" : addr
                 if let qrImage = generateQR(from: qrString) {
                     Image(nsImage: qrImage)
                         .resizable()
@@ -63,13 +63,13 @@ struct ReceiveView: View {
                     if walletNum > 0 {
                         Button(action: {
                             NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString("\u{0248}-\(walletNum)", forType: .string)
+                            NSPasteboard.general.setString("\(walletNum)", forType: .string)
                             copiedAlias = true
                             DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copiedAlias = false }
                         }) {
                             HStack {
                                 Image(systemName: copiedAlias ? "checkmark" : "doc.on.doc")
-                                Text(copiedAlias ? "Скопировано!" : "Копировать алиас \u{0248}-\(walletNum)")
+                                Text(copiedAlias ? "Скопировано!" : "Копировать номер \(walletNum)")
                             }
                             .frame(maxWidth: .infinity)
                         }
