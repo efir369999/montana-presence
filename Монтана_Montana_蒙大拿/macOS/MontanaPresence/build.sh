@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Montana v2.10.0 menu bar app
+# Build Montana v2.11.0 menu bar app
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$DIR/Montana.app"
 
-echo "Building Montana v2.10.0..."
+echo "Building Montana v2.11.0..."
 
 # Clean
 rm -rf "$APP"

@@ -4,45 +4,77 @@ import AVFoundation
 
 @main
 struct MontanaPresenceApp: App {
-    @StateObject private var engine = PresenceEngine.shared
-    @StateObject private var camera = CameraManager.shared
-    @StateObject private var updater = UpdateManager.shared
-    @StateObject private var vpn = VPNManager.shared
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
-        MenuBarExtra {
-            MenuBarView()
-                .environmentObject(engine)
-                .environmentObject(camera)
-                .environmentObject(updater)
-                .environmentObject(vpn)
-        } label: {
-            Text(menuBarLabel)
-                .font(.system(size: 12, weight: .medium, design: .monospaced))
-        }
-        .menuBarExtraStyle(.window)
-
         Settings {
             SettingsView()
-                .environmentObject(engine)
-                .environmentObject(updater)
-                .environmentObject(vpn)
+                .environmentObject(PresenceEngine.shared)
+                .environmentObject(UpdateManager.shared)
+                .environmentObject(VPNManager.shared)
         }
     }
+}
 
-    init() {
+@MainActor
+class AppDelegate: NSObject, NSApplicationDelegate {
+    var statusItem: NSStatusItem!
+    var popover: NSPopover!
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        setupStatusItem()
+        setupPopover()
+
+        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.updateLabel() }
+        }
+
         try? SMAppService.mainApp.register()
         Task { @MainActor in
             UpdateManager.shared.startChecking()
-            await MontanaPresenceApp.requestAllPermissions()
             PresenceEngine.shared.autoStart()
         }
     }
 
-    private var menuBarLabel: String {
+    private func setupStatusItem() {
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        if let button = statusItem.button {
+            button.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
+            button.title = "\u{0248}"
+            button.target = self
+            button.action = #selector(handleClick(_:))
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+        }
+        updateLabel()
+    }
+
+    private func setupPopover() {
+        popover = NSPopover()
+        popover.contentSize = NSSize(width: 320, height: 720)
+        popover.behavior = .transient
+        popover.animates = false
+        popover.appearance = NSAppearance(named: .darkAqua)
+
+        let hostingController = NSHostingController(
+            rootView: MenuBarView()
+                .environmentObject(PresenceEngine.shared)
+                .environmentObject(CameraManager.shared)
+                .environmentObject(UpdateManager.shared)
+                .environmentObject(VPNManager.shared)
+        )
+        popover.contentViewController = hostingController
+    }
+
+    @MainActor
+    private func updateLabel() {
+        let engine = PresenceEngine.shared
         var parts: [String] = []
         if engine.showBalanceInMenuBar {
-            parts.append("\(formatFullBalance(engine.displayBalance)) \u{0248}")
+            let formatter = NumberFormatter()
+            formatter.numberStyle = .decimal
+            formatter.groupingSeparator = ","
+            let s = formatter.string(from: NSNumber(value: engine.displayBalance)) ?? "\(engine.displayBalance)"
+            parts.append("\(s) \u{0248}")
         } else {
             parts.append("\u{0248}")
         }
@@ -52,31 +84,66 @@ struct MontanaPresenceApp: App {
         if engine.showRateInMenuBar {
             parts.append("+\(engine.ratePerSecond)/\u{0441}")
         }
-        return parts.joined(separator: " ")
+        statusItem.button?.title = parts.joined(separator: " ")
     }
 
-    private func formatFullBalance(_ n: Int) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.groupingSeparator = ","
-        return formatter.string(from: NSNumber(value: n)) ?? "\(n)"
+    // Left click → popover, Right click → context menu
+    @objc func handleClick(_ sender: NSStatusBarButton) {
+        guard let event = NSApp.currentEvent else { return }
+        if event.type == .rightMouseUp {
+            showContextMenu()
+        } else {
+            togglePopover(sender)
+        }
     }
 
-    @MainActor
-    static func requestAllPermissions() async {
-        // 1. Camera
-        if AVCaptureDevice.authorizationStatus(for: .video) == .notDetermined {
-            await AVCaptureDevice.requestAccess(for: .video)
+    private func togglePopover(_ sender: NSStatusBarButton) {
+        if popover.isShown {
+            popover.performClose(nil)
+        } else {
+            popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .minY)
+            popover.contentViewController?.view.window?.makeKey()
         }
-        // 2. Microphone
-        if AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined {
-            await AVCaptureDevice.requestAccess(for: .audio)
+    }
+
+    private func showContextMenu() {
+        let menu = NSMenu()
+
+        let settingsItem = NSMenuItem(title: "\u{041d}\u{0430}\u{0441}\u{0442}\u{0440}\u{043e}\u{0439}\u{043a}\u{0438}", action: #selector(openSettings), keyEquivalent: ",")
+        settingsItem.target = self
+        menu.addItem(settingsItem)
+
+        let aboutItem = NSMenuItem(title: "\u{041e} \u{043f}\u{0440}\u{043e}\u{0433}\u{0440}\u{0430}\u{043c}\u{043c}\u{0435}", action: #selector(showAbout), keyEquivalent: "")
+        aboutItem.target = self
+        menu.addItem(aboutItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        let quitItem = NSMenuItem(title: "\u{0412}\u{044b}\u{0439}\u{0442}\u{0438}", action: #selector(quitApp), keyEquivalent: "q")
+        quitItem.target = self
+        menu.addItem(quitItem)
+
+        statusItem.menu = menu
+        statusItem.button?.performClick(nil)
+        statusItem.menu = nil
+    }
+
+    @objc func openSettings() {
+        NSApp.activate(ignoringOtherApps: true)
+        if #available(macOS 14.0, *) {
+            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        } else {
+            NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
         }
-        // 3. Location
-        PresenceEngine.shared.requestLocationPermission()
-        try? await Task.sleep(nanoseconds: 2_000_000_000)
-        // 4. Bluetooth
-        PresenceEngine.shared.requestBluetoothPermission()
-        try? await Task.sleep(nanoseconds: 500_000_000)
+    }
+
+    @objc func showAbout() {
+        NSApp.activate(ignoringOtherApps: true)
+        NSApp.orderFrontStandardAboutPanel(nil)
+    }
+
+    @objc func quitApp() {
+        PresenceEngine.shared.stopTracking()
+        NSApp.terminate(nil)
     }
 }
