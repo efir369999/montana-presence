@@ -9,6 +9,7 @@ struct SendView: View {
     @State private var resolvedAddress = ""
     @State private var resolvedAlias = ""
     @State private var isSending = false
+    @FocusState private var recipientFocused: Bool
     @Environment(\.dismiss) private var dismiss
 
     private let cyan = Color(red: 0, green: 0.83, blue: 1)
@@ -27,10 +28,10 @@ struct SendView: View {
             }
 
             HStack {
-                Text("Баланс:")
+                Text("\u{0414}\u{043e}\u{0441}\u{0442}\u{0443}\u{043f}\u{043d}\u{043e}:")
                     .foregroundColor(.secondary)
                 Spacer()
-                Text("\(engine.serverBalance) \u{0248}")
+                Text("\(engine.availableBalance) \u{0248}")
                     .font(.system(.body, design: .monospaced))
                     .foregroundColor(cyan)
             }
@@ -38,14 +39,25 @@ struct SendView: View {
             Divider()
 
             HStack {
-                TextField("\u{0248}-1 или mt...", text: $recipient)
+                TextField("Номер или mt...", text: $recipient)
                     .font(.system(.body, design: .monospaced))
                     .textFieldStyle(.roundedBorder)
+                    .focused($recipientFocused)
                     .onSubmit { resolveRecipient() }
+                    .onChange(of: recipient) { _ in
+                        resolvedAddress = ""
+                        resolvedAlias = ""
+                        statusText = ""
+                    }
+                    .onChange(of: recipientFocused) { focused in
+                        if !focused && !recipient.isEmpty && resolvedAddress.isEmpty {
+                            resolveRecipient()
+                        }
+                    }
 
                 Button(action: {
                     if let str = NSPasteboard.general.string(forType: .string) {
-                        recipient = str.trimmingCharacters(in: .whitespacesAndNewlines)
+                        recipient = String(str.trimmingCharacters(in: .whitespacesAndNewlines).prefix(100))
                         resolveRecipient()
                     }
                 }) {
@@ -77,8 +89,8 @@ struct SendView: View {
                 quickBtn(100)
                 quickBtn(1000)
                 quickBtn(10000)
-                Button("Все") {
-                    amount = "\(engine.serverBalance)"
+                Button("\u{0412}\u{0441}\u{0435}") {
+                    amount = "\(engine.availableBalance)"
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
@@ -115,7 +127,7 @@ struct SendView: View {
     }
 
     private var canSend: Bool {
-        guard let amt = Int(amount), amt > 0, amt <= engine.serverBalance else { return false }
+        guard let amt = Int(amount), amt > 0, amt <= engine.availableBalance else { return false }
         return !resolvedAddress.isEmpty && !isSending
     }
 
