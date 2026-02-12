@@ -197,6 +197,116 @@ class MontanaAPIClient {
         }
     }
 
+    // ═══════════════════════════════════════════════════════════════════
+    //  AI Agent API — register wallet, manage balance
+    // ═══════════════════════════════════════════════════════════════════
+
+    struct AgentWallet {
+        var number: Int
+        var alias: String
+        var address: String
+        var cryptoHash: String
+    }
+
+    /// Register AI agent wallet by address, get sequential number
+    func registerAgentWallet(address: String, alias: String? = nil) async throws -> AgentWallet {
+        return try await tryAllEndpoints { endpoint in
+            guard let url = URL(string: "\(endpoint)/api/wallet/register") else {
+                throw URLError(.badURL)
+            }
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.timeoutInterval = 10
+
+            var body: [String: Any] = ["address": address]
+            if let alias = alias { body["alias"] = alias }
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                throw URLError(.cannotParseResponse)
+            }
+
+            return AgentWallet(
+                number: json["number"] as? Int ?? 0,
+                alias: json["alias"] as? String ?? "",
+                address: json["address"] as? String ?? "",
+                cryptoHash: json["crypto_hash"] as? String ?? ""
+            )
+        }
+    }
+
+    /// Register AI agent wallet with public key (ML-DSA-65)
+    func registerWithPublicKey(publicKey: String) async throws -> (address: String, balance: Int) {
+        return try await tryAllEndpoints { endpoint in
+            guard let url = URL(string: "\(endpoint)/api/register") else {
+                throw URLError(.badURL)
+            }
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.timeoutInterval = 10
+            request.httpBody = try JSONSerialization.data(withJSONObject: ["public_key": publicKey])
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                throw URLError(.cannotParseResponse)
+            }
+
+            return (
+                json["address"] as? String ?? "",
+                Int(json["balance"] as? Double ?? 0)
+            )
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  TimeChain Explorer API — events & addresses
+    // ═══════════════════════════════════════════════════════════════════
+
+    func fetchEvents(limit: Int = 50) async throws -> [[String: Any]] {
+        return try await tryAllEndpoints { endpoint in
+            guard let url = URL(string: "\(endpoint)/api/node/events?limit=\(limit)") else {
+                throw URLError(.badURL)
+            }
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 10
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let events = json["events"] as? [[String: Any]] else {
+                throw URLError(.cannotParseResponse)
+            }
+            return events
+        }
+    }
+
+    func fetchAddresses() async throws -> [[String: Any]] {
+        return try await tryAllEndpoints { endpoint in
+            guard let url = URL(string: "\(endpoint)/api/addresses") else {
+                throw URLError(.badURL)
+            }
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 10
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let addresses = json["addresses"] as? [[String: Any]] else {
+                throw URLError(.cannotParseResponse)
+            }
+            return addresses
+        }
+    }
+
     private func tryAllEndpoints<T>(_ operation: (String) async throws -> T) async throws -> T {
         var lastError: Error = URLError(.cannotConnectToHost)
         for endpoint in endpoints {

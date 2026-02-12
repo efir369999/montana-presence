@@ -8,6 +8,7 @@ struct MenuBarView: View {
     @EnvironmentObject var vpn: VPNManager
     @State private var showSend = false
     @State private var showReceive = false
+    @State private var showExplorer = false
     @State private var showSensorInfo: String? = nil
     @State private var showNetworkNodes = false
 
@@ -62,16 +63,13 @@ struct MenuBarView: View {
 
                 sep()
 
-                // ── MENU BAR DISPLAY ──
+                // ── ВИДИМОСТЬ В МЕНЮ БАРЕ ──
                 VStack(spacing: 2) {
-                    menuBarRow(icon: "number", name: "\u{0411}\u{0430}\u{043b}\u{0430}\u{043d}\u{0441}", enabled: engine.showBalanceInMenuBar) {
+                    menuBarEyeRow(icon: "number", name: "\u{0411}\u{0430}\u{043b}\u{0430}\u{043d}\u{0441}", enabled: engine.showBalanceInMenuBar) {
                         engine.toggleMenuBarBalance()
                     }
-                    menuBarRow(icon: "scalemass", name: "\u{0412}\u{0435}\u{0441}", enabled: engine.showWeightInMenuBar) {
+                    menuBarEyeRow(icon: "scalemass", name: "\u{0412}\u{0435}\u{0441}", enabled: engine.showWeightInMenuBar) {
                         engine.toggleMenuBarWeight()
-                    }
-                    menuBarRow(icon: "speedometer", name: "\u{0421}\u{043a}\u{043e}\u{0440}\u{043e}\u{0441}\u{0442}\u{044c}", enabled: engine.showRateInMenuBar) {
-                        engine.toggleMenuBarRate()
                     }
                 }
                 .padding(.horizontal, 16)
@@ -79,64 +77,84 @@ struct MenuBarView: View {
 
                 sep()
 
-                // ── SEND / RECEIVE ──
-                HStack(spacing: 8) {
-                    Button(action: { showSend = true }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "arrow.up.circle.fill")
-                                .font(.system(size: 13))
-                            Text("\u{041e}\u{0442}\u{043f}\u{0440}\u{0430}\u{0432}\u{0438}\u{0442}\u{044c}")
-                                .font(.system(size: 13, weight: .semibold))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(gold.opacity(0.15))
-                        .foregroundColor(gold)
-                        .cornerRadius(8)
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(gold.opacity(0.3), lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
-                    .popover(isPresented: $showSend) {
-                        SendView().environmentObject(engine)
-                    }
-
-                    Button(action: { showReceive = true }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "arrow.down.circle.fill")
-                                .font(.system(size: 13))
-                            Text("\u{041f}\u{043e}\u{043b}\u{0443}\u{0447}\u{0438}\u{0442}\u{044c}")
-                                .font(.system(size: 13, weight: .semibold))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(goldDim.opacity(0.15))
-                        .foregroundColor(goldLight)
-                        .cornerRadius(8)
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(goldDim.opacity(0.3), lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
-                    .popover(isPresented: $showReceive) {
-                        ReceiveView().environmentObject(engine)
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-
-                sep()
-
                 // ── КОШЕЛЁК ──
-                VStack(spacing: 4) {
+                VStack(spacing: 6) {
                     row(icon: engine.ledgerVerified ? "checkmark.shield.fill" : "shield.slash",
                         iconColor: engine.ledgerVerified ? .green : .orange,
                         label: "\u{041a}\u{043e}\u{0448}\u{0435}\u{043b}\u{0451}\u{043a}",
                         value: engine.ledgerVerified ? "\u{0432}\u{0435}\u{0440}\u{0438}\u{0444}\u{0438}\u{0446}\u{0438}\u{0440}\u{043e}\u{0432}\u{0430}\u{043d}" : "\u{043d}\u{0435} \u{043f}\u{0440}\u{043e}\u{0432}\u{0435}\u{0440}\u{0435}\u{043d}",
                         valueColor: engine.ledgerVerified ? .green : .orange)
 
-                    row(icon: "doc.text.magnifyingglass",
-                        iconColor: goldDim,
-                        label: "\u{0411}\u{0430}\u{043b}\u{0430}\u{043d}\u{0441} \u{043a}\u{043e}\u{0448}\u{0435}\u{043b}\u{044c}\u{043a}\u{0430}",
-                        value: "\(formatNumber(engine.ledgerBalance)) \u{0248}",
-                        valueColor: Color.white.opacity(0.5))
+                    row(icon: "banknote",
+                        iconColor: gold,
+                        label: "\u{0414}\u{043e}\u{0441}\u{0442}\u{0443}\u{043f}\u{043d}\u{043e}",
+                        value: "\(formatNumber(engine.availableBalance)) \u{0248}",
+                        valueColor: gold)
+
+                    // ── ОТПРАВИТЬ / ПОЛУЧИТЬ ──
+                    HStack(spacing: 8) {
+                        Button(action: { showSend = true }) {
+                            HStack(spacing: 5) {
+                                Text("\u{0248}")
+                                    .font(.system(size: 15, weight: .bold))
+                                Image(systemName: "arrow.up")
+                                    .font(.system(size: 11, weight: .bold))
+                                Text("\u{041e}\u{0442}\u{043f}\u{0440}\u{0430}\u{0432}\u{0438}\u{0442}\u{044c}")
+                                    .font(.system(size: 12, weight: .semibold))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 9)
+                            .background(gold.opacity(0.15))
+                            .foregroundColor(gold)
+                            .cornerRadius(8)
+                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(gold.opacity(0.3), lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                        .popover(isPresented: $showSend) {
+                            SendView().environmentObject(engine)
+                        }
+
+                        Button(action: { showReceive = true }) {
+                            HStack(spacing: 5) {
+                                Text("\u{0248}")
+                                    .font(.system(size: 15, weight: .bold))
+                                Image(systemName: "arrow.down")
+                                    .font(.system(size: 11, weight: .bold))
+                                Text("\u{041f}\u{043e}\u{043b}\u{0443}\u{0447}\u{0438}\u{0442}\u{044c}")
+                                    .font(.system(size: 12, weight: .semibold))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 9)
+                            .background(goldDim.opacity(0.15))
+                            .foregroundColor(goldLight)
+                            .cornerRadius(8)
+                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(goldDim.opacity(0.3), lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                        .popover(isPresented: $showReceive) {
+                            ReceiveView().environmentObject(engine)
+                        }
+                    }
+
+                    // ── ОБОЗРЕВАТЕЛЬ ──
+                    Button(action: { showExplorer = true }) {
+                        HStack(spacing: 5) {
+                            Image(systemName: "cube.transparent")
+                                .font(.system(size: 13, weight: .bold))
+                            Text("\u{041e}\u{0431}\u{043e}\u{0437}\u{0440}\u{0435}\u{0432}\u{0430}\u{0442}\u{0435}\u{043b}\u{044c}")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                        .background(goldDim.opacity(0.15))
+                        .foregroundColor(goldLight)
+                        .cornerRadius(8)
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(goldDim.opacity(0.3), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showExplorer) {
+                        TimeChainExplorerView().environmentObject(engine)
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 6)
@@ -278,17 +296,6 @@ struct MenuBarView: View {
                                 .font(.system(size: 12))
                                 .foregroundColor(Color.white.opacity(vpn.isConnected ? 0.7 : 0.35))
 
-                            if vpn.isConnected {
-                                Text(vpn.vpnIP)
-                                    .font(.system(size: 9, design: .monospaced))
-                                    .foregroundColor(Color.white.opacity(0.3))
-                                if vpn.pingMs > 0 {
-                                    Text("\(vpn.pingMs)ms")
-                                        .font(.system(size: 9, design: .monospaced))
-                                        .foregroundColor(Color.white.opacity(0.3))
-                                }
-                            }
-
                             Spacer()
 
                             if vpn.isConnected {
@@ -297,19 +304,12 @@ struct MenuBarView: View {
                                     .foregroundColor(goldLight)
                             }
 
-                            if !vpn.isProfileInstalled {
-                                Button(action: { vpn.installProfile() }) {
-                                    Text("\u{0423}\u{0441}\u{0442}\u{0430}\u{043d}\u{043e}\u{0432}\u{0438}\u{0442}\u{044c}")
-                                        .font(.system(size: 10, weight: .medium))
-                                }
-                                .buttonStyle(.plain)
-                                .foregroundColor(gold)
-                            } else if vpn.isConnecting {
+                            if vpn.isConnecting {
                                 ProgressView()
                                     .controlSize(.mini)
                             } else {
                                 Toggle("", isOn: Binding(
-                                    get: { vpn.isConnected },
+                                    get: { vpn.isConnected || vpn.isConnecting },
                                     set: { _ in vpn.toggle() }
                                 ))
                                 .toggleStyle(.switch)
@@ -318,6 +318,76 @@ struct MenuBarView: View {
                             }
                         }
                         .padding(.vertical, 1)
+
+                        // Real VPN stats when connected
+                        if vpn.isConnected {
+                            VStack(spacing: 2) {
+                                HStack(spacing: 8) {
+                                    Text(vpn.vpnIP)
+                                        .font(.system(size: 9, design: .monospaced))
+                                        .foregroundColor(Color.white.opacity(0.4))
+                                    if vpn.pingMs > 0 {
+                                        Text("\(vpn.pingMs)ms")
+                                            .font(.system(size: 9, design: .monospaced))
+                                            .foregroundColor(Color.white.opacity(0.4))
+                                    }
+                                    if !vpn.vpnInterface.isEmpty {
+                                        Text(vpn.vpnInterface)
+                                            .font(.system(size: 9, design: .monospaced))
+                                            .foregroundColor(Color.white.opacity(0.25))
+                                    }
+                                    Spacer()
+                                    Text(formatDuration(vpn.sessionDuration))
+                                        .font(.system(size: 9, design: .monospaced))
+                                        .foregroundColor(goldLight)
+                                }
+                                HStack(spacing: 8) {
+                                    HStack(spacing: 3) {
+                                        Image(systemName: "arrow.down")
+                                            .font(.system(size: 8))
+                                            .foregroundColor(.green.opacity(0.6))
+                                        Text(VPNManager.formatBytes(vpn.bytesIn))
+                                            .font(.system(size: 9, design: .monospaced))
+                                            .foregroundColor(Color.white.opacity(0.35))
+                                    }
+                                    HStack(spacing: 3) {
+                                        Image(systemName: "arrow.up")
+                                            .font(.system(size: 8))
+                                            .foregroundColor(.orange.opacity(0.6))
+                                        Text(VPNManager.formatBytes(vpn.bytesOut))
+                                            .font(.system(size: 9, design: .monospaced))
+                                            .foregroundColor(Color.white.opacity(0.35))
+                                    }
+                                    Spacer()
+                                }
+                            }
+                            .padding(.leading, 24)
+                        }
+
+                        // Profile install guidance
+                        if vpn.needsProfileInstall {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.down.doc.fill")
+                                    .font(.system(size: 9))
+                                    .foregroundColor(gold)
+                                Text("Установите профиль в Настройках")
+                                    .font(.system(size: 9))
+                                    .foregroundColor(.white.opacity(0.5))
+                                    .lineLimit(1)
+                                Spacer()
+                                Button(action: { vpn.openProfileSettings() }) {
+                                    HStack(spacing: 2) {
+                                        Image(systemName: "gear")
+                                            .font(.system(size: 8))
+                                        Text("Настройки")
+                                            .font(.system(size: 9, weight: .semibold))
+                                    }
+                                    .foregroundColor(gold)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            .padding(.leading, 24)
+                        }
 
                         // Connection error
                         if let error = vpn.connectionError {
@@ -328,7 +398,7 @@ struct MenuBarView: View {
                                 Text(error)
                                     .font(.system(size: 9))
                                     .foregroundColor(.red)
-                                    .lineLimit(1)
+                                    .lineLimit(2)
                             }
                             .padding(.leading, 24)
                         }
@@ -339,12 +409,12 @@ struct MenuBarView: View {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .font(.system(size: 9))
                                     .foregroundColor(.orange)
-                                Text("\u{0414}\u{0440}\u{0443}\u{0433}\u{043e}\u{0439} VPN: \(vpn.conflictingVPNName)")
+                                Text("Другой VPN: \(vpn.conflictingVPNName)")
                                     .font(.system(size: 9))
                                     .foregroundColor(.orange)
                                 Spacer()
                                 Button(action: { vpn.openVPNSettings() }) {
-                                    Text("\u{041d}\u{0430}\u{0441}\u{0442}\u{0440}\u{043e}\u{0439}\u{043a}\u{0438}")
+                                    Text("Настройки")
                                         .font(.system(size: 9))
                                         .foregroundColor(gold)
                                 }
@@ -623,11 +693,11 @@ struct MenuBarView: View {
     // ── Version ──
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "2.10.0"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "2.15.0"
     }
 
     private var appBuild: String {
-        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "27"
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "33"
     }
 
     // ── Helpers ──
@@ -674,7 +744,7 @@ struct MenuBarView: View {
     }
 
     @ViewBuilder
-    private func menuBarRow(icon: String, name: String, enabled: Bool, action: @escaping () -> Void) -> some View {
+    private func menuBarEyeRow(icon: String, name: String, enabled: Bool, action: @escaping () -> Void) -> some View {
         HStack(spacing: 6) {
             Image(systemName: icon)
                 .font(.system(size: 12))
@@ -684,13 +754,13 @@ struct MenuBarView: View {
                 .font(.system(size: 12))
                 .foregroundColor(Color.white.opacity(0.7))
             Spacer()
-            Toggle("", isOn: Binding(
-                get: { enabled },
-                set: { _ in action() }
-            ))
-            .toggleStyle(.switch)
-            .controlSize(.mini)
-            .labelsHidden()
+            Button(action: action) {
+                Image(systemName: enabled ? "eye.fill" : "eye.slash")
+                    .font(.system(size: 13))
+                    .foregroundColor(enabled ? gold : Color.white.opacity(0.35))
+            }
+            .buttonStyle(.plain)
+            .help(enabled ? "\u{0421}\u{043a}\u{0440}\u{044b}\u{0442}\u{044c} \u{0432} \u{043c}\u{0435}\u{043d}\u{044e} \u{0431}\u{0430}\u{0440}\u{0435}" : "\u{041f}\u{043e}\u{043a}\u{0430}\u{0437}\u{0430}\u{0442}\u{044c} \u{0432} \u{043c}\u{0435}\u{043d}\u{044e} \u{0431}\u{0430}\u{0440}\u{0435}")
         }
         .padding(.vertical, 1)
     }

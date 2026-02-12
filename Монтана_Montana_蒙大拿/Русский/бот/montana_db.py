@@ -482,6 +482,56 @@ class MontanaDB:
         return row["total"] if row else 0
 
     # ═══════════════════════════════════════════════════════════════════════════════
+    #                              TIME_BANK COMPATIBILITY API
+    # ═══════════════════════════════════════════════════════════════════════════════
+
+    def wallet(self, address: str, addr_type: str = "unknown") -> Dict[str, Any]:
+        """Create/get wallet (TIME_BANK compatibility)"""
+        return self.create_wallet(address)
+
+    def credit(self, address: str, amount: float, addr_type: str = "unknown") -> float:
+        """Credit balance (TIME_BANK compatibility)"""
+        return self.update_balance(address, amount)
+
+    def balance(self, address: str) -> float:
+        """Get balance (TIME_BANK compatibility — alias for get_balance)"""
+        return self.get_balance(address)
+
+    def send(self, from_addr: str, to_addr: str, amount: float) -> Dict[str, Any]:
+        """Send coins (TIME_BANK compatibility)"""
+        return self.transfer(from_addr, to_addr, amount)
+
+    def tx_feed(self, limit: int = 50) -> List[Dict[str, Any]]:
+        """Transaction feed (TIME_BANK compatibility)"""
+        cursor = self.conn.execute(
+            "SELECT * FROM transactions ORDER BY id DESC LIMIT ?",
+            (limit,)
+        )
+        return [dict(row) for row in cursor.fetchall()]
+
+    def tx_verify(self, proof: Dict) -> bool:
+        """Verify transaction (TIME_BANK compatibility)"""
+        tx_id = proof.get("tx_id", "")
+        if not tx_id:
+            return False
+        cursor = self.conn.execute(
+            "SELECT * FROM transactions WHERE tx_id = ?",
+            (tx_id,)
+        )
+        return cursor.fetchone() is not None
+
+    def my_txs(self, address: str, limit: int = 50) -> List[Dict[str, Any]]:
+        """User's transactions (TIME_BANK compatibility)"""
+        return self.get_transactions(address, limit)
+
+    def wallets(self, addr_type: str = None) -> List[Dict[str, Any]]:
+        """List wallets (TIME_BANK compatibility)"""
+        cursor = self.conn.execute(
+            "SELECT * FROM wallets ORDER BY balance DESC LIMIT 1000"
+        )
+        return [dict(row) for row in cursor.fetchall()]
+
+    # ═══════════════════════════════════════════════════════════════════════════════
     #                              STATISTICS
     # ═══════════════════════════════════════════════════════════════════════════════
 

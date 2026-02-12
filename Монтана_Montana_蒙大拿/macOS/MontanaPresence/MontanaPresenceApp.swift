@@ -25,8 +25,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setupStatusItem()
         setupPopover()
 
-        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.updateLabel() }
+        // Menu bar label syncs directly from tick() — same call stack, zero lag
+        PresenceEngine.shared.onTick = { [weak self] in
+            self?.updateLabel()
         }
 
         try? SMAppService.mainApp.register()
@@ -80,9 +81,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if engine.showWeightInMenuBar {
             parts.append("x\(engine.weight)")
-        }
-        if engine.showRateInMenuBar {
-            parts.append("+\(engine.ratePerSecond)/\u{0441}")
         }
         statusItem.button?.title = parts.joined(separator: " ")
     }

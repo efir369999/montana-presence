@@ -5,6 +5,7 @@ import CoreBluetooth
 import AVFoundation
 import ApplicationServices
 import AppKit
+import ServiceManagement
 
 struct Sensor: Identifiable {
     let id: String
@@ -41,7 +42,7 @@ class PresenceEngine: ObservableObject {
     @Published var sensorPermissions: [String: Bool] = [:]
     @Published var showBalanceInMenuBar: Bool = true
     @Published var showWeightInMenuBar: Bool = true
-    @Published var showRateInMenuBar: Bool = true
+    // Speed/rate removed from menu bar — only Balance and Weight visibility toggles remain
     @Published var genesisDate: Date = {
         var c = DateComponents()
         c.year = 2026; c.month = 1; c.day = 9; c.hour = 0; c.minute = 0
@@ -49,6 +50,9 @@ class PresenceEngine: ObservableObject {
     }()
 
     var displayBalance: Int { serverBalance + pendingSeconds }
+
+    /// Callback fired AFTER pendingSeconds is updated in tick() — for menu bar sync
+    var onTick: (() -> Void)?
 
     // ── GENESIS ECONOMICS ──
     // Montana Genesis: 09.01.2026 — network launch
@@ -120,7 +124,7 @@ class PresenceEngine: ObservableObject {
         serverBalance = UserDefaults.standard.integer(forKey: balanceKey)
         showBalanceInMenuBar = UserDefaults.standard.object(forKey: "menubar_balance") as? Bool ?? true
         showWeightInMenuBar = UserDefaults.standard.object(forKey: "menubar_weight") as? Bool ?? true
-        showRateInMenuBar = UserDefaults.standard.object(forKey: "menubar_rate") as? Bool ?? true
+        // showRateInMenuBar removed — speed display eliminated
         migrateActivitySensor()
         registerSensorDefaults()
         loadSensors()
@@ -132,7 +136,7 @@ class PresenceEngine: ObservableObject {
     private func migrateActivitySensor() {
         if !UserDefaults.standard.bool(forKey: "sensor_defaults_off_v1") {
             for key in ["sensor_camera", "sensor_mic", "sensor_location", "sensor_activity",
-                        "sensor_appdata", "sensor_bluetooth", "sensor_wifi", "sensor_autostart"] {
+                        "sensor_bluetooth", "sensor_wifi", "sensor_autostart"] {
                 UserDefaults.standard.set(false, forKey: key)
             }
             UserDefaults.standard.set(true, forKey: "sensor_defaults_off_v1")
@@ -148,7 +152,6 @@ class PresenceEngine: ObservableObject {
             "sensor_mic": false,
             "sensor_location": false,
             "sensor_activity": false,
-            "sensor_appdata": false,
             "sensor_bluetooth": false,
             "sensor_wifi": false,
             "sensor_autostart": false
@@ -175,10 +178,6 @@ class PresenceEngine: ObservableObject {
                    name: "Активность",
                    info: "Мониторинг активности клавиатуры и мыши. Нажатия не записываются.",
                    enabled: d.bool(forKey: "sensor_activity"), rate: 1),
-            Sensor(id: "appdata", icon: "app.badge",
-                   name: "Данные приложений",
-                   info: "Список активных приложений. Названия не отправляются — только количество.",
-                   enabled: d.bool(forKey: "sensor_appdata"), rate: 1),
             Sensor(id: "bluetooth", icon: "wave.3.right",
                    name: "Bluetooth",
                    info: "Обнаружение устройств поблизости. MAC-адреса не собираются.",
@@ -238,12 +237,24 @@ class PresenceEngine: ObservableObject {
             } else {
                 openSystemSettings("Privacy_Bluetooth")
             }
-        case "activity":
-            // AXIsProcessTrustedWithOptions with prompt = true shows system dialog
+        case "activity", "appdata":
             let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
             AXIsProcessTrustedWithOptions(options)
-        case "appdata":
-            openSystemSettings("Privacy_Automation")
+        case "wifi":
+            let locMgr2 = CLLocationManager()
+            let locStat = locMgr2.authorizationStatus
+            if locStat == .notDetermined {
+                requestLocationPermission()
+            } else {
+                openSystemSettings("Privacy_LocationServices")
+            }
+        case "autostart":
+            try? SMAppService.mainApp.register()
+            openLoginItemsSettings()
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                self.refreshPermissions()
+            }
         default:
             openSystemSettings("Privacy")
         }
@@ -251,6 +262,12 @@ class PresenceEngine: ObservableObject {
 
     private func openSystemSettings(_ pane: String) {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?\(pane)") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    private func openLoginItemsSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension") {
             NSWorkspace.shared.open(url)
         }
     }
@@ -265,15 +282,23 @@ class PresenceEngine: ObservableObject {
         UserDefaults.standard.set(showWeightInMenuBar, forKey: "menubar_weight")
     }
 
-    func toggleMenuBarRate() {
-        showRateInMenuBar.toggle()
-        UserDefaults.standard.set(showRateInMenuBar, forKey: "menubar_rate")
-    }
+    /// Available balance = everything confirmed BEFORE current T2 window
+    var availableBalance: Int { max(displayBalance - t2PendingCoins, 0) }
 
     func toggleSensor(_ id: String) {
         if let idx = sensors.firstIndex(where: { $0.id == id }) {
             sensors[idx].enabled.toggle()
             UserDefaults.standard.set(sensors[idx].enabled, forKey: "sensor_\(id)")
+
+            // Autostart: sync with SMAppService + open Login Items
+            if id == "autostart" {
+                if sensors[idx].enabled {
+                    try? SMAppService.mainApp.register()
+                } else {
+                    try? SMAppService.mainApp.unregister()
+                }
+                openLoginItemsSettings()
+            }
         }
     }
 
@@ -286,15 +311,17 @@ class PresenceEngine: ObservableObject {
 
         let oldPermissions = sensorPermissions
 
+        let axTrusted = AXIsProcessTrusted()
+        let locGranted = locStatus == .authorizedAlways || locStatus == .authorized
+
         sensorPermissions = [
             "camera": camStatus == .authorized,
             "mic": micStatus == .authorized,
-            "location": locStatus == .authorizedAlways || locStatus == .authorized,
+            "location": locGranted,
             "bluetooth": btAuth == .allowedAlways,
-            "activity": true,
-            "appdata": true,
-            "wifi": true,
-            "autostart": true,
+            "activity": axTrusted,
+            "wifi": true,  // Wi-Fi не требует разрешения на macOS — чистый якорь
+            "autostart": SMAppService.mainApp.status == .enabled,
         ]
 
         // ╔══════════════════════════════════════════════════════════════════╗
@@ -406,6 +433,7 @@ class PresenceEngine: ObservableObject {
         if tickCount % 10 == 0 {
             UserDefaults.standard.set(pendingSeconds, forKey: pendingKey)
         }
+        onTick?()
     }
 
     func updateT2() {

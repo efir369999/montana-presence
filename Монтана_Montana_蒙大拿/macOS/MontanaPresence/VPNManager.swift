@@ -2,6 +2,7 @@ import Foundation
 import Network
 import AppKit
 import Security
+import NetworkExtension
 
 @MainActor
 class VPNManager: ObservableObject {
@@ -20,26 +21,71 @@ class VPNManager: ObservableObject {
     @Published var conflictingVPNName: String = ""
     @Published var isProfileInstalled = false
     @Published var connectionError: String? = nil
+    @Published var needsProfileInstall = false
+
+    // Real traffic stats (bytes via netstat)
+    @Published var bytesIn: Int64 = 0
+    @Published var bytesOut: Int64 = 0
+    @Published var vpnInterface: String = ""
+    @Published var sessionStart: Date? = nil
+
+    var sessionDuration: Int {
+        guard let start = sessionStart else { return 0 }
+        return max(Int(Date().timeIntervalSince(start)), 0)
+    }
 
     // IKEv2 config
     private let serverAddress = "72.56.102.240"
     private let ikev2Subnet = "10.77.77"
     private let wgSubnet = "10.66.66"
-    private let profileIdentifier = "network.montana.vpn.profile"
     private let eapUser = "montana"
+    private let eapPassword = "M0ntana!VPN#2026"
+    private let vpnServiceName = "Montana VPN"
+
+    // NEVPNManager — programmatic VPN control (like HIT VPN)
+    private let neManager = NEVPNManager.shared()
+    private var useNEVPN = true // primary mode, falls back to mobileconfig if entitlement fails
 
     // Monitoring
     private var pathMonitor: NWPathMonitor?
     private var checkTimer: Timer?
-    private var lastStatusCheck: Date = .distantPast
-    private let statusCheckDebounce: TimeInterval = 1.0
+    private var sessionTimer: Timer?
 
-    // Embedded CA certificate (PEM base64)
-    private let caCertBase64 = "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUU5akNDQXQ2Z0F3SUJBZ0lJQlF0eE8yM3VpaW93RFFZSktvWklodmNOQVFFTUJRQXdHVEVYTUJVR0ExVUUKQXhNT1RXOXVkR0Z1WSBXU1VFNGdRMEV3SGhjTk1qWXdNakV5TVRVMU5UVTBXaGNOTXpZd01qRXdNVFUxTlRVMApXakFaTVJjd0ZRWURWUVFERXc1TmIyNTBZVzVoSUZaUVRpQkRRVENDQWlJd0RRWUpLb1pJaHZjTkFRRUJCUUFECmdnSVBBRENDQWdvQ2dnSUJBSlNJbDlUVHJFQmRpakM3TlJGaXd2Z3AxZkM4WGRKNDFlclNFdkhRTDlPaHpXK0wKSmRFOXBERGlzd0lHbjliSHFPVWp3ZW9oSGxwZ2lkZlJ1VXlHSGZkRWZFSDV2eUVzTVE1TTlMbXErVldZanBPdgpSc3MrM01VTTJNVTJSMHNiMzB6VDJNSHc4TEVhbGNYV0h3b25PKzJYVEVZWEtOUjk0Y3NIeldQV0toaWVGS3BrCkJTSjFVa1c5RFdQSkw5ZTN2T1o1bzcrUmpHM1hYVURUVHlXd3V5dnRPWTA5dlpJVVZmc2dlYzdDZElqRUh6eEYKMXFRTFdIZTlZUHFxeGZ0RTc1YVhiY0Z1Y25rc2NkMTFxRmR4ZTlneTMxQTd3Rkp5Tks5RWExZnFNY3VoWXA1dgplc2ZJU21kWHliSlozUnMyUDlDZWtnTFVObE8zbUZ3S1EyUG9NaTlUWk8vWnF0Rmx0ZEUzNlZTcXVSb3lhdEtlCnp4dURiQitMQzFiYTNxRFdSTXBVcmtJWGN0b21xeEc5Vno2V0NldFhxRlBKaklweU9BeUFKNHFqRW13N3l6Z1YKYXdYM3RUL2JYRnRCQTVqN1NxR3BycXFmdlFNQWY1YXdHckNzMmNtL2h3NzJUakxYaFI2eWdxbW50MkQ2Ky9TdwpQcE1kVEZ3VC9oaDkrVFhNeTRRb2JERU9nS1o0ekJjWEJTY2g4c0FaWER2bmVoY2t4WnRHRnUyVmk2bUpkYTQ5CjQ1UERDa2R4MFNUdUEzWlVPMVBqVVlGRXFtWm5qVTVvVFNWMTJ2ZVV2QnZpalRHQXM5YzBCZy9mbmRIbjhlMm0KRjRGNjFrQ3U1NHlERmlGT2VTMktWQ25iTlN1ZDNPajhiWnphTkRlbDJqZ1dUMzR4c3o1ODU4SmsrVXNWQWdNQgpBQUdqUWpCQU1BOEdBMVVkRXdFQi93UUZNQU1CQWY4d0RnWURWUjBQQVFIL0JBUURBZ0VHTUIwR0ExVWREZ1FXCkJCVDV4MVE5TnBDcGE1S2RmTk9zOXBKb0IyakRWREFOQmdrcWhraUc5dzBCQVF3RkFBT0NBZ0VBUVNpUkcrVWYKcHh4NWM1ci9xVUNleEE4bnIzVGd0di9tWFNFQlFXbzM5N3NZRStPODE3akFyY2VSWERIQWRpcHJMMkp1djlOawpIT2VqUnQxUlk4RlNENzNOVFY2L2dvRVQrQ0RxMnFWQTZkemlOaGJVc3dVRFdISnNpSmk2bzlycUdTV2VSNXZqCkN3MnRraEM2UTdEb1d3ZGVrbHI3K1IwclZSVXNSOXBxUmU4Q1JwZk93N1ZBL1F2aHY3dGVzYVJJUmNHWUNyTmkKcnR2by83TUV1LzRKMFJuOHZlb1p6bHFzanNkT2E1VG9ucWx2OG4wTHZHVzMxb2JoakltQXVsQ1FlMFpyZm1TUgpRUDdqMG10OWQ1bnFBZHdubVdKMGJueFNqTWtXcmphelFzVDBlcXdjZjhTZzhUN0ZaWklkdTJrUWhRanFCSjlGCnQzMWZKRVJ4bzNKdnc5VjlyQmZWc0dOZ1NuUlljVWxBcmtGblpwNW9YbkphZ0ZUOHIyK0tYYkYzS0JBL241NkgKVklCSXJXOTgreEJ0T2NXNFByaUJnSVNWZ2l4bHpVYmVnemlZSkFYRjB5enFLSyt5SUtWQ3c2UzZ6R0N2UHRmVgpVRlhPRCtnbjJrMHlhdjI5c0JPakZjL1h3NmV6NGMyVWxzSTA0djIzZXVBbWRpUlBTWkxOcDVsZnAxMm12UGhFCmd2Z1RpUUdKdHZyZ2FQUTRkdTh0bmFDUEVORWIwUmJyR2hYb1dueXZZNW03cmpwLy95di9kSzZ2L3JlZWRZRncKR1ZuVWxaWnFGYW9MSjFhakFBUlBOUFE2dkQvSzJjbVhHcXl0N2FqWkdxVXFCSGVvOVcxY09lL1lhSUlvMVEvRQpkZXVmUmpwcDJRaFlkNjJlSjgyU2JyZUNNRnh3TDF2cjhyUT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+    // Mobileconfig fallback
+    private let profileIdentifier = "network.montana.vpn.profile"
+    private let stableProfileUUID = "A1B2C3D4-1234-5678-9ABC-DEF012345678"
+    private let stableCaUUID = "B2C3D4E5-2345-6789-ABCD-EF0123456789"
+    private let stableVpnUUID = "C3D4E5F6-3456-789A-BCDE-F01234567890"
+    private var profileWaitTimer: Timer?
+    private var userCancelledConnect = false
+
+    private var profileDir: URL {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        return appSupport.appendingPathComponent("Montana")
+    }
+    private var profilePath: String {
+        profileDir.appendingPathComponent("MontanaVPN.mobileconfig").path
+    }
+
+    // Montana Protocol CA certificate (DER format, base64)
+    // Organization: Montana Protocol, CN: Montana Protocol CA
+    // Valid: 2026-02-12 to 2036-02-10 (10 years)
+    private let caCertBase64 = "MIIFUDCCAzigAwIBAgIIC2LcP0IMpEQwDQYJKoZIhvcNAQEMBQAwRjELMAkGA1UEBhMCTkwxGTAXBgNVBAoTEE1vbnRhbmEgUHJvdG9jb2wxHDAaBgNVBAMTE01vbnRhbmEgUHJvdG9jb2wgQ0EwHhcNMjYwMjEyMTg0NjI1WhcNMzYwMjEwMTg0NjI1WjBGMQswCQYDVQQGEwJOTDEZMBcGA1UEChMQTW9udGFuYSBQcm90b2NvbDEcMBoGA1UEAxMTTW9udGFuYSBQcm90b2NvbCBDQTCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAKVVV1k/osHjWrHJ8h9wNQRD6qiTUYXRM1BaFotVPNuguc3fT6h70t3aCL7ebYLccIH9LidRw/KSPYsSpm6eYNWDKsaYuv0S5uYA0SzRYSGtD8ZcEEzoDYIFr+S5hK1GS6Fj1dWdRw2K054kRhTSe7mwkgi+826Mni0ImxYxAL3Z/Ys51Dp+supFDEtJLe5/i3YiBiyIF6qwMb8liLb4TNgB3UOq70fCj+gJ1wKTS31eM/vmcU3hJBmOYWok6LtVw3XQzfIzavz3qETIQ0sBNrJtiJf/27SRZXghmIsqHKKEnRiEdI0IBwMQqscZQP7T4Qr+AWOj27wxZU3aWEl09Sum/+Nb/fp3fREZGkgfQ+vznOVha24R4KIUvbLvsQOwwo9RqtJQQIBDqON+PRhPRIJD6QEOZLry4L/x99SPADSh3u9ORiP+PjhPwkun9wFrxsgvFbbDznJZjCYHGKi+stHQ/vMZenr3KnyFl3wUY0KXEpt5Z6bmQK4wm3+qnvOVwM+32UuKzVT2PuzzwzEQZ4Moj8PCV+EPPF5fpkEcqvvvQQIi0h1B04AIctq2PTWcqgr3jODpFZ6e0WgwYRpRWF4WzUrYnItPUnKJZnLO1DfeDVr74tQgm/01xZ7WEp5Y2XZajQN+nyFRVpInX/Y7ZFTXj0wpTXUhQBAzp56pHHvbAgMBAAGjQjBAMA8GA1UdEwEB/wQFMAMBAf8wDgYDVR0PAQH/BAQDAgEGMB0GA1UdDgQWBBQx8gTH4Vc3A1B760FYnJxrMNd4KjANBgkqhkiG9w0BAQwFAAOCAgEAaDbU9XmANCY9CQuEWeQB6uGlX/rIM58ZUQdkKx5/XkCvfijKEeuMvEvrsQOydHJkp/VDZsVbMV7/3trIs5NJ+2zv5RX7YCweMfY8EMj8kbEbs5b1Z0eXz03IU3+V0vrqEBJTq+5xuXYWJVFz/amWX1U0XqmKabS1NIG/jw8WL60XB9gRMd8CwyVWcZFbjTr845R+v1RuyDioIGh+5VG5WDZwExR4cF5uXZ6XMjAUwbBtLJXr1cyuTqAuNGkCnOpsp3UNxkKJtHQ2Q15mieUDEYz1As90D29qsGZpsGcvsX7Gv2bgiW5eToXJzkYWePw1nAVYfXu+NEag7lzcBQ2PR8fNFL94+5n7COgFJEKDu8Kgu9/f+3jhETfRvWg3GUy4IVyASZQ+swKDXdXI+gVGPgSwSgaBMCLqN4rG5X28anZfKljP/e0jeD11cXmUlI+gvwkrjT7w9xS2WgSm86glUYrp2vx7eFzHT1uJcCVS3oJkl6ZBtxPM2dyM+ZQksJDyHfX/7Zq8GaS0DHVpukZBQ+C7bQv9R4tl8JGVQcC3xV1E4AUsqb23o+/UdjIAYBhFIO7/WADQaAx5uBgqV6KjxIkjiciTjcEYEmvyOxYaMmt+uVPeloIiRNgYkBqvaj1Oj0J4kpVAsJW5E14zZzRjnhv1vvFiwZeOaPyPzQkZnzs="
 
     private init() {
-        ensureKeychainPassword()
-        checkProfileInstalled()
+        // NEVPNManager — subscribe to VPN status changes
+        NotificationCenter.default.addObserver(
+            forName: .NEVPNStatusDidChange,
+            object: neManager.connection,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.handleNEVPNStatusChange()
+            }
+        }
+
+        // Load existing NEVPNManager config
+        loadNEVPNConfig()
         detectConflictingVPNs()
         startPathMonitor()
         startStatusPolling()
@@ -48,57 +94,404 @@ class VPNManager: ObservableObject {
     deinit {
         pathMonitor?.cancel()
         checkTimer?.invalidate()
+        profileWaitTimer?.invalidate()
+        sessionTimer?.invalidate()
     }
 
-    // MARK: - Keychain (EAP password stored securely)
+    // MARK: - NEVPNManager Configuration
 
-    private static let keychainService = "network.montana.vpn"
-    private static let keychainAccount = "eap-password"
-
-    private func ensureKeychainPassword() {
-        if readPasswordFromKeychain() == nil {
-            savePasswordToKeychain("M0ntana!VPN#2026")
+    /// Load existing VPN configuration from system
+    private func loadNEVPNConfig() {
+        neManager.loadFromPreferences { [weak self] error in
+            Task { @MainActor in
+                guard let self else { return }
+                if error != nil {
+                    // NEVPNManager not available — fall back to mobileconfig
+                    self.useNEVPN = false
+                    self.checkProfileInstalled()
+                    return
+                }
+                let configured = self.neManager.protocolConfiguration != nil
+                self.isConfigured = configured
+                self.isProfileInstalled = configured
+                self.needsProfileInstall = !configured
+                self.handleNEVPNStatusChange()
+            }
         }
     }
 
-    nonisolated private func readPasswordFromKeychain() -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: VPNManager.keychainService,
-            kSecAttrAccount as String: VPNManager.keychainAccount,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-        var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-        guard status == errSecSuccess, let data = result as? Data else { return nil }
-        return String(data: data, encoding: .utf8)
+    /// Create Montana VPN configuration in System Settings (NEVPNManager)
+    private func configureNEVPN(completion: @escaping (Bool) -> Void) {
+        // Install CA cert to keychain first
+        installCACertIfNeeded()
+
+        // Save password to keychain on main actor first
+        let passwordRef = savePasswordToKeychain()
+
+        neManager.loadFromPreferences { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { completion(false); return }
+
+                let proto = NEVPNProtocolIKEv2()
+                proto.serverAddress = self.serverAddress
+                proto.remoteIdentifier = self.serverAddress
+                proto.localIdentifier = self.eapUser
+                proto.authenticationMethod = .none // EAP
+                proto.useExtendedAuthentication = true
+                proto.username = self.eapUser
+                proto.passwordReference = passwordRef
+                proto.serverCertificateIssuerCommonName = "Montana Protocol CA"
+                proto.serverCertificateCommonName = self.serverAddress
+                proto.certificateType = .RSA
+                proto.disconnectOnSleep = false
+                proto.deadPeerDetectionRate = .medium
+
+                // IKE SA — AES-256 + SHA2-256 + DH14
+                proto.ikeSecurityAssociationParameters.encryptionAlgorithm = .algorithmAES256
+                proto.ikeSecurityAssociationParameters.integrityAlgorithm = .SHA256
+                proto.ikeSecurityAssociationParameters.diffieHellmanGroup = .group14
+
+                // Child SA — AES-256 + SHA2-256 + DH14
+                proto.childSecurityAssociationParameters.encryptionAlgorithm = .algorithmAES256
+                proto.childSecurityAssociationParameters.integrityAlgorithm = .SHA256
+                proto.childSecurityAssociationParameters.diffieHellmanGroup = .group14
+
+                self.neManager.protocolConfiguration = proto
+                self.neManager.localizedDescription = self.vpnServiceName
+                self.neManager.isEnabled = true
+
+                self.neManager.saveToPreferences { [weak self] saveError in
+                    Task { @MainActor in
+                        guard let self else { completion(false); return }
+                        if saveError != nil {
+                            // NEVPNManager failed (likely entitlement issue) — fallback to mobileconfig
+                            self.useNEVPN = false
+                            self.connectionError = nil
+                            completion(false)
+                            return
+                        }
+                        self.isConfigured = true
+                        self.isProfileInstalled = true
+                        self.needsProfileInstall = false
+                        self.connectionError = nil
+                        // Reload after save
+                        self.neManager.loadFromPreferences { _ in
+                            Task { @MainActor in
+                                completion(true)
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    nonisolated private func savePasswordToKeychain(_ password: String) {
-        let data = password.data(using: .utf8)!
+    // MARK: - Keychain (EAP password for NEVPNManager)
+
+    private func savePasswordToKeychain() -> Data? {
+        let service = "network.montana.vpn.eap"
+        let account = eapUser
+
         // Delete existing
         let deleteQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: VPNManager.keychainService,
-            kSecAttrAccount as String: VPNManager.keychainAccount
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
         ]
         SecItemDelete(deleteQuery as CFDictionary)
-        // Add new
+
+        // Add new with persistent ref
         let addQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: VPNManager.keychainService,
-            kSecAttrAccount as String: VPNManager.keychainAccount,
-            kSecValueData as String: data
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecValueData as String: eapPassword.data(using: .utf8)!,
+            kSecReturnPersistentRef as String: true,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         ]
-        SecItemAdd(addQuery as CFDictionary, nil)
+
+        var result: AnyObject?
+        let status = SecItemAdd(addQuery as CFDictionary, &result)
+
+        if status == errSecSuccess, let ref = result as? Data {
+            return ref
+        }
+        return nil
     }
 
-    private var eapPassword: String {
-        readPasswordFromKeychain() ?? ""
+    // MARK: - CA Certificate Installation
+
+    private func installCACertIfNeeded() {
+        guard let certData = Data(base64Encoded: caCertBase64),
+              let cert = SecCertificateCreateWithData(nil, certData as CFData) else {
+            return
+        }
+
+        // Add to login keychain with Montana Protocol label
+        let addQuery: [String: Any] = [
+            kSecClass as String: kSecClassCertificate,
+            kSecValueRef as String: cert,
+            kSecAttrLabel as String: "Montana Protocol CA"
+        ]
+        let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
+        guard addStatus == errSecSuccess || addStatus == errSecDuplicateItem else { return }
+
+        // Restrict trust to IPsec/SSL only (not code signing, email, etc.)
+        let trustPolicy = SecPolicyCreateSSL(true, nil)
+        let trustSettings: [[String: Any]] = [
+            [
+                kSecTrustSettingsPolicy as String: trustPolicy,
+                kSecTrustSettingsResult as String: SecTrustSettingsResult.trustRoot.rawValue
+            ]
+        ]
+        let trustStatus = SecTrustSettingsSetTrustSettings(cert, .user, trustSettings as CFArray)
+        if trustStatus != errSecSuccess {
+            // Trust settings require user auth — will show system dialog with "Montana Protocol CA"
+            // Fallback: try without policy restriction
+            SecTrustSettingsSetTrustSettings(cert, .user, nil)
+        }
     }
 
-    // MARK: - Path Monitor (event-driven connectivity with debounce)
+    // MARK: - NEVPNManager Status Handler
+
+    private func handleNEVPNStatusChange() {
+        guard useNEVPN else { return }
+        let status = neManager.connection.status
+
+        switch status {
+        case .connected:
+            if !isConnected {
+                sessionStart = Date()
+                startSessionTimer()
+                measurePing()
+            }
+            isConnected = true
+            isConnecting = false
+            connectionError = nil
+            needsProfileInstall = false
+            checkVPNIP()
+
+        case .connecting, .reasserting:
+            isConnecting = true
+            isConnected = false
+
+        case .disconnecting:
+            isConnecting = false
+
+        case .disconnected:
+            isConnected = false
+            isConnecting = false
+            vpnIP = ""
+            vpnInterface = ""
+            pingMs = 0
+            bytesIn = 0
+            bytesOut = 0
+            sessionStart = nil
+            stopSessionTimer()
+
+        case .invalid:
+            isConnected = false
+            isConnecting = false
+            isConfigured = false
+
+        @unknown default:
+            break
+        }
+
+        UserDefaults.standard.set(isConnected, forKey: "vpnRelayActive")
+    }
+
+    // MARK: - Connect / Disconnect
+
+    func toggle() {
+        if isConnected || isConnecting {
+            disconnect()
+        } else {
+            connect()
+        }
+    }
+
+    func connect() {
+        guard !isConnected, !isConnecting else { return }
+        isConnecting = true
+        connectionError = nil
+        userCancelledConnect = false
+        needsProfileInstall = false
+
+        // Disconnect other VPNs first
+        DispatchQueue.global().async {
+            Self.disconnectAllOtherVPNs()
+        }
+
+        if useNEVPN {
+            connectViaNEVPN()
+        } else {
+            connectViaMobileconfig()
+        }
+    }
+
+    func disconnect() {
+        userCancelledConnect = true
+        profileWaitTimer?.invalidate()
+        profileWaitTimer = nil
+        needsProfileInstall = false
+
+        if useNEVPN {
+            neManager.connection.stopVPNTunnel()
+        } else {
+            DispatchQueue.global().async {
+                _ = Self.runProcess("/usr/sbin/scutil", args: ["--nc", "stop", "Montana VPN"])
+            }
+        }
+
+        isConnecting = false
+        connectionError = nil
+    }
+
+    // MARK: - NEVPNManager Connect Path
+
+    private func connectViaNEVPN() {
+        neManager.loadFromPreferences { [weak self] error in
+            Task { @MainActor in
+                guard let self else { return }
+
+                if self.neManager.protocolConfiguration == nil {
+                    // Not configured yet — set up, then connect
+                    self.configureNEVPN { [weak self] success in
+                        Task { @MainActor in
+                            guard let self else { return }
+                            if success {
+                                self.startNEVPNTunnel()
+                            } else {
+                                // Fallback to mobileconfig
+                                self.connectViaMobileconfig()
+                            }
+                        }
+                    }
+                } else {
+                    self.startNEVPNTunnel()
+                }
+            }
+        }
+    }
+
+    private func startNEVPNTunnel() {
+        do {
+            try neManager.connection.startVPNTunnel()
+        } catch {
+            isConnecting = false
+            connectionError = "Montana VPN: Не удалось запустить туннель — проверьте подключение"
+        }
+    }
+
+    // MARK: - Mobileconfig Fallback
+
+    private func connectViaMobileconfig() {
+        DispatchQueue.global().async { [weak self] in
+            guard let self else { return }
+            Thread.sleep(forTimeInterval: 0.5)
+
+            let profileReady = Self.runProcess("/usr/sbin/scutil", args: ["--nc", "list"]).contains("Montana VPN")
+
+            if !profileReady {
+                Task { @MainActor in
+                    guard !self.userCancelledConnect else {
+                        self.isConnecting = false
+                        return
+                    }
+                    self.installProfile()
+                    self.waitForProfileAndConnect()
+                }
+                return
+            }
+
+            Self.startVPNviaScutil(user: self.eapUser, password: self.eapPassword)
+            Thread.sleep(forTimeInterval: 3.0)
+            Task { @MainActor in
+                guard !self.userCancelledConnect else { return }
+                self.isConnecting = false
+                self.needsProfileInstall = false
+                self.checkVPNStatus()
+                self.detectConflictingVPNs()
+            }
+        }
+    }
+
+    func installProfile() {
+        if isProfileInstalled {
+            needsProfileInstall = false
+            return
+        }
+
+        // If NEVPNManager is available, configure programmatically
+        if useNEVPN {
+            configureNEVPN { [weak self] success in
+                Task { @MainActor in
+                    if !success {
+                        self?.installMobileconfig()
+                    }
+                }
+            }
+            return
+        }
+
+        installMobileconfig()
+    }
+
+    private func installMobileconfig() {
+        let path = profilePath
+        try? FileManager.default.createDirectory(at: profileDir, withIntermediateDirectories: true)
+        if !FileManager.default.fileExists(atPath: path) {
+            let profile = generateMobileconfig()
+            do {
+                try profile.write(toFile: path, atomically: true, encoding: .utf8)
+                try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: path)
+            } catch {
+                connectionError = "Ошибка записи профиля: \(error.localizedDescription)"
+                return
+            }
+            NSWorkspace.shared.open(URL(fileURLWithPath: path))
+        }
+
+        needsProfileInstall = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+            self?.openProfileSettings()
+        }
+    }
+
+    /// Open System Settings → Profiles
+    func openProfileSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.Profiles-Settings.extension") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    func checkProfileInstalled() {
+        if useNEVPN {
+            // NEVPNManager — check config exists
+            neManager.loadFromPreferences { [weak self] _ in
+                Task { @MainActor in
+                    guard let self else { return }
+                    let configured = self.neManager.protocolConfiguration != nil
+                    self.isProfileInstalled = configured
+                    self.isConfigured = configured
+                }
+            }
+            return
+        }
+
+        // Mobileconfig fallback — check via scutil
+        DispatchQueue.global().async { [weak self] in
+            let output = Self.runProcess("/usr/sbin/scutil", args: ["--nc", "list"])
+            let hasMontana = output.contains("Montana VPN")
+            Task { @MainActor in
+                self?.isProfileInstalled = hasMontana
+                self?.isConfigured = hasMontana
+            }
+        }
+    }
+
+    // MARK: - Path Monitor
 
     private func startPathMonitor() {
         pathMonitor?.cancel()
@@ -106,147 +499,131 @@ class VPNManager: ObservableObject {
         pathMonitor?.pathUpdateHandler = { [weak self] path in
             Task { @MainActor in
                 guard let self else { return }
-                if path.status != .satisfied {
-                    if self.isConnected {
-                        self.isConnected = false
-                        self.vpnIP = ""
-                        self.pingMs = 0
-                    }
+                if path.status != .satisfied && self.isConnected {
+                    self.isConnected = false
+                    self.vpnIP = ""
+                    self.pingMs = 0
+                    self.bytesIn = 0
+                    self.bytesOut = 0
+                    self.sessionStart = nil
+                    self.sessionTimer?.invalidate()
+                    self.sessionTimer = nil
                 }
-                self.debouncedCheckVPNStatus()
+                // For mobileconfig mode, check status on network changes
+                if !self.useNEVPN {
+                    self.checkVPNStatus()
+                    self.detectConflictingVPNs()
+                }
             }
         }
         pathMonitor?.start(queue: DispatchQueue(label: "network.montana.vpn.monitor"))
     }
 
-    // MARK: - Debounced Status Check
-
-    private func debouncedCheckVPNStatus() {
-        let now = Date()
-        guard now.timeIntervalSince(lastStatusCheck) >= statusCheckDebounce else { return }
-        lastStatusCheck = now
-        checkVPNStatus()
-        detectConflictingVPNs()
-    }
-
-    // MARK: - Status Polling (5s interval)
+    // MARK: - Status Polling
 
     private func startStatusPolling() {
         checkTimer?.invalidate()
         checkTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                self?.checkVPNStatus()
+                guard let self else { return }
+                if self.useNEVPN {
+                    // NEVPNManager — update traffic stats
+                    if self.isConnected {
+                        self.checkVPNIP()
+                    }
+                } else {
+                    self.checkVPNStatus()
+                }
             }
         }
     }
 
-    func checkVPNStatus() {
+    // MARK: - VPN IP & Traffic (used by both modes)
+
+    private func checkVPNIP() {
         DispatchQueue.global().async { [weak self] in
             guard let self else { return }
-            let task = Process()
-            task.executableURL = URL(fileURLWithPath: "/sbin/ifconfig")
-            let pipe = Pipe()
-            task.standardOutput = pipe
-            task.standardError = Pipe()
+            let ifOutput = Self.runProcess("/sbin/ifconfig")
 
-            do {
-                try task.run()
-                task.waitUntilExit()
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                let output = String(data: data, encoding: .utf8) ?? ""
+            var detectedIP = ""
+            var detectedIface = ""
 
-                let hasIKEv2 = output.contains(self.ikev2Subnet)
-                let hasWG = output.contains(self.wgSubnet)
-                let connected = hasIKEv2 || hasWG
+            if ifOutput.contains(self.ikev2Subnet) {
+                detectedIP = self.extractIP(from: ifOutput, subnet: self.ikev2Subnet)
+                detectedIface = self.extractInterface(from: ifOutput, subnet: self.ikev2Subnet)
+            } else if ifOutput.contains(self.wgSubnet) {
+                detectedIP = self.extractIP(from: ifOutput, subnet: self.wgSubnet)
+                detectedIface = self.extractInterface(from: ifOutput, subnet: self.wgSubnet)
+            }
 
-                var detectedIP = ""
-                if hasIKEv2 {
-                    detectedIP = self.extractIP(from: output, subnet: self.ikev2Subnet)
-                } else if hasWG {
-                    detectedIP = self.extractIP(from: output, subnet: self.wgSubnet)
-                }
+            var inBytes: Int64 = 0
+            var outBytes: Int64 = 0
+            if !detectedIface.isEmpty {
+                (inBytes, outBytes) = Self.readInterfaceStats(detectedIface)
+            }
 
-                Task { @MainActor in
-                    let wasConnected = self.isConnected
-                    self.isConnected = connected
-                    self.isConnecting = false
-                    if connected {
-                        self.vpnIP = detectedIP
-                        self.connectionError = nil
-                        if !wasConnected || self.pingMs == 0 {
-                            self.measurePing()
-                        }
-                    } else {
-                        self.vpnIP = ""
-                        self.pingMs = 0
-                    }
-                    UserDefaults.standard.set(connected, forKey: "vpnRelayActive")
-                }
-            } catch {
-                Task { @MainActor in
-                    self.isConnected = false
-                    self.vpnIP = ""
-                }
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.vpnIP = detectedIP
+                self.vpnInterface = detectedIface
+                self.bytesIn = inBytes
+                self.bytesOut = outBytes
             }
         }
     }
 
-    nonisolated private func extractIP(from output: String, subnet: String) -> String {
-        let lines = output.components(separatedBy: "\n")
-        for line in lines {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.hasPrefix("inet ") && trimmed.contains(subnet) {
-                let parts = trimmed.components(separatedBy: " ")
-                if parts.count >= 2 {
-                    return parts[1]
-                }
-            }
-        }
-        return subnet + ".x"
-    }
-
-    // MARK: - Profile Installation
-
-    func installProfile() {
-        let profile = generateMobileconfig()
-        let path = NSTemporaryDirectory() + "MontanaVPN.mobileconfig"
-        do {
-            try profile.write(toFile: path, atomically: true, encoding: .utf8)
-            NSWorkspace.shared.open(URL(fileURLWithPath: path))
-            // Cleanup temp file after macOS reads it + check installation
-            DispatchQueue.main.asyncAfter(deadline: .now() + 15) { [weak self] in
-                try? FileManager.default.removeItem(atPath: path)
-                self?.checkProfileInstalled()
-                self?.checkVPNStatus()
-            }
-        } catch {}
-    }
-
-    func checkProfileInstalled() {
+    /// Mobileconfig fallback: full status check via ifconfig
+    func checkVPNStatus() {
+        guard !useNEVPN else { return }
         DispatchQueue.global().async { [weak self] in
-            let task = Process()
-            task.executableURL = URL(fileURLWithPath: "/usr/sbin/scutil")
-            task.arguments = ["--nc", "list"]
-            let pipe = Pipe()
-            task.standardOutput = pipe
-            task.standardError = Pipe()
+            guard let self else { return }
+            let ifOutput = Self.runProcess("/sbin/ifconfig")
 
-            do {
-                try task.run()
-                task.waitUntilExit()
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                let output = String(data: data, encoding: .utf8) ?? ""
-                let hasMontana = output.contains("Montana VPN")
+            let hasIKEv2 = ifOutput.contains(self.ikev2Subnet)
+            let hasWG = ifOutput.contains(self.wgSubnet)
+            let connected = hasIKEv2 || hasWG
 
-                Task { @MainActor in
-                    self?.isProfileInstalled = hasMontana
-                    self?.isConfigured = hasMontana
+            var detectedIP = ""
+            var detectedIface = ""
+            if hasIKEv2 {
+                detectedIP = self.extractIP(from: ifOutput, subnet: self.ikev2Subnet)
+                detectedIface = self.extractInterface(from: ifOutput, subnet: self.ikev2Subnet)
+            } else if hasWG {
+                detectedIP = self.extractIP(from: ifOutput, subnet: self.wgSubnet)
+                detectedIface = self.extractInterface(from: ifOutput, subnet: self.wgSubnet)
+            }
+
+            var inBytes: Int64 = 0
+            var outBytes: Int64 = 0
+            if connected && !detectedIface.isEmpty {
+                (inBytes, outBytes) = Self.readInterfaceStats(detectedIface)
+            }
+
+            Task { @MainActor in
+                let wasConnected = self.isConnected
+                self.isConnected = connected
+                self.isConnecting = false
+                if connected {
+                    self.vpnIP = detectedIP
+                    self.vpnInterface = detectedIface
+                    self.bytesIn = inBytes
+                    self.bytesOut = outBytes
+                    self.connectionError = nil
+                    if !wasConnected {
+                        self.sessionStart = Date()
+                        self.startSessionTimer()
+                        self.measurePing()
+                    }
+                } else {
+                    self.vpnIP = ""
+                    self.vpnInterface = ""
+                    self.pingMs = 0
+                    self.bytesIn = 0
+                    self.bytesOut = 0
+                    self.sessionStart = nil
+                    self.stopSessionTimer()
                 }
-            } catch {
-                Task { @MainActor in
-                    self?.isProfileInstalled = false
-                    self?.isConfigured = false
-                }
+                UserDefaults.standard.set(connected, forKey: "vpnRelayActive")
             }
         }
     }
@@ -255,118 +632,96 @@ class VPNManager: ObservableObject {
 
     func detectConflictingVPNs() {
         DispatchQueue.global().async { [weak self] in
-            let task = Process()
-            task.executableURL = URL(fileURLWithPath: "/usr/sbin/scutil")
-            task.arguments = ["--nc", "list"]
-            let pipe = Pipe()
-            task.standardOutput = pipe
-            task.standardError = Pipe()
+            let output = Self.runProcess("/usr/sbin/scutil", args: ["--nc", "list"])
 
-            do {
-                try task.run()
-                task.waitUntilExit()
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                let output = String(data: data, encoding: .utf8) ?? ""
+            var otherVPNs: [String] = []
+            for line in output.components(separatedBy: "\n") {
+                if line.contains("Montana VPN") { continue }
+                if line.contains("Connected") || line.contains("Connecting") {
+                    if let name = Self.extractVPNName(from: line) {
+                        otherVPNs.append(name)
+                    }
+                }
+            }
 
-                var otherVPNs: [String] = []
-                let lines = output.components(separatedBy: "\n")
-                for line in lines {
-                    if line.contains("Montana VPN") { continue }
-                    if line.contains("Connected") {
-                        if let start = line.firstIndex(of: "\""),
-                           let end = line[line.index(after: start)...].firstIndex(of: "\"") {
-                            let name = String(line[line.index(after: start)..<end])
-                            otherVPNs.append(name)
+            Task { @MainActor in
+                guard let self else { return }
+                self.hasConflictingVPN = !otherVPNs.isEmpty
+                self.conflictingVPNName = otherVPNs.joined(separator: ", ")
+            }
+        }
+    }
+
+    nonisolated private static func disconnectAllOtherVPNs() {
+        let output = runProcess("/usr/sbin/scutil", args: ["--nc", "list"])
+        for line in output.components(separatedBy: "\n") {
+            if line.contains("Montana VPN") { continue }
+            if line.contains("Connected") || line.contains("Connecting"),
+               let name = extractVPNName(from: line) {
+                _ = runProcess("/usr/sbin/scutil", args: ["--nc", "stop", name])
+            }
+        }
+    }
+
+    // MARK: - Mobileconfig Profile Wait
+
+    private func waitForProfileAndConnect() {
+        profileWaitTimer?.invalidate()
+        var attempts = 0
+        let maxAttempts = 20
+        connectionError = "Установите профиль: Настройки → Основные → Профили → Montana VPN → Установить"
+
+        profileWaitTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] timer in
+            Task { @MainActor in
+                guard let self else { timer.invalidate(); return }
+                guard !self.userCancelledConnect else {
+                    timer.invalidate()
+                    self.profileWaitTimer = nil
+                    self.isConnecting = false
+                    self.needsProfileInstall = false
+                    return
+                }
+
+                attempts += 1
+                let output = Self.runProcess("/usr/sbin/scutil", args: ["--nc", "list"])
+                let installed = output.contains("Montana VPN")
+
+                if installed {
+                    timer.invalidate()
+                    self.profileWaitTimer = nil
+                    self.needsProfileInstall = false
+                    self.connectionError = nil
+                    self.isProfileInstalled = true
+                    self.isConfigured = true
+
+                    DispatchQueue.global().async {
+                        Self.startVPNviaScutil(user: self.eapUser, password: self.eapPassword)
+                        Thread.sleep(forTimeInterval: 3.0)
+                        Task { @MainActor in
+                            self.isConnecting = false
+                            self.checkVPNStatus()
+                            self.detectConflictingVPNs()
+                            try? FileManager.default.removeItem(atPath: self.profilePath)
                         }
                     }
-                }
-
-                Task { @MainActor in
-                    guard let self else { return }
-                    self.hasConflictingVPN = !otherVPNs.isEmpty
-                    self.conflictingVPNName = otherVPNs.joined(separator: ", ")
-                }
-            } catch {}
-        }
-    }
-
-    // MARK: - Toggle (connect/disconnect via scutil)
-
-    func toggle() {
-        if isConnected {
-            disconnect()
-        } else {
-            connect()
-        }
-    }
-
-    func connect() {
-        guard isProfileInstalled, !isConnected, !isConnecting else {
-            if !isProfileInstalled {
-                installProfile()
-            }
-            return
-        }
-        isConnecting = true
-        connectionError = nil
-
-        DispatchQueue.global().async { [weak self] in
-            let task = Process()
-            task.executableURL = URL(fileURLWithPath: "/usr/sbin/scutil")
-            task.arguments = ["--nc", "start", "Montana VPN"]
-            let errPipe = Pipe()
-            task.standardOutput = Pipe()
-            task.standardError = errPipe
-
-            do {
-                try task.run()
-                task.waitUntilExit()
-                if task.terminationStatus != 0 {
-                    let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
-                    let errStr = String(data: errData, encoding: .utf8) ?? ""
-                    Task { @MainActor in
-                        self?.connectionError = errStr.isEmpty ? nil : errStr
-                    }
-                }
-            } catch {
-                Task { @MainActor in
-                    self?.connectionError = error.localizedDescription
-                }
-            }
-
-            Thread.sleep(forTimeInterval: 3.0)
-            Task { @MainActor in
-                self?.isConnecting = false
-                self?.checkVPNStatus()
-                // If still not connected after 3s, show error
-                if self?.isConnected == false && self?.connectionError == nil {
-                    self?.connectionError = "\u{041d}\u{0435} \u{0443}\u{0434}\u{0430}\u{043b}\u{043e}\u{0441}\u{044c} \u{043f}\u{043e}\u{0434}\u{043a}\u{043b}\u{044e}\u{0447}\u{0438}\u{0442}\u{044c}\u{0441}\u{044f}"
+                } else if attempts >= maxAttempts {
+                    timer.invalidate()
+                    self.profileWaitTimer = nil
+                    self.isConnecting = false
+                    self.needsProfileInstall = false
+                    self.connectionError = "Профиль не установлен — откройте Настройки → Основные → Профили"
+                    try? FileManager.default.removeItem(atPath: self.profilePath)
                 }
             }
         }
     }
 
-    func disconnect() {
-        DispatchQueue.global().async { [weak self] in
-            let task = Process()
-            task.executableURL = URL(fileURLWithPath: "/usr/sbin/scutil")
-            task.arguments = ["--nc", "stop", "Montana VPN"]
-            task.standardOutput = Pipe()
-            task.standardError = Pipe()
-
-            do {
-                try task.run()
-                task.waitUntilExit()
-            } catch {}
-
-            Task { @MainActor in
-                self?.isConnected = false
-                self?.vpnIP = ""
-                self?.pingMs = 0
-                self?.connectionError = nil
-                UserDefaults.standard.set(false, forKey: "vpnRelayActive")
-            }
-        }
+    nonisolated private static func startVPNviaScutil(user: String, password: String) {
+        _ = runProcess("/usr/sbin/scutil", args: [
+            "--nc", "start", "Montana VPN",
+            "--user", user,
+            "--password", password
+        ])
     }
 
     // MARK: - Open System VPN Settings
@@ -377,44 +732,123 @@ class VPNManager: ObservableObject {
         }
     }
 
+    // MARK: - Session Timer
+
+    private func startSessionTimer() {
+        sessionTimer?.invalidate()
+        sessionTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.objectWillChange.send()
+            }
+        }
+    }
+
+    private func stopSessionTimer() {
+        sessionTimer?.invalidate()
+        sessionTimer = nil
+    }
+
     // MARK: - Ping
 
     private func measurePing() {
         DispatchQueue.global().async { [weak self] in
-            let task = Process()
-            task.executableURL = URL(fileURLWithPath: "/sbin/ping")
-            task.arguments = ["-c", "1", "-t", "3", "72.56.102.240"]
-            let pipe = Pipe()
-            task.standardOutput = pipe
-            task.standardError = Pipe()
-
-            do {
-                try task.run()
-                task.waitUntilExit()
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                let output = String(data: data, encoding: .utf8) ?? ""
-                if let range = output.range(of: "time=") {
-                    let after = output[range.upperBound...]
-                    if let spaceIdx = after.firstIndex(of: " ") {
-                        let msStr = String(after[..<spaceIdx])
-                        let ms = Int(Double(msStr) ?? 0)
-                        Task { @MainActor in
-                            self?.pingMs = ms
-                        }
+            let output = Self.runProcess("/sbin/ping", args: ["-c", "1", "-t", "3", "72.56.102.240"])
+            if let range = output.range(of: "time=") {
+                let after = output[range.upperBound...]
+                if let spaceIdx = after.firstIndex(of: " ") {
+                    let msStr = String(after[..<spaceIdx])
+                    let ms = Int(Double(msStr) ?? 0)
+                    Task { @MainActor in
+                        self?.pingMs = ms
                     }
                 }
-            } catch {}
+            }
         }
     }
 
-    // MARK: - .mobileconfig Generation
+    // MARK: - Helpers
+
+    static func formatBytes(_ bytes: Int64) -> String {
+        if bytes < 1024 { return "\(bytes) B" }
+        let kb = Double(bytes) / 1024.0
+        if kb < 1024 { return String(format: "%.1f KB", kb) }
+        let mb = kb / 1024.0
+        if mb < 1024 { return String(format: "%.1f MB", mb) }
+        let gb = mb / 1024.0
+        return String(format: "%.2f GB", gb)
+    }
+
+    nonisolated private func extractIP(from output: String, subnet: String) -> String {
+        for line in output.components(separatedBy: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("inet ") && trimmed.contains(subnet) {
+                let parts = trimmed.components(separatedBy: " ")
+                if parts.count >= 2 { return parts[1] }
+            }
+        }
+        return subnet + ".x"
+    }
+
+    nonisolated private func extractInterface(from output: String, subnet: String) -> String {
+        var currentIface = ""
+        for line in output.components(separatedBy: "\n") {
+            if !line.hasPrefix("\t") && !line.hasPrefix(" ") && line.contains(": flags=") {
+                if let colon = line.firstIndex(of: ":") {
+                    currentIface = String(line[line.startIndex..<colon])
+                }
+            }
+            if line.contains(subnet) && line.contains("inet ") {
+                return currentIface
+            }
+        }
+        return ""
+    }
+
+    nonisolated private static func readInterfaceStats(_ iface: String) -> (Int64, Int64) {
+        let output = runProcess("/usr/sbin/netstat", args: ["-I", iface, "-b"])
+        let lines = output.components(separatedBy: "\n")
+        guard lines.count >= 2 else { return (0, 0) }
+        let headerParts = lines[0].split(separator: " ").map(String.init)
+        guard let ibIdx = headerParts.firstIndex(of: "Ibytes"),
+              let obIdx = headerParts.firstIndex(of: "Obytes") else { return (0, 0) }
+
+        for line in lines.dropFirst() {
+            let parts = line.split(separator: " ").map(String.init)
+            guard parts.count > max(ibIdx, obIdx) else { continue }
+            let ib = Int64(parts[ibIdx]) ?? 0
+            let ob = Int64(parts[obIdx]) ?? 0
+            return (ib, ob)
+        }
+        return (0, 0)
+    }
+
+    nonisolated private static func extractVPNName(from line: String) -> String? {
+        guard let start = line.firstIndex(of: "\"") else { return nil }
+        let afterQuote = line.index(after: start)
+        guard let end = line[afterQuote...].firstIndex(of: "\"") else { return nil }
+        return String(line[afterQuote..<end])
+    }
+
+    nonisolated private static func runProcess(_ path: String, args: [String] = []) -> String {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: path)
+        task.arguments = args
+        let pipe = Pipe()
+        task.standardOutput = pipe
+        task.standardError = Pipe()
+        do {
+            try task.run()
+            task.waitUntilExit()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            return String(data: data, encoding: .utf8) ?? ""
+        } catch {
+            return ""
+        }
+    }
+
+    // MARK: - .mobileconfig Generation (fallback)
 
     private func generateMobileconfig() -> String {
-        let profileUUID = UUID().uuidString.uppercased()
-        let caUUID = UUID().uuidString.uppercased()
-        let vpnUUID = UUID().uuidString.uppercased()
-        let password = eapPassword
-
         return """
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -422,25 +856,35 @@ class VPNManager: ObservableObject {
         <dict>
             <key>PayloadDisplayName</key>
             <string>Montana VPN</string>
+            <key>PayloadDescription</key>
+            <string>Montana Protocol VPN — Amsterdam Node</string>
             <key>PayloadIdentifier</key>
             <string>\(profileIdentifier)</string>
+            <key>PayloadOrganization</key>
+            <string>Montana Protocol</string>
             <key>PayloadUUID</key>
-            <string>\(profileUUID)</string>
+            <string>\(stableProfileUUID)</string>
             <key>PayloadType</key>
             <string>Configuration</string>
             <key>PayloadVersion</key>
             <integer>1</integer>
+            <key>PayloadRemovalDisallowed</key>
+            <false/>
             <key>PayloadContent</key>
             <array>
                 <dict>
                     <key>PayloadType</key>
                     <string>com.apple.security.root</string>
                     <key>PayloadUUID</key>
-                    <string>\(caUUID)</string>
+                    <string>\(stableCaUUID)</string>
                     <key>PayloadIdentifier</key>
                     <string>network.montana.vpn.ca</string>
                     <key>PayloadDisplayName</key>
-                    <string>Montana VPN CA</string>
+                    <string>Montana Protocol CA</string>
+                    <key>PayloadDescription</key>
+                    <string>Montana Protocol — Certificate Authority</string>
+                    <key>PayloadOrganization</key>
+                    <string>Montana Protocol</string>
                     <key>PayloadVersion</key>
                     <integer>1</integer>
                     <key>PayloadContent</key>
@@ -450,11 +894,15 @@ class VPNManager: ObservableObject {
                     <key>PayloadType</key>
                     <string>com.apple.vpn.managed</string>
                     <key>PayloadUUID</key>
-                    <string>\(vpnUUID)</string>
+                    <string>\(stableVpnUUID)</string>
                     <key>PayloadIdentifier</key>
                     <string>network.montana.vpn.ikev2</string>
                     <key>PayloadDisplayName</key>
                     <string>Montana VPN</string>
+                    <key>PayloadDescription</key>
+                    <string>Montana Protocol — IKEv2 VPN</string>
+                    <key>PayloadOrganization</key>
+                    <string>Montana Protocol</string>
                     <key>PayloadVersion</key>
                     <integer>1</integer>
                     <key>UserDefinedName</key>
@@ -476,9 +924,21 @@ class VPNManager: ObservableObject {
                         <key>AuthName</key>
                         <string>\(eapUser)</string>
                         <key>AuthPassword</key>
-                        <string>\(password)</string>
+                        <string>\(eapPassword)</string>
+                        <key>DeadPeerDetectionRate</key>
+                        <string>Medium</string>
+                        <key>DisableMOBIKE</key>
+                        <integer>0</integer>
+                        <key>EnablePFS</key>
+                        <integer>1</integer>
+                        <key>NATKeepAliveInterval</key>
+                        <integer>20</integer>
                         <key>ServerCertificateIssuerCommonName</key>
-                        <string>Montana VPN CA</string>
+                        <string>Montana Protocol CA</string>
+                        <key>ServerCertificateCommonName</key>
+                        <string>\(serverAddress)</string>
+                        <key>CertificateType</key>
+                        <string>RSA</string>
                         <key>DisconnectOnIdle</key>
                         <integer>0</integer>
                         <key>IKESecurityAssociationParameters</key>
@@ -499,6 +959,20 @@ class VPNManager: ObservableObject {
                             <key>DiffieHellmanGroup</key>
                             <integer>14</integer>
                         </dict>
+                    </dict>
+                    <key>OnDemandEnabled</key>
+                    <integer>0</integer>
+                    <key>OnDemandRules</key>
+                    <array>
+                        <dict>
+                            <key>Action</key>
+                            <string>Ignore</string>
+                        </dict>
+                    </array>
+                    <key>IPv4</key>
+                    <dict>
+                        <key>OverridePrimary</key>
+                        <integer>0</integer>
                     </dict>
                 </dict>
             </array>

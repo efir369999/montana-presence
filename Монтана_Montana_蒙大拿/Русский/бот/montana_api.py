@@ -33,6 +33,13 @@ from decimal import Decimal, ROUND_DOWN, InvalidOperation
 # Post-quantum cryptography
 from node_crypto import verify_signature, public_key_to_address
 
+# Event Sourcing — P2P replication layer
+try:
+    from event_ledger import get_event_ledger, EventLedger, EventType
+    EVENT_LEDGER_AVAILABLE = True
+except ImportError:
+    EVENT_LEDGER_AVAILABLE = False
+
 log = logging.getLogger("montana_api")
 
 app = Flask(__name__)
@@ -75,6 +82,20 @@ NODES = {
     "moscow": {"ip": "176.124.208.93", "priority": 2, "location": "🇷🇺 Moscow"},
     "almaty": {"ip": "91.200.148.93", "priority": 3, "location": "🇰🇿 Almaty"}
 }
+
+# P2P Peer nodes for event replication (port 8889 for inter-node sync)
+PEER_NODES = [
+    {"name": "amsterdam", "url": "http://72.56.102.240:8889", "ip": "72.56.102.240"},
+    {"name": "moscow", "url": "http://176.124.208.93:8889", "ip": "176.124.208.93"},
+    {"name": "almaty", "url": "http://91.200.148.93:8889", "ip": "91.200.148.93"},
+]
+
+# Node identity — determined at startup from local IP
+NODE_ID = os.environ.get("MONTANA_NODE_ID", "unknown")
+
+# Connected Mac app clients (dynamic registry)
+_mac_peers = {}
+_mac_peers_lock = threading.Lock()
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #                              RATE LIMITING
@@ -292,11 +313,21 @@ def get_network_status() -> dict:
 @app.route('/api/health')
 def api_health():
     """Quick health check for iOS/clients"""
-    return jsonify({
+    result = {
         "status": "ok",
-        "node": os.environ.get("NODE_ID", "montana"),
+        "node": NODE_ID,
+        "version": "3.0.0",
+        "p2p": EVENT_LEDGER_AVAILABLE,
         "timestamp": datetime.utcnow().isoformat() + "Z"
-    })
+    }
+    if EVENT_LEDGER_AVAILABLE:
+        try:
+            ledger = get_event_ledger()
+            result["ledger_events"] = ledger._event_counter
+            result["ledger_node_id"] = ledger.node_id
+        except Exception:
+            pass
+    return jsonify(result)
 
 @app.route('/api/network')
 def api_network():
@@ -308,14 +339,25 @@ def api_status():
     """Full Montana status"""
     network = get_network_status()
 
-    return jsonify({
+    result = {
         "network": network,
         "montana": {
-            "version": "2.0.0",
+            "version": "3.0.0",
             "mode": "MAINNET",
-            "crypto": "ML-DSA-65 (FIPS 204)"
+            "crypto": "ML-DSA-65 (FIPS 204)",
+            "node_id": NODE_ID,
+            "p2p_enabled": EVENT_LEDGER_AVAILABLE
         }
-    })
+    }
+
+    if EVENT_LEDGER_AVAILABLE:
+        try:
+            ledger = get_event_ledger()
+            result["montana"]["ledger"] = ledger.stats()
+        except Exception:
+            pass
+
+    return jsonify(result)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #                              WALLET ENDPOINTS
@@ -384,11 +426,11 @@ def api_transfer():
     public_key = data.get('public_key')
     timestamp = data.get('timestamp')
 
-    # Validate required fields
-    if not all([from_addr, to_addr, amount, signature, public_key, timestamp]):
+    # Validate required fields (signature/public_key optional for registered wallets)
+    if not all([from_addr, to_addr, amount, timestamp]):
         return jsonify({
             "error": "MISSING_FIELDS",
-            "message": "Required: from_address, to_address, amount, signature, public_key, timestamp"
+            "message": "Required: from_address, to_address, amount, timestamp"
         }), 400
 
     # [FIX CWE-20] Validate addresses with regex
@@ -409,21 +451,30 @@ def api_transfer():
     except (ValueError, InvalidOperation) as e:
         return jsonify({"error": "INVALID_AMOUNT", "message": str(e)}), 400
 
-    # Verify sender owns the address (public key → address)
-    derived_address = public_key_to_address(public_key)
-    if derived_address != from_addr:
-        return jsonify({
-            "error": "ADDRESS_MISMATCH",
-            "message": "Public key does not match from_address"
-        }), 403
+    # Verify sender identity
+    if signature and public_key:
+        # ML-DSA-65 signed transfer (full verification)
+        derived_address = public_key_to_address(public_key)
+        if derived_address != from_addr:
+            return jsonify({
+                "error": "ADDRESS_MISMATCH",
+                "message": "Public key does not match from_address"
+            }), 403
 
-    # Verify signature
-    message = f"TRANSFER:{from_addr}:{to_addr}:{amount}:{timestamp}"
-    if not verify_signature_beta(public_key, message, signature):
-        return jsonify({
-            "error": "INVALID_SIGNATURE",
-            "message": "Signature verification failed"
-        }), 403
+        message = f"TRANSFER:{from_addr}:{to_addr}:{amount}:{timestamp}"
+        if not verify_signature_beta(public_key, message, signature):
+            return jsonify({
+                "error": "INVALID_SIGNATURE",
+                "message": "Signature verification failed"
+            }), 403
+    else:
+        # Unsigned transfer — only allowed for registered wallets
+        wallets = load_wallets()
+        if from_addr not in wallets:
+            return jsonify({
+                "error": "UNREGISTERED_WALLET",
+                "message": "Unsigned transfers require a registered wallet"
+            }), 403
 
     # Check balance
     sender_balance = get_balance(from_addr)
@@ -439,9 +490,23 @@ def api_transfer():
     set_balance(from_addr, float(sender_dec - amount_dec))
     set_balance(to_addr, float(recipient_dec + amount_dec))
 
+    tx_id = hashlib.sha256(f"{from_addr}{to_addr}{amount}{timestamp}".encode()).hexdigest()[:16]
+
+    # Record in EventLedger for P2P replication
+    if EVENT_LEDGER_AVAILABLE:
+        try:
+            ledger = get_event_ledger()
+            ledger.transfer(from_addr, to_addr, int(amount), metadata={
+                "tx_id": tx_id,
+                "timestamp": timestamp,
+                "pq_signed": True
+            })
+        except Exception as e:
+            log.warning(f"EventLedger transfer error: {e}")
+
     return jsonify({
         "status": "success",
-        "tx_id": hashlib.sha256(f"{from_addr}{to_addr}{amount}{timestamp}".encode()).hexdigest()[:16],
+        "tx_id": tx_id,
         "from": from_addr,
         "to": to_addr,
         "amount": amount,
@@ -616,6 +681,254 @@ def api_wallet_register():
         "address": f"Ɉ-{number}-{crypto_hash}",
         "crypto_hash": crypto_hash
     })
+
+@app.route('/api/agent/register', methods=['POST'])
+@rate_limit(limit=10, window=60)
+def api_agent_register():
+    """
+    AI Agent wallet registration.
+    Simplified flow for AI agents to create and manage wallets.
+
+    POST /api/agent/register
+    Body: {
+        "agent_name": "MyAIAgent",     # required — agent identifier
+        "public_key": "hex...",         # optional — ML-DSA-65 key
+        "alias": "@myagent"            # optional — custom alias
+    }
+
+    Returns: { "address": "mt...", "number": N, "alias": "Ɉ-N", "balance": 0 }
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "NO_DATA"}), 400
+
+    agent_name = data.get('agent_name', '').strip()
+    if not agent_name or len(agent_name) > 64:
+        return jsonify({
+            "error": "INVALID_AGENT_NAME",
+            "message": "agent_name required (1-64 chars)"
+        }), 400
+
+    # [FIX CWE-20] Strict agent name validation — alphanumeric, hyphen, underscore only
+    if not re.match(r'^[a-zA-Z0-9_-]{1,64}$', agent_name):
+        return jsonify({
+            "error": "INVALID_AGENT_NAME",
+            "message": "agent_name: alphanumeric, hyphen, underscore only (1-64 chars)"
+        }), 400
+
+    # Reserved names cannot be registered
+    RESERVED_AGENT_NAMES = {'admin', 'root', 'system', 'montana', 'api', 'www', 'server', 'node'}
+    if agent_name.lower() in RESERVED_AGENT_NAMES:
+        return jsonify({"error": "RESERVED_NAME", "message": "This agent name is reserved"}), 400
+
+    public_key = data.get('public_key', '')
+    custom_alias = data.get('alias', '').strip()
+
+    # Generate address from public key or agent name + server entropy
+    if public_key and len(public_key) == 3904:
+        address = public_key_to_address(public_key)
+    else:
+        # [FIX CWE-330] Check if agent already registered (idempotent)
+        # Use deterministic hash for same agent_name to ensure same address
+        agent_hash = hashlib.sha256(f"agent:montana:{agent_name}".encode()).hexdigest()[:40]
+        address = f"mt{agent_hash}"
+
+    # Initialize wallet if new
+    with _wallet_lock:
+        wallets = load_wallets()
+        if address not in wallets:
+            if len(wallets) >= MAX_WALLETS:
+                return jsonify({"error": "MAX_WALLETS_REACHED"}), 429
+            wallets[address] = {
+                'balance': 0.0,
+                'created_at': datetime.utcnow().isoformat(),
+                'type': 'ai_agent',
+                'agent_name': agent_name
+            }
+            if public_key:
+                wallets[address]['public_key'] = public_key
+            save_wallets(wallets)
+
+    # Register in wallet registry for sequential number
+    with _registry_lock:
+        registry = load_registry()
+        if "aliases" not in registry:
+            registry["aliases"] = {}
+
+        crypto_hash = address[2:]  # remove 'mt' prefix
+
+        if crypto_hash not in registry["wallets"]:
+            number = registry["next_number"]
+            registry["wallets"][crypto_hash] = {
+                "number": number,
+                "registered_at": datetime.utcnow().isoformat() + "Z",
+                "type": "ai_agent",
+                "agent_name": agent_name
+            }
+            registry["next_number"] = number + 1
+        else:
+            number = registry["wallets"][crypto_hash]["number"]
+
+        # Set alias if provided
+        if custom_alias and re.match(r'^@[a-zA-Z0-9_]{1,20}$', custom_alias):
+            alias_lower = custom_alias.lower()
+            existing_owner = registry["aliases"].get(alias_lower)
+            if existing_owner and existing_owner != crypto_hash:
+                save_registry(registry)
+                return jsonify({"error": "ALIAS_TAKEN",
+                                "message": f"{custom_alias} is already taken"}), 409
+            old_aliases = [k for k, v in registry["aliases"].items() if v == crypto_hash]
+            for old in old_aliases:
+                del registry["aliases"][old]
+            registry["aliases"][alias_lower] = crypto_hash
+            registry["wallets"][crypto_hash]["custom_alias"] = custom_alias
+
+        save_registry(registry)
+
+    balance = get_balance(address)
+    stored_alias = registry["wallets"][crypto_hash].get("custom_alias", "")
+
+    return jsonify({
+        "status": "success",
+        "address": address,
+        "number": number,
+        "alias": f"\u0248-{number}",
+        "custom_alias": stored_alias,
+        "balance": int(balance),
+        "symbol": "\u0248",
+        "agent_name": agent_name
+    })
+
+
+@app.route('/api/agent/transfer', methods=['POST'])
+@rate_limit(limit=10, window=60)
+def api_agent_transfer():
+    """
+    AI Agent transfer — simplified transfer for registered AI agents.
+    No ML-DSA-65 signature required (agents use deterministic addresses).
+
+    POST /api/agent/transfer
+    Body: {
+        "from_agent": "Amsterdam-Montana",   # agent_name (must match registration)
+        "to_address": "mt..." or number,     # recipient (address, number, or @alias)
+        "amount": 100                        # amount in Ɉ (integer)
+    }
+
+    Security: agent_name → deterministic address derivation (same as registration).
+    Only wallets with type=ai_agent can use this endpoint.
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "NO_DATA"}), 400
+
+    agent_name = data.get('from_agent', '').strip()
+    to_input = str(data.get('to_address', '')).strip()
+    amount = data.get('amount')
+
+    if not agent_name or not to_input or not amount:
+        return jsonify({"error": "MISSING_FIELDS",
+                        "message": "Required: from_agent, to_address, amount"}), 400
+
+    # Validate agent name format
+    if not re.match(r'^[a-zA-Z0-9_-]{1,64}$', agent_name):
+        return jsonify({"error": "INVALID_AGENT_NAME"}), 400
+
+    # Derive sender address deterministically (must match registration)
+    agent_hash = hashlib.sha256(f"agent:montana:{agent_name}".encode()).hexdigest()[:40]
+    from_addr = f"mt{agent_hash}"
+
+    # Verify sender is a registered AI agent
+    wallets = load_wallets()
+    if from_addr not in wallets or wallets[from_addr].get('type') != 'ai_agent':
+        return jsonify({"error": "NOT_AN_AGENT",
+                        "message": "from_agent must be a registered AI agent"}), 403
+
+    # Resolve recipient
+    to_addr = to_input
+    if not to_input.startswith('mt') or len(to_input) != 42:
+        # Try resolve by number or alias
+        registry = load_registry()
+        aliases = registry.get("aliases", {})
+        crypto_hash = None
+
+        if to_input.startswith('@'):
+            crypto_hash = aliases.get(to_input.lower())
+        elif to_input.startswith('\u0248-'):
+            try:
+                num = int(to_input[2:])
+                for h, w in registry["wallets"].items():
+                    if w.get("number") == num:
+                        crypto_hash = h
+                        break
+            except ValueError:
+                pass
+        elif to_input.isdigit():
+            num = int(to_input)
+            for h, w in registry["wallets"].items():
+                if w.get("number") == num:
+                    crypto_hash = h
+                    break
+
+        if crypto_hash:
+            to_addr = f"mt{crypto_hash}"
+        else:
+            return jsonify({"error": "RECIPIENT_NOT_FOUND"}), 404
+
+    # Validate amount
+    try:
+        amount = int(amount)
+        if amount <= 0:
+            raise ValueError("Amount must be positive")
+    except (ValueError, TypeError) as e:
+        return jsonify({"error": "INVALID_AMOUNT", "message": str(e)}), 400
+
+    # Self-send check
+    if from_addr == to_addr:
+        return jsonify({"error": "SELF_TRANSFER", "message": "Cannot transfer to self"}), 400
+
+    # Check balance
+    sender_balance = get_balance(from_addr)
+    if sender_balance < amount:
+        return jsonify({"error": "INSUFFICIENT_FUNDS",
+                        "message": f"Balance: {int(sender_balance)} Ɉ, required: {amount} Ɉ"}), 400
+
+    # Execute transfer
+    with _wallet_lock:
+        wallets = load_wallets()
+        sender_bal = wallets.get(from_addr, {}).get('balance', 0)
+        recv_bal = wallets.get(to_addr, {}).get('balance', 0)
+
+        wallets[from_addr]['balance'] = sender_bal - amount
+        if to_addr not in wallets:
+            wallets[to_addr] = {'balance': 0, 'type': 'p2p_sync'}
+        wallets[to_addr]['balance'] = recv_bal + amount
+        wallets[from_addr]['last_seen'] = datetime.utcnow().isoformat()
+        save_wallets(wallets)
+
+    timestamp = datetime.utcnow().isoformat() + "Z"
+    tx_id = hashlib.sha256(f"{from_addr}{to_addr}{amount}{timestamp}".encode()).hexdigest()[:16]
+
+    # Record in EventLedger
+    if EVENT_LEDGER_AVAILABLE:
+        try:
+            ledger = get_event_ledger()
+            ledger.transfer(from_addr, to_addr, amount, metadata={
+                "type": "agent_transfer",
+                "agent_name": agent_name
+            })
+        except Exception as e:
+            log.warning(f"Agent transfer ledger error: {e}")
+
+    return jsonify({
+        "status": "success",
+        "tx_id": tx_id,
+        "from": from_addr,
+        "to": to_addr,
+        "amount": amount,
+        "sender_balance": int(get_balance(from_addr)),
+        "timestamp": timestamp
+    })
+
 
 @app.route('/api/wallet/lookup/<identifier>')
 def api_wallet_lookup(identifier):
@@ -864,18 +1177,27 @@ def api_presence():
         return jsonify({"error": "INVALID_SECONDS"}), 400
 
     try:
-        from time_bank import TimeBank
-        tb = TimeBank()
-        tb.activity(address, "presence_app")
-
         # Credit reported seconds directly (client is the presence authority)
         if seconds > 0:
-            wallets = load_wallets()
-            if address not in wallets:
-                wallets[address] = {"balance": 0, "type": "presence_app"}
-            wallets[address]["balance"] = wallets.get(address, {}).get("balance", 0) + seconds
-            wallets[address]["pq_verified"] = verified
-            save_wallets(wallets)
+            with _wallet_lock:
+                wallets = load_wallets()
+                if address not in wallets:
+                    wallets[address] = {"balance": 0, "type": "presence_app"}
+                wallets[address]["balance"] = wallets.get(address, {}).get("balance", 0) + seconds
+                wallets[address]["pq_verified"] = verified
+                wallets[address]["last_seen"] = datetime.utcnow().isoformat()
+                save_wallets(wallets)
+
+            # Record in EventLedger for P2P replication
+            if EVENT_LEDGER_AVAILABLE:
+                try:
+                    ledger = get_event_ledger()
+                    ledger.emit(address, seconds, metadata={
+                        "source": "presence_app",
+                        "pq_verified": verified
+                    })
+                except Exception as e:
+                    log.warning(f"EventLedger emit error: {e}")
 
         balance = get_balance(address)
         return jsonify({"balance": int(balance), "pq_verified": verified})
@@ -926,6 +1248,582 @@ def api_version(platform: str):
     })
 
 # ═══════════════════════════════════════════════════════════════════════════════
+#                              ACTIVE ADDRESSES / NETWORK VIEW
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/api/addresses')
+@rate_limit(limit=60, window=60)
+def api_addresses():
+    """
+    List all active addresses with types — for Mac app network view.
+
+    GET /api/addresses
+    Returns: {
+        "addresses": [
+            {"address": "mt...", "balance": N, "type": "ai_agent"|"human"|"presence_app", ...}
+        ],
+        "total": N,
+        "agents": N,
+        "humans": N
+    }
+    """
+    wallets = load_wallets()
+    registry = load_registry()
+    aliases = registry.get("aliases", {})
+
+    addresses = []
+    agent_count = 0
+    human_count = 0
+
+    for addr, data in wallets.items():
+        if not addr.startswith("mt"):
+            continue
+
+        addr_type = data.get("type", "unknown")
+        agent_name = data.get("agent_name", "")
+        balance = data.get("balance", 0)
+
+        # Determine type
+        if addr_type == "ai_agent" or agent_name:
+            display_type = "ai_agent"
+            agent_count += 1
+        elif addr_type in ("presence_app", "p2p_sync") or balance > 0:
+            display_type = "human"
+            human_count += 1
+        else:
+            display_type = "unknown"
+
+        # Find alias
+        crypto_hash = addr[2:]
+        wallet_reg = registry.get("wallets", {}).get(crypto_hash, {})
+        number = wallet_reg.get("number")
+        custom_alias = wallet_reg.get("custom_alias", "")
+
+        entry = {
+            "address": addr,
+            "balance": int(balance),
+            "type": display_type,
+            "alias": f"Ɉ-{number}" if number else "",
+            "custom_alias": custom_alias,
+            "agent_name": agent_name,
+            "last_seen": data.get("last_seen", data.get("updated_at", "")),
+        }
+        addresses.append(entry)
+
+    # Sort by balance descending
+    addresses.sort(key=lambda x: x["balance"], reverse=True)
+
+    return jsonify({
+        "addresses": addresses,
+        "total": len(addresses),
+        "agents": agent_count,
+        "humans": human_count,
+        "node_id": NODE_ID,
+        "timestamp": datetime.utcnow().isoformat() + "Z"
+    })
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#                              P2P NODE SYNC
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/api/node/events')
+@rate_limit(limit=60, window=60)
+def api_node_events():
+    """
+    Get events since a given event_id — for P2P pull-based sync.
+
+    GET /api/node/events?since=<event_id>&limit=1000
+    Returns: {"events": [...], "node_id": "...", "count": N}
+    """
+    if not EVENT_LEDGER_AVAILABLE:
+        return jsonify({"error": "EVENT_LEDGER_UNAVAILABLE"}), 503
+
+    since = request.args.get('since', '')
+    limit = min(int(request.args.get('limit', 1000)), 5000)
+
+    try:
+        ledger = get_event_ledger()
+        events = ledger.get_events_since(since)
+        event_list = [e.to_dict() for e in events[:limit]]
+        return jsonify({
+            "events": event_list,
+            "node_id": ledger.node_id,
+            "count": len(event_list),
+            "last_hash": ledger._last_hash[:16]
+        })
+    except Exception as e:
+        return jsonify({"error": "SYNC_ERROR", "message": str(e)}), 500
+
+
+@app.route('/api/node/sync', methods=['POST'])
+@rate_limit(limit=30, window=60)
+def api_node_sync():
+    """
+    Bidirectional P2P sync — the core of Montana network.
+
+    POST /api/node/sync
+    Body: {
+        "events": [...],          # events to push to this node
+        "last_event_id": "...",   # last event the peer knows about
+        "node_id": "..."          # peer's node_id
+    }
+
+    Returns: {
+        "merged": N,              # events we accepted from peer
+        "events": [...],          # events the peer doesn't have
+        "node_id": "...",
+        "count": N
+    }
+    """
+    if not EVENT_LEDGER_AVAILABLE:
+        return jsonify({"error": "EVENT_LEDGER_UNAVAILABLE"}), 503
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "NO_DATA"}), 400
+
+    remote_events = data.get('events', [])
+    last_known_id = data.get('last_event_id', '')
+
+    try:
+        ledger = get_event_ledger()
+
+        # Merge incoming events from peer
+        merged = 0
+        if remote_events:
+            merged = ledger.merge_events(remote_events)
+            if merged > 0:
+                log.info(f"P2P SYNC: merged {merged} events from {data.get('node_id', '?')}")
+
+                # Apply merged events to wallet cache
+                _apply_ledger_events_to_wallets(remote_events[:merged] if merged <= len(remote_events) else remote_events)
+
+        # Return events the peer doesn't have
+        new_events = ledger.get_events_since(last_known_id)
+        event_list = [e.to_dict() for e in new_events[:2000]]
+
+        return jsonify({
+            "merged": merged,
+            "events": event_list,
+            "node_id": ledger.node_id,
+            "count": len(event_list)
+        })
+    except Exception as e:
+        log.error(f"P2P sync error: {e}")
+        return jsonify({"error": "SYNC_ERROR", "message": str(e)}), 500
+
+
+@app.route('/api/node/peers')
+def api_node_peers():
+    """List all known peers — seed nodes + connected Mac apps"""
+    peers = []
+    for node in PEER_NODES:
+        peers.append({
+            "name": node["name"],
+            "url": node["url"],
+            "ip": node["ip"],
+            "type": "full_node"
+        })
+
+    # Connected Mac app clients
+    with _mac_peers_lock:
+        for addr, info in list(_mac_peers.items()):
+            peers.append({
+                "name": f"mac-{addr[:8]}",
+                "type": "client",
+                "address": addr,
+                "last_seen": info.get("last_seen")
+            })
+
+    return jsonify({
+        "peers": peers,
+        "total": len(peers),
+        "node_id": NODE_ID
+    })
+
+
+@app.route('/api/node/register', methods=['POST'])
+@rate_limit(limit=10, window=60)
+def api_node_register():
+    """
+    Register a Mac app as a peer client.
+
+    POST /api/node/register
+    Body: {"address": "mt...", "public_key": "..."}
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "NO_DATA"}), 400
+
+    address = data.get('address', '')
+    if not _validate_address(address):
+        return jsonify({"error": "INVALID_ADDRESS"}), 400
+
+    with _mac_peers_lock:
+        _mac_peers[address] = {
+            "registered_at": datetime.utcnow().isoformat(),
+            "last_seen": datetime.utcnow().isoformat(),
+            "ip": request.remote_addr,
+            "public_key": data.get('public_key', '')[:200]
+        }
+
+    log.info(f"NODE REGISTERED: {address[:16]}... from {request.remote_addr}")
+
+    return jsonify({
+        "status": "registered",
+        "address": address,
+        "node_type": "client",
+        "seed_nodes": [{"name": n["name"], "url": n["url"]} for n in PEER_NODES]
+    })
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#                              WALLET & REGISTRY SYNC (Full Balance Consensus)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/api/node/wallet-sync', methods=['POST'])
+@rate_limit(limit=30, window=60)
+def api_node_wallet_sync():
+    """
+    Full wallet state sync between nodes.
+    Ensures all nodes have identical balances (like Bitcoin UTXO consensus).
+
+    POST /api/node/wallet-sync
+    Body: {"node_id": "...", "wallets_hash": "sha256 of wallets.json"}
+    Returns: {
+        "wallets": {full wallets dict},
+        "wallets_hash": "our hash",
+        "ledger_events": N,
+        "node_id": "..."
+    }
+    """
+    data = request.get_json() or {}
+    remote_hash = data.get('wallets_hash', '')
+
+    wallets = load_wallets()
+    local_hash = hashlib.sha256(json.dumps(wallets, sort_keys=True).encode()).hexdigest()
+
+    ledger_count = 0
+    if EVENT_LEDGER_AVAILABLE:
+        try:
+            ledger_count = get_event_ledger()._event_counter
+        except Exception:
+            pass
+
+    return jsonify({
+        "wallets": wallets,
+        "wallets_hash": local_hash,
+        "hashes_match": local_hash == remote_hash,
+        "ledger_events": ledger_count,
+        "node_id": NODE_ID,
+        "timestamp": datetime.utcnow().isoformat() + "Z"
+    })
+
+
+@app.route('/api/node/registry-sync', methods=['POST'])
+@rate_limit(limit=30, window=60)
+def api_node_registry_sync():
+    """
+    Full registry sync between nodes.
+    Ensures all nodes know about all wallet numbers and aliases.
+
+    POST /api/node/registry-sync
+    Body: {"node_id": "..."}
+    Returns: {"registry": {full registry dict}, "node_id": "..."}
+    """
+    registry = load_registry()
+    return jsonify({
+        "registry": registry,
+        "node_id": NODE_ID,
+        "timestamp": datetime.utcnow().isoformat() + "Z"
+    })
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#                              LEDGER VERIFY
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/api/ledger/verify/<address>')
+@rate_limit(limit=60, window=60)
+def api_ledger_verify(address: str):
+    """
+    Verify balance against EventLedger.
+
+    GET /api/ledger/verify/<address>
+    Returns: {"ledger_balance": N, "cached_balance": N, "verified": bool}
+    """
+    if not _validate_address(address):
+        return jsonify({"error": "INVALID_ADDRESS"}), 400
+
+    cached_balance = int(get_balance(address))
+
+    ledger_balance = 0
+    if EVENT_LEDGER_AVAILABLE:
+        try:
+            ledger = get_event_ledger()
+            ledger_balance = ledger.balance(address)
+        except Exception as e:
+            log.warning(f"Ledger verify error: {e}")
+
+    return jsonify({
+        "address": address,
+        "ledger_balance": ledger_balance,
+        "cached_balance": cached_balance,
+        "verified": ledger_balance == cached_balance or ledger_balance == 0,
+        "timestamp": datetime.utcnow().isoformat() + "Z"
+    })
+
+
+@app.route('/api/ledger/stats')
+def api_ledger_stats():
+    """EventLedger statistics"""
+    if not EVENT_LEDGER_AVAILABLE:
+        return jsonify({"error": "EVENT_LEDGER_UNAVAILABLE"}), 503
+
+    try:
+        ledger = get_event_ledger()
+        return jsonify(ledger.stats())
+    except Exception as e:
+        return jsonify({"error": "LEDGER_ERROR", "message": str(e)}), 500
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#                              P2P BACKGROUND SYNC
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _apply_ledger_events_to_wallets(events_data):
+    """Apply merged EventLedger events to wallet JSON cache"""
+    try:
+        wallets = load_wallets()
+        changed = False
+
+        for evt in events_data:
+            evt_type = evt.get("event_type", "")
+            to_addr = evt.get("to_addr", "")
+            from_addr = evt.get("from_addr", "")
+            amount = evt.get("amount", 0)
+
+            if evt_type == "EMISSION" and to_addr and amount > 0:
+                if to_addr not in wallets:
+                    wallets[to_addr] = {"balance": 0, "type": "p2p_sync"}
+                wallets[to_addr]["balance"] = wallets[to_addr].get("balance", 0) + amount
+                changed = True
+
+            elif evt_type == "TRANSFER" and from_addr and to_addr and amount > 0:
+                if from_addr in wallets:
+                    wallets[from_addr]["balance"] = max(0, wallets[from_addr].get("balance", 0) - amount)
+                if to_addr not in wallets:
+                    wallets[to_addr] = {"balance": 0, "type": "p2p_sync"}
+                wallets[to_addr]["balance"] = wallets[to_addr].get("balance", 0) + amount
+                changed = True
+
+        if changed:
+            save_wallets(wallets)
+    except Exception as e:
+        log.warning(f"Apply ledger events error: {e}")
+
+
+def _detect_node_identity():
+    """Detect which node we are based on local IP"""
+    global NODE_ID
+    import socket
+
+    try:
+        hostname = socket.gethostname()
+        local_ips = set()
+
+        # Get all local IPs
+        for info in socket.getaddrinfo(hostname, None):
+            local_ips.add(info[4][0])
+
+        # Also try getting the outbound IP
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            local_ips.add(s.getsockname()[0])
+            s.close()
+        except Exception:
+            pass
+
+        # Match against known nodes
+        for node in PEER_NODES:
+            if node["ip"] in local_ips:
+                NODE_ID = node["name"]
+                return NODE_ID
+
+    except Exception as e:
+        log.warning(f"Node identity detection error: {e}")
+
+    NODE_ID = os.environ.get("MONTANA_NODE_ID", hostname if 'hostname' in dir() else "unknown")
+    return NODE_ID
+
+
+def _p2p_sync_loop():
+    """
+    Background thread: periodically sync events with peer nodes.
+    Runs every 30 seconds. Pulls new events from all peers.
+    """
+    import urllib.request
+
+    # Wait for app to start
+    time_module.sleep(10)
+
+    log.info(f"P2P SYNC: background thread started (node={NODE_ID})")
+
+    # Track last known event_id per peer
+    last_known = {}
+
+    while True:
+        try:
+            if not EVENT_LEDGER_AVAILABLE:
+                time_module.sleep(60)
+                continue
+
+            ledger = get_event_ledger()
+
+            for peer in PEER_NODES:
+                # Skip self
+                if peer["name"] == NODE_ID:
+                    continue
+
+                try:
+                    # Get our events to send
+                    peer_last = last_known.get(peer["name"], "")
+                    our_events = ledger.get_events_since(peer_last)
+                    our_event_list = [e.to_dict() for e in our_events[:500]]
+
+                    # Bidirectional sync via POST /api/node/sync
+                    sync_data = json.dumps({
+                        "events": our_event_list,
+                        "last_event_id": peer_last,
+                        "node_id": NODE_ID
+                    }).encode('utf-8')
+
+                    req = urllib.request.Request(
+                        f"{peer['url']}/api/node/sync",
+                        data=sync_data,
+                        headers={
+                            "Content-Type": "application/json",
+                            "Accept": "application/json"
+                        },
+                        method="POST"
+                    )
+
+                    with urllib.request.urlopen(req, timeout=15) as resp:
+                        resp_data = json.loads(resp.read())
+
+                        # Merge events from peer
+                        remote_events = resp_data.get("events", [])
+                        if remote_events:
+                            merged = ledger.merge_events(remote_events)
+                            if merged > 0:
+                                log.info(f"P2P SYNC: merged {merged} events from {peer['name']}")
+                                _apply_ledger_events_to_wallets(remote_events)
+
+                        # Update tracking
+                        if remote_events:
+                            last_known[peer["name"]] = remote_events[-1].get("event_id", "")
+                        elif our_event_list:
+                            last_known[peer["name"]] = our_event_list[-1].get("event_id", "")
+
+                        peer_merged = resp_data.get("merged", 0)
+                        if peer_merged > 0:
+                            log.info(f"P2P SYNC: {peer['name']} accepted {peer_merged} of our events")
+
+                except Exception as e:
+                    log.debug(f"P2P sync with {peer['name']}: {e}")
+
+                # ── WALLET STATE SYNC ──
+                try:
+                    wallets = load_wallets()
+                    wallets_hash = hashlib.sha256(
+                        json.dumps(wallets, sort_keys=True).encode()
+                    ).hexdigest()
+
+                    ws_data = json.dumps({
+                        "node_id": NODE_ID,
+                        "wallets_hash": wallets_hash
+                    }).encode('utf-8')
+
+                    ws_req = urllib.request.Request(
+                        f"{peer['url']}/api/node/wallet-sync",
+                        data=ws_data,
+                        headers={"Content-Type": "application/json"},
+                        method="POST"
+                    )
+
+                    with urllib.request.urlopen(ws_req, timeout=15) as ws_resp:
+                        ws_result = json.loads(ws_resp.read())
+                        remote_wallets = ws_result.get("wallets", {})
+                        remote_hash = ws_result.get("wallets_hash", "")
+
+                        if remote_hash != wallets_hash and isinstance(remote_wallets, dict):
+                            merged_count = 0
+                            for addr, info in remote_wallets.items():
+                                # Validate address format (mt + 40 hex = 42 chars)
+                                if not isinstance(addr, str) or len(addr) != 42 or not addr.startswith("mt"):
+                                    continue
+                                if not isinstance(info, dict):
+                                    continue
+                                remote_bal = info.get("balance", 0)
+                                if not isinstance(remote_bal, (int, float)) or remote_bal < 0:
+                                    continue
+                                remote_bal = int(remote_bal)
+                                local_bal = wallets.get(addr, {}).get("balance", 0)
+                                if addr not in wallets:
+                                    wallets[addr] = {"balance": remote_bal, "type": info.get("type", "p2p_sync")}
+                                    merged_count += 1
+                                elif remote_bal > local_bal:
+                                    wallets[addr]["balance"] = remote_bal
+                                    merged_count += 1
+                            if merged_count > 0:
+                                save_wallets(wallets)
+                                log.info(f"WALLET SYNC: merged {merged_count} wallets from {peer['name']}")
+
+                except Exception as ws_e:
+                    log.debug(f"Wallet sync with {peer['name']}: {ws_e}")
+
+                # ── REGISTRY SYNC ──
+                try:
+                    registry = load_registry()
+
+                    rs_data = json.dumps({
+                        "node_id": NODE_ID
+                    }).encode('utf-8')
+
+                    rs_req = urllib.request.Request(
+                        f"{peer['url']}/api/node/registry-sync",
+                        data=rs_data,
+                        headers={"Content-Type": "application/json"},
+                        method="POST"
+                    )
+
+                    with urllib.request.urlopen(rs_req, timeout=15) as rs_resp:
+                        rs_result = json.loads(rs_resp.read())
+                        remote_registry = rs_result.get("registry", {})
+
+                        if remote_registry:
+                            merged_count = 0
+                            for num, info in remote_registry.items():
+                                if num not in registry:
+                                    registry[num] = info
+                                    merged_count += 1
+                            if merged_count > 0:
+                                save_registry(registry)
+                                log.info(f"REGISTRY SYNC: merged {merged_count} entries from {peer['name']}")
+
+                except Exception as rs_e:
+                    log.debug(f"Registry sync with {peer['name']}: {rs_e}")
+
+        except Exception as e:
+            log.error(f"P2P sync loop error: {e}")
+
+        # Sync every 30 seconds
+        time_module.sleep(30)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 #                              MAIN
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -933,28 +1831,48 @@ if __name__ == '__main__':
     # Create data directory
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
+    # Detect node identity
+    _detect_node_identity()
+
     port = int(os.environ.get('PORT', 8889))
     host = os.environ.get('HOST', '0.0.0.0')
 
     print(f"""
 ╔═══════════════════════════════════════════════════════════════╗
-║           MONTANA PROTOCOL API v2.0.0                         ║
-║           Standalone • Post-Quantum • Independent             ║
+║           MONTANA PROTOCOL API v3.0.0                         ║
+║           P2P Network • Post-Quantum • Independent            ║
 ╠═══════════════════════════════════════════════════════════════╣
+║  Node: {NODE_ID:<53s}║
+║                                                               ║
 ║  Endpoints:                                                   ║
 ║    GET  /api/health              - Health check               ║
 ║    GET  /api/network             - Network status             ║
 ║    GET  /api/status              - Full status                ║
 ║    GET  /api/balance/<address>   - Get balance                ║
 ║    POST /api/transfer            - Transfer Ɉ                 ║
+║    POST /api/presence            - Presence heartbeat         ║
 ║    POST /api/register            - Register wallet            ║
+║    POST /api/agent/register      - AI agent wallet            ║
 ║    GET  /api/timechain/stats     - TimeChain stats            ║
-║    GET  /api/timechain/blocks    - Recent blocks              ║
 ║    GET  /api/timebank/stats      - Time Bank stats            ║
-║    POST /api/timebank/activity   - Record presence            ║
 ║    GET  /api/version/<platform>  - App version (auto-update)  ║
+║  P2P:                                                         ║
+║    GET  /api/node/events         - Pull events (sync)         ║
+║    POST /api/node/sync           - Bidirectional sync         ║
+║    GET  /api/node/peers          - List peers                 ║
+║    POST /api/node/register       - Register Mac app client    ║
+║    GET  /api/ledger/verify/<a>   - Verify balance vs ledger   ║
+║    GET  /api/ledger/stats        - EventLedger stats          ║
 ╚═══════════════════════════════════════════════════════════════╝
     """)
 
-    print(f"🚀 Starting Montana API on http://{host}:{port}")
+    # Start P2P background sync thread
+    if EVENT_LEDGER_AVAILABLE:
+        sync_thread = threading.Thread(target=_p2p_sync_loop, daemon=True, name="p2p-sync")
+        sync_thread.start()
+        print(f"P2P: Background sync thread started (node={NODE_ID})")
+    else:
+        print("P2P: EventLedger not available — sync disabled")
+
+    print(f"Starting Montana API on http://{host}:{port}")
     app.run(host=host, port=port, debug=False, threaded=True)

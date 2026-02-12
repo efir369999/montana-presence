@@ -1479,6 +1479,68 @@ def api_node_register():
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+#                              WALLET & REGISTRY SYNC (Full Balance Consensus)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/api/node/wallet-sync', methods=['POST'])
+@rate_limit(limit=30, window=60)
+def api_node_wallet_sync():
+    """
+    Full wallet state sync between nodes.
+    Ensures all nodes have identical balances (like Bitcoin UTXO consensus).
+
+    POST /api/node/wallet-sync
+    Body: {"node_id": "...", "wallets_hash": "sha256 of wallets.json"}
+    Returns: {
+        "wallets": {full wallets dict},
+        "wallets_hash": "our hash",
+        "ledger_events": N,
+        "node_id": "..."
+    }
+    """
+    data = request.get_json() or {}
+    remote_hash = data.get('wallets_hash', '')
+
+    wallets = load_wallets()
+    local_hash = hashlib.sha256(json.dumps(wallets, sort_keys=True).encode()).hexdigest()
+
+    ledger_count = 0
+    if EVENT_LEDGER_AVAILABLE:
+        try:
+            ledger_count = get_event_ledger()._event_counter
+        except Exception:
+            pass
+
+    return jsonify({
+        "wallets": wallets,
+        "wallets_hash": local_hash,
+        "hashes_match": local_hash == remote_hash,
+        "ledger_events": ledger_count,
+        "node_id": NODE_ID,
+        "timestamp": datetime.utcnow().isoformat() + "Z"
+    })
+
+
+@app.route('/api/node/registry-sync', methods=['POST'])
+@rate_limit(limit=30, window=60)
+def api_node_registry_sync():
+    """
+    Full registry sync between nodes.
+    Ensures all nodes know about all wallet numbers and aliases.
+
+    POST /api/node/registry-sync
+    Body: {"node_id": "..."}
+    Returns: {"registry": {full registry dict}, "node_id": "..."}
+    """
+    registry = load_registry()
+    return jsonify({
+        "registry": registry,
+        "node_id": NODE_ID,
+        "timestamp": datetime.utcnow().isoformat() + "Z"
+    })
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 #                              LEDGER VERIFY
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -1671,6 +1733,88 @@ def _p2p_sync_loop():
 
                 except Exception as e:
                     log.debug(f"P2P sync with {peer['name']}: {e}")
+
+                # ── WALLET STATE SYNC ──
+                try:
+                    wallets = load_wallets()
+                    wallets_hash = hashlib.sha256(
+                        json.dumps(wallets, sort_keys=True).encode()
+                    ).hexdigest()
+
+                    ws_data = json.dumps({
+                        "node_id": NODE_ID,
+                        "wallets_hash": wallets_hash
+                    }).encode('utf-8')
+
+                    ws_req = urllib.request.Request(
+                        f"{peer['url']}/api/node/wallet-sync",
+                        data=ws_data,
+                        headers={"Content-Type": "application/json"},
+                        method="POST"
+                    )
+
+                    with urllib.request.urlopen(ws_req, timeout=15) as ws_resp:
+                        ws_result = json.loads(ws_resp.read())
+                        remote_wallets = ws_result.get("wallets", {})
+                        remote_hash = ws_result.get("wallets_hash", "")
+
+                        if remote_hash != wallets_hash and isinstance(remote_wallets, dict):
+                            merged_count = 0
+                            for addr, info in remote_wallets.items():
+                                # Validate address format (mt + 40 hex = 42 chars)
+                                if not isinstance(addr, str) or len(addr) != 42 or not addr.startswith("mt"):
+                                    continue
+                                if not isinstance(info, dict):
+                                    continue
+                                remote_bal = info.get("balance", 0)
+                                if not isinstance(remote_bal, (int, float)) or remote_bal < 0:
+                                    continue
+                                remote_bal = int(remote_bal)
+                                local_bal = wallets.get(addr, {}).get("balance", 0)
+                                if addr not in wallets:
+                                    wallets[addr] = {"balance": remote_bal, "type": info.get("type", "p2p_sync")}
+                                    merged_count += 1
+                                elif remote_bal > local_bal:
+                                    wallets[addr]["balance"] = remote_bal
+                                    merged_count += 1
+                            if merged_count > 0:
+                                save_wallets(wallets)
+                                log.info(f"WALLET SYNC: merged {merged_count} wallets from {peer['name']}")
+
+                except Exception as ws_e:
+                    log.debug(f"Wallet sync with {peer['name']}: {ws_e}")
+
+                # ── REGISTRY SYNC ──
+                try:
+                    registry = load_registry()
+
+                    rs_data = json.dumps({
+                        "node_id": NODE_ID
+                    }).encode('utf-8')
+
+                    rs_req = urllib.request.Request(
+                        f"{peer['url']}/api/node/registry-sync",
+                        data=rs_data,
+                        headers={"Content-Type": "application/json"},
+                        method="POST"
+                    )
+
+                    with urllib.request.urlopen(rs_req, timeout=15) as rs_resp:
+                        rs_result = json.loads(rs_resp.read())
+                        remote_registry = rs_result.get("registry", {})
+
+                        if remote_registry:
+                            merged_count = 0
+                            for num, info in remote_registry.items():
+                                if num not in registry:
+                                    registry[num] = info
+                                    merged_count += 1
+                            if merged_count > 0:
+                                save_registry(registry)
+                                log.info(f"REGISTRY SYNC: merged {merged_count} entries from {peer['name']}")
+
+                except Exception as rs_e:
+                    log.debug(f"Registry sync with {peer['name']}: {rs_e}")
 
         except Exception as e:
             log.error(f"P2P sync loop error: {e}")
