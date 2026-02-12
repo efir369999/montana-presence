@@ -1108,6 +1108,82 @@ def api_version(platform: str):
     })
 
 # ═══════════════════════════════════════════════════════════════════════════════
+#                              ACTIVE ADDRESSES / NETWORK VIEW
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/api/addresses')
+@rate_limit(limit=60, window=60)
+def api_addresses():
+    """
+    List all active addresses with types — for Mac app network view.
+
+    GET /api/addresses
+    Returns: {
+        "addresses": [
+            {"address": "mt...", "balance": N, "type": "ai_agent"|"human"|"presence_app", ...}
+        ],
+        "total": N,
+        "agents": N,
+        "humans": N
+    }
+    """
+    wallets = load_wallets()
+    registry = load_registry()
+    aliases = registry.get("aliases", {})
+
+    addresses = []
+    agent_count = 0
+    human_count = 0
+
+    for addr, data in wallets.items():
+        if not addr.startswith("mt"):
+            continue
+
+        addr_type = data.get("type", "unknown")
+        agent_name = data.get("agent_name", "")
+        balance = data.get("balance", 0)
+
+        # Determine type
+        if addr_type == "ai_agent" or agent_name:
+            display_type = "ai_agent"
+            agent_count += 1
+        elif addr_type in ("presence_app", "p2p_sync") or balance > 0:
+            display_type = "human"
+            human_count += 1
+        else:
+            display_type = "unknown"
+
+        # Find alias
+        crypto_hash = addr[2:]
+        wallet_reg = registry.get("wallets", {}).get(crypto_hash, {})
+        number = wallet_reg.get("number")
+        custom_alias = wallet_reg.get("custom_alias", "")
+
+        entry = {
+            "address": addr,
+            "balance": int(balance),
+            "type": display_type,
+            "alias": f"Ɉ-{number}" if number else "",
+            "custom_alias": custom_alias,
+            "agent_name": agent_name,
+            "last_seen": data.get("last_seen", data.get("updated_at", "")),
+        }
+        addresses.append(entry)
+
+    # Sort by balance descending
+    addresses.sort(key=lambda x: x["balance"], reverse=True)
+
+    return jsonify({
+        "addresses": addresses,
+        "total": len(addresses),
+        "agents": agent_count,
+        "humans": human_count,
+        "node_id": NODE_ID,
+        "timestamp": datetime.utcnow().isoformat() + "Z"
+    })
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 #                              P2P NODE SYNC
 # ═══════════════════════════════════════════════════════════════════════════════
 
