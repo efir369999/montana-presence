@@ -270,24 +270,32 @@ class PresenceEngine: ObservableObject {
         let locStatus = locMgr.authorizationStatus
         let btAuth = CBManager.authorization
 
+        let oldPermissions = sensorPermissions
+
         sensorPermissions = [
             "camera": camStatus == .authorized,
             "mic": micStatus == .authorized,
             "location": locStatus == .authorizedAlways || locStatus == .authorized,
             "bluetooth": btAuth == .allowedAlways,
-            "activity": true,  // User-controlled; AXIsProcessTrusted() unreliable with ad-hoc signing
+            "activity": true,
             "appdata": true,
             "wifi": true,
             "autostart": true,
         ]
 
-        // Full sync: permission granted → enable, permission revoked → disable
+        // Sync only on TRANSITIONS:
+        // - Permission false → true: auto-enable sensor
+        // - Permission true → false: auto-disable sensor
+        // - No change: respect user's toggle choice
         for (id, allowed) in sensorPermissions {
+            let wasAllowed = oldPermissions[id] ?? false
             if let idx = sensors.firstIndex(where: { $0.id == id }) {
-                if allowed && !sensors[idx].enabled {
+                if allowed && !wasAllowed {
+                    // Permission just granted → enable
                     sensors[idx].enabled = true
                     UserDefaults.standard.set(true, forKey: "sensor_\(id)")
-                } else if !allowed && sensors[idx].enabled {
+                } else if !allowed && wasAllowed {
+                    // Permission just revoked → disable
                     sensors[idx].enabled = false
                     UserDefaults.standard.set(false, forKey: "sensor_\(id)")
                 }
