@@ -96,6 +96,17 @@ struct SendView: View {
                 .controlSize(.small)
             }
 
+            if let amt = Int(amount), amt > engine.availableBalance, engine.availableBalance > 0 {
+                Text("Недостаточно средств (доступно: \(engine.availableBalance) Ɉ)")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+            }
+            if engine.availableBalance == 0 {
+                Text("Нет доступных средств для отправки")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+            }
+
             Spacer()
 
             if !statusText.isEmpty {
@@ -157,6 +168,13 @@ struct SendView: View {
         Task {
             do {
                 let (addr, alias) = try await engine.api.lookupWallet(identifier: lookupID)
+                if addr == (engine.address ?? "") {
+                    resolvedAddress = ""
+                    resolvedAlias = ""
+                    statusText = "Нельзя отправить себе"
+                    statusColor = .orange
+                    return
+                }
                 resolvedAddress = addr
                 resolvedAlias = alias
                 statusText = ""
@@ -173,6 +191,11 @@ struct SendView: View {
             resolveRecipient()
             return
         }
+        guard resolvedAddress != (engine.address ?? "") else {
+            statusText = "Нельзя отправить себе"
+            statusColor = .orange
+            return
+        }
         isSending = true
         statusText = ""
         Task {
@@ -182,7 +205,7 @@ struct SendView: View {
                     to: resolvedAddress,
                     amount: amt
                 )
-                statusText = "Отправлено!"
+                statusText = "Отправлено \(amt) Ɉ → \(resolvedAlias)"
                 statusColor = .green
                 await engine.syncBalance()
                 try? await Task.sleep(nanoseconds: 2_000_000_000)
