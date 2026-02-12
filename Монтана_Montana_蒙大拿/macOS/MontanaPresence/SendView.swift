@@ -165,7 +165,7 @@ struct SendView: View {
 
         statusText = "Ищу..."
         statusColor = .secondary
-        Task {
+        Task { @MainActor in
             do {
                 let (addr, alias) = try await engine.api.lookupWallet(identifier: lookupID)
                 if addr == (engine.address ?? "") {
@@ -179,13 +179,14 @@ struct SendView: View {
                 resolvedAlias = alias
                 statusText = ""
             } catch {
-                statusText = "Адрес не найден"
+                statusText = "Адрес не найден. Проверьте номер"
                 statusColor = .red
             }
         }
     }
 
     private func sendTransfer() {
+        guard !isSending else { return }
         guard let amt = Int(amount), amt > 0 else { return }
         guard !resolvedAddress.isEmpty else {
             resolveRecipient()
@@ -198,7 +199,7 @@ struct SendView: View {
         }
         isSending = true
         statusText = ""
-        Task {
+        Task { @MainActor in
             do {
                 try await engine.api.transfer(
                     from: engine.address ?? "",
@@ -208,10 +209,10 @@ struct SendView: View {
                 statusText = "Отправлено \(amt) Ɉ → \(resolvedAlias)"
                 statusColor = .green
                 await engine.syncBalance()
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
                 dismiss()
             } catch {
-                statusText = "Ошибка: \(error.localizedDescription)"
+                statusText = "Ошибка отправки. Попробуйте позже"
                 statusColor = .red
                 isSending = false
             }

@@ -93,6 +93,7 @@ struct ReceiveView: View {
                     .buttonStyle(.bordered)
                     .tint(copiedFull ? .green : .secondary)
                     .controlSize(.regular)
+                    .help("42-символьный адрес для продвинутых")
                 }
             }
         }
