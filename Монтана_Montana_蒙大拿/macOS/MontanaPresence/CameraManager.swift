@@ -1,19 +1,14 @@
 import AVFoundation
-import Vision
 import AppKit
 
 class CameraManager: NSObject, ObservableObject {
     static let shared = CameraManager()
 
     @Published var isCameraRunning = false
-    @Published var faceDetected = false
     @Published var cameraError: String?
 
     private let captureSession = AVCaptureSession()
     private let sessionQueue = DispatchQueue(label: "network.montana.presence.camera")
-    private let detectionInterval: TimeInterval = 3.0
-    private var lastDetectionTime: UInt64 = 0
-    private let lock = NSLock()
 
     private override init() {
         super.init()
@@ -46,7 +41,6 @@ class CameraManager: NSObject, ObservableObject {
         }
         DispatchQueue.main.async {
             self.isCameraRunning = false
-            self.faceDetected = false
         }
     }
 
@@ -69,15 +63,6 @@ class CameraManager: NSObject, ObservableObject {
                 self.captureSession.addInput(input)
             }
 
-            let output = AVCaptureVideoDataOutput()
-            output.alwaysDiscardsLateVideoFrames = true
-            output.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
-            output.setSampleBufferDelegate(self, queue: self.sessionQueue)
-
-            if self.captureSession.canAddOutput(output) {
-                self.captureSession.addOutput(output)
-            }
-
             self.captureSession.commitConfiguration()
             self.captureSession.startRunning()
 
@@ -86,40 +71,5 @@ class CameraManager: NSObject, ObservableObject {
                 self.cameraError = nil
             }
         }
-    }
-
-    private func detectFace(in pixelBuffer: CVPixelBuffer) {
-        let request = VNDetectFaceRectanglesRequest()
-        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])
-
-        do {
-            try handler.perform([request])
-            let hasFace = (request.results ?? []).isEmpty == false
-            DispatchQueue.main.async { [weak self] in
-                self?.faceDetected = hasFace
-                Task { @MainActor in
-                    PresenceEngine.shared.faceDetectionResult(hasFace)
-                }
-            }
-        } catch {
-            // Vision error — skip this frame
-        }
-    }
-}
-
-extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
-    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        let nowTicks = DispatchTime.now().uptimeNanoseconds
-        lock.lock()
-        let elapsed = Double(nowTicks - lastDetectionTime) / 1_000_000_000
-        if elapsed < detectionInterval {
-            lock.unlock()
-            return
-        }
-        lastDetectionTime = nowTicks
-        lock.unlock()
-
-        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-        detectFace(in: pixelBuffer)
     }
 }

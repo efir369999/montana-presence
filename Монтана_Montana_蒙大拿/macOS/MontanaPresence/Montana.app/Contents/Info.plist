@@ -23,7 +23,7 @@
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
     <key>NSCameraUsageDescription</key>
-    <string>Montana uses your camera to detect face presence and earn time coins. All processing happens locally on your device.</string>
+    <string>Montana uses camera as a presence anchor. Video is never recorded or transmitted.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Montana uses your microphone to detect ambient presence. Audio is never recorded or transmitted.</string>
     <key>NSLocationUsageDescription</key>

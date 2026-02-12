@@ -16,7 +16,6 @@ swiftc \
     -o "$DIR/MontanaPresence" \
     -framework SwiftUI \
     -framework AVFoundation \
-    -framework Vision \
     -framework Security \
     -framework ServiceManagement \
     -framework CoreImage \

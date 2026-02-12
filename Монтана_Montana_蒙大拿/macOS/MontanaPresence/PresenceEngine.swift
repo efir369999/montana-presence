@@ -95,8 +95,6 @@ class PresenceEngine: ObservableObject {
     private var tickTimer: Timer?
     private var reportTimer: Timer?
     private var tickCount = 0
-    private var consecutiveMisses = 0
-    private let missThreshold = 2
     private let pendingKey = "montana_presence_pending"
     private let balanceKey = "montana_presence_balance"
     let api = MontanaAPIClient()
@@ -147,7 +145,7 @@ class PresenceEngine: ObservableObject {
         sensors = [
             Sensor(id: "camera", icon: "camera.fill",
                    name: "Камера",
-                   info: "Распознавание лица через Apple Vision. Вся обработка локально на устройстве.",
+                   info: "Камера как якорь присутствия. Видео не записывается и не отправляется.",
                    enabled: d.bool(forKey: "sensor_camera"), rate: 1),
             Sensor(id: "mic", icon: "mic.fill",
                    name: "Микрофон",
@@ -331,7 +329,6 @@ class PresenceEngine: ObservableObject {
         isPresent = true  // Always present when tracking — timer ticks immediately
         sessionSeconds = 0
         t2TrackingSeconds = 0
-        consecutiveMisses = 0
         refreshPermissions()
         if sensorPermissions["camera"] == true {
             CameraManager.shared.startCamera()
@@ -356,14 +353,7 @@ class PresenceEngine: ObservableObject {
         Task { await reportToServer() }
     }
 
-    func faceDetectionResult(_ detected: Bool) {
-        if detected {
-            consecutiveMisses = 0
-        } else {
-            consecutiveMisses += 1
-        }
-        // isPresent stays true while tracking — app running = presence proved
-    }
+    // isPresent stays true while tracking — app running = presence proved
 
     private func tick() {
         guard isTracking else { return }

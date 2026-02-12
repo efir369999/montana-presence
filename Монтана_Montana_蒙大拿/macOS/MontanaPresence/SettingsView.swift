@@ -75,7 +75,7 @@ struct SettingsView: View {
             Section("\u{041e} \u{043f}\u{0440}\u{0438}\u{043b}\u{043e}\u{0436}\u{0435}\u{043d}\u{0438}\u{0438}") {
                 LabeledContent("\u{0412}\u{0435}\u{0440}\u{0441}\u{0438}\u{044f}") { Text("Montana \(updater.currentVersion)") }
                 LabeledContent("\u{041f}\u{0440}\u{043e}\u{0442}\u{043e}\u{043a}\u{043e}\u{043b}") { Text("Montana Protocol \u{0248}") }
-                LabeledContent("\u{0414}\u{0435}\u{0442}\u{0435}\u{043a}\u{0446}\u{0438}\u{044f}") { Text("Apple Vision (\u{043b}\u{043e}\u{043a}\u{0430}\u{043b}\u{044c}\u{043d}\u{043e})") }
+                LabeledContent("\u{042f}\u{043a}\u{043e}\u{0440}\u{044f}") { Text("\u{0421}\u{0435}\u{043d}\u{0441}\u{043e}\u{0440}\u{044b} \u{043f}\u{0440}\u{0438}\u{0441}\u{0443}\u{0442}\u{0441}\u{0442}\u{0432}\u{0438}\u{044f}") }
                 if updater.updateAvailable {
                     LabeledContent("\u{041e}\u{0431}\u{043d}\u{043e}\u{0432}\u{043b}\u{0435}\u{043d}\u{0438}\u{0435}") {
                         HStack {
