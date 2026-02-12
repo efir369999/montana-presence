@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Montana v2.12.0 menu bar app
+# Build Montana v2.20.0 menu bar app — Send/Receive UX, self-send protection, balance feedback
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$DIR/Montana.app"
 
-echo "Building Montana v2.12.0..."
+echo "Building Montana v2.20.0..."
 
 # Clean
 rm -rf "$APP"
@@ -23,6 +23,7 @@ swiftc \
     -framework CoreBluetooth \
     -framework ApplicationServices \
     -framework Network \
+    -framework NetworkExtension \
     -target arm64-apple-macos14.0 \
     -parse-as-library \
     "$DIR/MontanaAPIClient.swift" \
