@@ -669,9 +669,16 @@ struct MenuBarView: View {
                         .font(.system(size: 9, design: .monospaced))
                         .foregroundColor(Color.white.opacity(0.15))
                     Spacer()
-                    Text("@junomoneta")
-                        .font(.system(size: 9, design: .monospaced))
-                        .foregroundColor(goldDim.opacity(0.4))
+                    Button(action: {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString("@junomoneta", forType: .string)
+                    }) {
+                        Text("@junomoneta")
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundColor(goldDim.opacity(0.4))
+                    }
+                    .buttonStyle(.plain)
+                    .help("\u{041a}\u{043e}\u{043f}\u{0438}\u{0440}\u{043e}\u{0432}\u{0430}\u{0442}\u{044c} \u{0430}\u{043b}\u{0438}\u{0430}\u{0441}")
                     Spacer()
                     Text("build \(appBuild)")
                         .font(.system(size: 9, design: .monospaced))
@@ -693,11 +700,11 @@ struct MenuBarView: View {
     // ── Version ──
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "2.15.0"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "2.21.0"
     }
 
     private var appBuild: String {
-        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "33"
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "39"
     }
 
     // ── Helpers ──
