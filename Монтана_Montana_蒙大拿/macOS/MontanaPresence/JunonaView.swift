@@ -468,7 +468,7 @@ struct JunonaView: View {
                                     lineWidth: 3
                                 )
                         )
-                        .opacity(cos(coinRotation * .pi / 180) > 0 ? 1 : 0)
+                        .opacity(max(0, cos(coinRotation * .pi / 180)))
                 }
 
                 // Back side: МЫ ПОВСЮДУ (visible when facing backward)
@@ -494,14 +494,14 @@ struct JunonaView: View {
                                 )
                         )
                         .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))  // Pre-rotate back side
-                        .opacity(cos(coinRotation * .pi / 180) < 0 ? 1 : 0)
+                        .opacity(max(0, -cos(coinRotation * .pi / 180)))
                 }
             }
             .rotation3DEffect(.degrees(coinRotation), axis: (x: 0, y: 1, z: 0))  // Rotate entire coin
             .shadow(color: Color(red: 0.83, green: 0.69, blue: 0.22).opacity(0.3), radius: 20, x: 0, y: 10)
             .onAppear {
-                // Faster rotation: 1 second per revolution
-                withAnimation(.linear(duration: 1.0).repeatForever(autoreverses: false)) {
+                // Slow rotation: 3 seconds per revolution (smooth and visible)
+                withAnimation(.linear(duration: 3.0).repeatForever(autoreverses: false)) {
                     coinRotation = 360
                 }
                 // Start minting coins
