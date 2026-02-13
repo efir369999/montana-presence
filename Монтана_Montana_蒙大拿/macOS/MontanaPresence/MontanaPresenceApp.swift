@@ -1,6 +1,7 @@
 import SwiftUI
 import ServiceManagement
 import AVFoundation
+import IOKit
 
 @main
 struct MontanaPresenceApp: App {
@@ -20,8 +21,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var mainWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // ╔══════════════════════════════════════════════════════════════════╗
+        // ║  SINGLE INSTANCE CHECK                                          ║
+        // ║  1 устройство = 1 Montana. Строго.                              ║
+        // ╚══════════════════════════════════════════════════════════════════╝
+        if isAnotherInstanceRunning() {
+            let alert = NSAlert()
+            alert.messageText = "Montana уже запущен"
+            alert.informativeText = "На этом устройстве может работать только один экземпляр Montana Protocol.\n\nЗакройте дубликат и используйте активное приложение."
+            alert.alertStyle = .critical
+            alert.addButton(withTitle: "Закрыть дубликат")
+            alert.runModal()
+            NSApp.terminate(nil)
+            return
+        }
+
+        // ╔══════════════════════════════════════════════════════════════════╗
+        // ║  DEVICE ID LOCK                                                 ║
+        // ║  Привязка к hardware UUID. Строго.                              ║
+        // ╚══════════════════════════════════════════════════════════════════╝
+        checkDeviceBinding()
+
         setupStatusItem()
         setupMainWindow()
+
+        // Show window on launch
+        mainWindow?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
 
         // Menu bar label syncs directly from tick() — same call stack, zero lag
         PresenceEngine.shared.onTick = { [weak self] in
@@ -32,6 +58,87 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor in
             UpdateManager.shared.startChecking()
             PresenceEngine.shared.autoStart()
+        }
+    }
+
+    // Dock / Launchpad icon click — ALWAYS show window
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        guard let window = mainWindow else { return false }
+        if window.isMiniaturized {
+            window.deminiaturize(nil)
+        }
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        return true
+    }
+
+    // MARK: - Single Instance Protection
+
+    private func isAnotherInstanceRunning() -> Bool {
+        let bundleID = Bundle.main.bundleIdentifier ?? "network.montana.presence"
+        let runningApps = NSWorkspace.shared.runningApplications
+        let montanaInstances = runningApps.filter { $0.bundleIdentifier == bundleID }
+
+        // If more than 1 instance (including current) — another is running
+        return montanaInstances.count > 1
+    }
+
+    // MARK: - Device Binding
+
+    private func getHardwareUUID() -> String? {
+        let platformExpert = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPlatformExpertDevice"))
+        guard platformExpert != 0 else { return nil }
+        defer { IOObjectRelease(platformExpert) }
+
+        guard let serialNumberAsCFString = IORegistryEntryCreateCFProperty(
+            platformExpert,
+            kIOPlatformUUIDKey as CFString,
+            kCFAllocatorDefault,
+            0
+        )?.takeRetainedValue() as? String else {
+            return nil
+        }
+
+        return serialNumberAsCFString
+    }
+
+    private func checkDeviceBinding() {
+        guard let currentDeviceID = getHardwareUUID() else {
+            // Cannot get hardware UUID — allow (fallback)
+            return
+        }
+
+        let savedDeviceID = UserDefaults.standard.string(forKey: "montana_device_id")
+
+        if let saved = savedDeviceID {
+            // Device already bound — check if matches
+            if saved != currentDeviceID {
+                let alert = NSAlert()
+                alert.messageText = "Montana привязан к другому устройству"
+                alert.informativeText = """
+                Montana Protocol строго привязан к устройству при первом запуске.
+
+                Это приложение настроено для другого Mac.
+
+                Если вы хотите использовать Montana на этом устройстве:
+                1. Экспортируйте кошелёк (адрес + ключи) на старом устройстве
+                2. Удалите Montana.app
+                3. Переустановите Montana на этом Mac
+                4. Импортируйте кошелёк
+
+                Device ID (этот Mac): \(currentDeviceID.prefix(16))...
+                Device ID (привязан): \(saved.prefix(16))...
+                """
+                alert.alertStyle = .critical
+                alert.addButton(withTitle: "Закрыть")
+                alert.runModal()
+                NSApp.terminate(nil)
+                return
+            }
+        } else {
+            // First run — bind to this device
+            UserDefaults.standard.set(currentDeviceID, forKey: "montana_device_id")
+            print("Montana bound to device: \(currentDeviceID)")
         }
     }
 
@@ -80,14 +187,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             formatter.numberStyle = .decimal
             formatter.groupingSeparator = ","
             let s = formatter.string(from: NSNumber(value: engine.displayBalance)) ?? "\(engine.displayBalance)"
-            parts.append("\(s) \u{0248}")
-        } else {
+            parts.append(s)
+        }
+        if engine.showSymbolInMenuBar {
             parts.append("\u{0248}")
         }
         if engine.showWeightInMenuBar {
             parts.append("x\(engine.weight)")
         }
-        statusItem.button?.title = parts.joined(separator: " ")
+        // Always show at least Ɉ so status item remains clickable
+        statusItem.button?.title = parts.isEmpty ? "\u{0248}" : parts.joined(separator: " ")
     }
 
     // Left click → main window, Right click → context menu

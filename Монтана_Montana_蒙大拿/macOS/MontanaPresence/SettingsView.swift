@@ -9,6 +9,9 @@ struct SettingsView: View {
     @State private var launchAtLogin = false
     @State private var saved = false
 
+    private let gold = Color(red: 0.85, green: 0.68, blue: 0.25)
+    private let goldLight = Color(red: 0.95, green: 0.82, blue: 0.45)
+
     var body: some View {
         Form {
             Section("\u{0410}\u{0434}\u{0440}\u{0435}\u{0441} Montana") {
@@ -54,14 +57,142 @@ struct SettingsView: View {
             }
 
             Section("Menu Bar") {
-                Toggle("\u{041f}\u{043e}\u{043a}\u{0430}\u{0437}\u{044b}\u{0432}\u{0430}\u{0442}\u{044c} \u{0431}\u{0430}\u{043b}\u{0430}\u{043d}\u{0441}", isOn: Binding(
+                Toggle("\u{0421}\u{0438}\u{043c}\u{0432}\u{043e}\u{043b} \u{0248}", isOn: Binding(
+                    get: { engine.showSymbolInMenuBar },
+                    set: { _ in engine.toggleMenuBarSymbol() }
+                ))
+                Toggle("\u{0411}\u{0430}\u{043b}\u{0430}\u{043d}\u{0441}", isOn: Binding(
                     get: { engine.showBalanceInMenuBar },
                     set: { _ in engine.toggleMenuBarBalance() }
                 ))
-                Toggle("\u{041f}\u{043e}\u{043a}\u{0430}\u{0437}\u{044b}\u{0432}\u{0430}\u{0442}\u{044c} \u{0432}\u{0435}\u{0441}", isOn: Binding(
+                Toggle("\u{0412}\u{0435}\u{0441}", isOn: Binding(
                     get: { engine.showWeightInMenuBar },
                     set: { _ in engine.toggleMenuBarWeight() }
                 ))
+            }
+
+            // ╔══════════════════════════════════════════════════════════════════╗
+            // ║  IMMUTABLE BLOCK — SENSOR UI (Settings)                         ║
+            // ║  НЕ МЕНЯТЬ. Это неизменяемый блок кода.                         ║
+            // ║                                                                 ║
+            // ║  Тумблер ON + разрешение = золотой, показывает +N Ɉ/с           ║
+            // ║  Тумблер OFF или нет разрешения = серый, без рейта              ║
+            // ║  Клик на выключенный без разрешения → запрос разрешения          ║
+            // ║  Клик на включённый → выключить                                 ║
+            // ╚══════════════════════════════════════════════════════════════════╝
+            Section("\u{0414}\u{0430}\u{0442}\u{0447}\u{0438}\u{043a}\u{0438} \u{043f}\u{0440}\u{0438}\u{0441}\u{0443}\u{0442}\u{0441}\u{0442}\u{0432}\u{0438}\u{044f}") {
+                HStack(spacing: 6) {
+                    Image(systemName: "person.fill")
+                        .frame(width: 18)
+                        .foregroundColor(gold)
+                    Text("\u{041f}\u{0440}\u{0438}\u{0441}\u{0443}\u{0442}\u{0441}\u{0442}\u{0432}\u{0438}\u{0435}")
+                    Spacer()
+                    Text("+1 \u{0248}/\u{0441}")
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundColor(goldLight)
+                }
+
+                ForEach(engine.sensors) { sensor in
+                    let hasPermission = engine.sensorPermissions[sensor.id] ?? false
+                    let isActive = sensor.enabled && hasPermission
+                    HStack(spacing: 6) {
+                        Image(systemName: sensor.icon)
+                            .frame(width: 18)
+                            .foregroundColor(isActive ? gold : .secondary)
+                        Text(sensor.name)
+                            .foregroundColor(isActive ? .primary : .secondary)
+                        Spacer()
+                        if isActive {
+                            Text("+\(sensor.rate) \u{0248}/\u{0441}")
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundColor(goldLight)
+                        }
+                        Toggle("", isOn: Binding(
+                            get: { sensor.enabled },
+                            set: { _ in
+                                if !sensor.enabled && !hasPermission {
+                                    engine.requestPermission(for: sensor.id)
+                                } else {
+                                    engine.toggleSensor(sensor.id)
+                                }
+                            }
+                        ))
+                        .toggleStyle(.switch)
+                        .controlSize(.mini)
+                        .labelsHidden()
+                    }
+                }
+
+                HStack(spacing: 6) {
+                    Image(systemName: "lock.shield.fill")
+                        .frame(width: 18)
+                        .foregroundColor(vpn.isConnected ? gold : .secondary)
+                    Text("VPN")
+                        .foregroundColor(vpn.isConnected ? .primary : .secondary)
+                    Spacer()
+                    if vpn.isConnected {
+                        Text("+1 \u{0248}/\u{0441}")
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundColor(goldLight)
+                    }
+                    if vpn.isConnecting {
+                        ProgressView()
+                            .controlSize(.mini)
+                    } else {
+                        Toggle("", isOn: Binding(
+                            get: { vpn.isConnected || vpn.isConnecting },
+                            set: { _ in vpn.toggle() }
+                        ))
+                        .toggleStyle(.switch)
+                        .controlSize(.mini)
+                        .labelsHidden()
+                    }
+                }
+
+                if let error = vpn.connectionError {
+                    HStack(spacing: 4) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text(error)
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                }
+
+                if vpn.isConnected {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "network")
+                                .foregroundColor(.secondary)
+                            Text("IP: \(vpn.vpnIP)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text("\(vpn.pingMs)ms")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.down.circle")
+                                .foregroundColor(.secondary)
+                            Text(VPNManager.formatBytes(vpn.bytesIn))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Image(systemName: "arrow.up.circle")
+                                .foregroundColor(.secondary)
+                            Text(VPNManager.formatBytes(vpn.bytesOut))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+
+                LabeledContent("\u{0412}\u{0435}\u{0441} \u{043f}\u{0440}\u{0438}\u{0441}\u{0443}\u{0442}\u{0441}\u{0442}\u{0432}\u{0438}\u{044f}") {
+                    Text("\(engine.weight)/\(engine.maxWeight) \u{0248}/\u{0441}")
+                        .font(.system(.body, design: .monospaced))
+                        .foregroundColor(gold)
+                }
             }
 
             Section("\u{0421}\u{0442}\u{0430}\u{0442}\u{0438}\u{0441}\u{0442}\u{0438}\u{043a}\u{0430}") {
@@ -86,7 +217,6 @@ struct SettingsView: View {
             Section("\u{041e} \u{043f}\u{0440}\u{0438}\u{043b}\u{043e}\u{0436}\u{0435}\u{043d}\u{0438}\u{0438}") {
                 LabeledContent("\u{0412}\u{0435}\u{0440}\u{0441}\u{0438}\u{044f}") { Text("Montana \(updater.currentVersion)") }
                 LabeledContent("\u{041f}\u{0440}\u{043e}\u{0442}\u{043e}\u{043a}\u{043e}\u{043b}") { Text("Montana Protocol \u{0248}") }
-                LabeledContent("\u{042f}\u{043a}\u{043e}\u{0440}\u{044f}") { Text("\u{0421}\u{0435}\u{043d}\u{0441}\u{043e}\u{0440}\u{044b} \u{043f}\u{0440}\u{0438}\u{0441}\u{0443}\u{0442}\u{0441}\u{0442}\u{0432}\u{0438}\u{044f}") }
                 if updater.updateAvailable {
                     LabeledContent("\u{041e}\u{0431}\u{043d}\u{043e}\u{0432}\u{043b}\u{0435}\u{043d}\u{0438}\u{0435}") {
                         HStack {

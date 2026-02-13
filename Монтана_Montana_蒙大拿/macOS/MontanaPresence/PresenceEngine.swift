@@ -41,9 +41,9 @@ class PresenceEngine: ObservableObject {
     @Published var t2SecondsElapsed: Int = 0
     @Published var t2TrackingSeconds: Int = 0
     @Published var sensorPermissions: [String: Bool] = [:]
-    @Published var showBalanceInMenuBar: Bool = true
-    @Published var showWeightInMenuBar: Bool = true
-    // Speed/rate removed from menu bar — only Balance and Weight visibility toggles remain
+    @Published var showSymbolInMenuBar: Bool = true
+    @Published var showBalanceInMenuBar: Bool = false
+    @Published var showWeightInMenuBar: Bool = false
     @Published var genesisDate: Date = {
         var c = DateComponents()
         c.year = 2026; c.month = 1; c.day = 9; c.hour = 0; c.minute = 0
@@ -111,6 +111,7 @@ class PresenceEngine: ObservableObject {
 
     private var tickTimer: Timer?
     private var reportTimer: Timer?
+    private var syncTimer: Timer?
     private var tickCount = 0
     private let pendingKey = "montana_presence_pending"
     private let balanceKey = "montana_presence_balance"
@@ -123,9 +124,9 @@ class PresenceEngine: ObservableObject {
     private init() {
         pendingSeconds = UserDefaults.standard.integer(forKey: pendingKey)
         serverBalance = UserDefaults.standard.integer(forKey: balanceKey)
-        showBalanceInMenuBar = UserDefaults.standard.object(forKey: "menubar_balance") as? Bool ?? true
-        showWeightInMenuBar = UserDefaults.standard.object(forKey: "menubar_weight") as? Bool ?? true
-        // showRateInMenuBar removed — speed display eliminated
+        showSymbolInMenuBar = UserDefaults.standard.object(forKey: "menubar_symbol") as? Bool ?? true
+        showBalanceInMenuBar = UserDefaults.standard.object(forKey: "menubar_balance") as? Bool ?? false
+        showWeightInMenuBar = UserDefaults.standard.object(forKey: "menubar_weight") as? Bool ?? false
         migrateActivitySensor()
         registerSensorDefaults()
         loadSensors()
@@ -273,6 +274,11 @@ class PresenceEngine: ObservableObject {
         }
     }
 
+    func toggleMenuBarSymbol() {
+        showSymbolInMenuBar.toggle()
+        UserDefaults.standard.set(showSymbolInMenuBar, forKey: "menubar_symbol")
+    }
+
     func toggleMenuBarBalance() {
         showBalanceInMenuBar.toggle()
         UserDefaults.standard.set(showBalanceInMenuBar, forKey: "menubar_balance")
@@ -405,6 +411,13 @@ class PresenceEngine: ObservableObject {
         reportTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
             Task { @MainActor in await self?.reportToServer() }
         }
+
+        // Periodic balance sync (every 60 seconds) — consensus check with majority of nodes
+        syncTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in await self?.syncBalance() }
+        }
+
+        // Initial sync
         Task { await syncBalance() }
     }
 
@@ -415,6 +428,8 @@ class PresenceEngine: ObservableObject {
         tickTimer = nil
         reportTimer?.invalidate()
         reportTimer = nil
+        syncTimer?.invalidate()
+        syncTimer = nil
         CameraManager.shared.stopCamera()
         Task { await reportToServer() }
     }

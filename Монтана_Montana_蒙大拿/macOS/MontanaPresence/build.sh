@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Montana v3.0.1 — Fix empty window bug (Settings scene instead of WindowGroup)
+# Build Montana v3.0.4 — Fix: Dock/Launchpad click always shows window
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$DIR/Montana.app"
 
-echo "Building Montana v3.0.1..."
+echo "Building Montana v3.0.4..."
 
 # Clean
 rm -rf "$APP"
