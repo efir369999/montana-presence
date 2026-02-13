@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Montana v3.4.1 — Fix: Copy logos to bundle
+# Build Montana v3.4.2 — Auto-start presence (weight=1)
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$DIR/Montana.app"
 
-echo "Building Montana v3.4.1..."
+echo "Building Montana v3.4.2..."
 
 # Clean
 rm -rf "$APP"

@@ -48,7 +48,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         Task { @MainActor in
             UpdateManager.shared.startChecking()
-            // Tracking disabled by default — user must click START manually
+            // Auto-start presence tracking with weight=1 (base presence)
+            PresenceEngine.shared.startTracking()
         }
     }
 
