@@ -34,6 +34,7 @@ swiftc \
     "$DIR/ReceiveView.swift" \
     "$DIR/TimeChainExplorerView.swift" \
     "$DIR/UpdateManager.swift" \
+    "$DIR/JunonaView.swift" \
     "$DIR/MainWindowView.swift" \
     "$DIR/WalletTabView.swift" \
     "$DIR/MenuBarView.swift" \

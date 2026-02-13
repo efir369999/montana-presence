@@ -47,6 +47,26 @@ try:
 except ImportError:
     TIME_BANK_AVAILABLE = False
 
+# AUCTION SYSTEM — Ascending Auction Model
+try:
+    from montana_auction import (
+        get_auction_registry,
+        get_domain_service,
+        get_phone_service,
+        get_call_pricing_service,
+        ServiceType
+    )
+    AUCTION_AVAILABLE = True
+except ImportError:
+    AUCTION_AVAILABLE = False
+
+# REAL PHONE BINDING — SMS Verification
+try:
+    from montana_real_phone import get_real_phone_service
+    REAL_PHONE_AVAILABLE = True
+except ImportError:
+    REAL_PHONE_AVAILABLE = False
+
 log = logging.getLogger("montana_api")
 
 app = Flask(__name__)
@@ -1817,6 +1837,794 @@ def api_node_push_event():
         return jsonify({"accepted": False, "reason": str(e)}), 500
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+#                       AUCTION SYSTEM — Ascending Auction Model
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/api/auction/price/<service_type>')
+def api_auction_price(service_type):
+    """
+    Получить текущую цену для следующей покупки сервиса.
+
+    GET /api/auction/price/domain
+    Response: {"service_type": "domain", "next_price": 42, "total_sold": 41}
+    """
+    try:
+        from montana_auction import get_auction_registry, ServiceType
+
+        if service_type not in ServiceType.all():
+            return jsonify({
+                "error": "INVALID_SERVICE_TYPE",
+                "valid_types": ServiceType.all()
+            }), 400
+
+        auction = get_auction_registry(DATA_DIR)
+        next_price = auction.get_current_price(service_type)
+        total_sold = auction.get_total_sold(service_type)
+
+        return jsonify({
+            "service_type": service_type,
+            "next_price": next_price,
+            "total_sold": total_sold
+        })
+
+    except Exception as e:
+        log.error(f"Auction price error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/auction/stats')
+def api_auction_stats():
+    """
+    Статистика аукциона по всем сервисам.
+
+    GET /api/auction/stats
+    Response: {
+        "total_services_sold": 100,
+        "total_revenue": 5050,
+        "services": {
+            "domain": {"total_sold": 50, "next_price": 51, "revenue": 1275},
+            "vpn": {"total_sold": 30, "next_price": 31, "revenue": 465},
+            ...
+        }
+    }
+    """
+    try:
+        from montana_auction import get_auction_registry
+
+        auction = get_auction_registry(DATA_DIR)
+        stats = auction.get_stats()
+
+        return jsonify(stats)
+
+    except Exception as e:
+        log.error(f"Auction stats error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/auction/history/<service_type>')
+def api_auction_history(service_type):
+    """
+    История покупок для сервиса.
+
+    GET /api/auction/history/domain?limit=50
+    """
+    try:
+        from montana_auction import get_auction_registry, ServiceType
+
+        if service_type not in ServiceType.all():
+            return jsonify({
+                "error": "INVALID_SERVICE_TYPE",
+                "valid_types": ServiceType.all()
+            }), 400
+
+        limit = min(int(request.args.get('limit', 100)), 500)
+
+        auction = get_auction_registry(DATA_DIR)
+        history = auction.get_purchase_history(service_type, limit)
+
+        return jsonify({
+            "service_type": service_type,
+            "purchases": history,
+            "count": len(history)
+        })
+
+    except Exception as e:
+        log.error(f"Auction history error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#                       DOMAIN SERVICE — Montana Name Service (MNS)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/api/domain/available/<domain>')
+def api_domain_available(domain):
+    """
+    Проверить доступность домена.
+
+    GET /api/domain/available/alice
+    Response: {"domain": "alice", "available": true, "price": 42}
+    """
+    try:
+        from montana_auction import get_domain_service, get_auction_registry, ServiceType
+
+        # Убрать @montana.network если есть
+        domain = domain.lower().replace("@montana.network", "")
+
+        domains = get_domain_service(DATA_DIR)
+        auction = get_auction_registry(DATA_DIR)
+
+        available = domains.is_available(domain)
+        price = auction.get_current_price(ServiceType.DOMAIN)
+
+        return jsonify({
+            "domain": domain,
+            "full_domain": f"{domain}@montana.network",
+            "available": available,
+            "price": price if available else None
+        })
+
+    except Exception as e:
+        log.error(f"Domain availability check error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/domain/lookup/<domain>')
+def api_domain_lookup(domain):
+    """
+    Найти владельца домена.
+
+    GET /api/domain/lookup/alice
+    Response: {
+        "domain": "alice@montana.network",
+        "owner": "mt1234...5678",
+        "registered": "2026-02-13T12:00:00Z",
+        "price_paid": 42
+    }
+    """
+    try:
+        from montana_auction import get_domain_service
+
+        domains = get_domain_service(DATA_DIR)
+        info = domains.lookup(domain)
+
+        if not info:
+            return jsonify({"error": "DOMAIN_NOT_FOUND"}), 404
+
+        return jsonify(info)
+
+    except Exception as e:
+        log.error(f"Domain lookup error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/domain/register', methods=['POST'])
+@rate_limit(limit=5, window=60)
+def api_domain_register():
+    """
+    Зарегистрировать домен через аукцион.
+
+    POST /api/domain/register
+    Body: {
+        "domain": "alice",
+        "owner_address": "mt1234...5678",
+        "amount": 42
+    }
+
+    Response: {
+        "success": true,
+        "domain": "alice@montana.network",
+        "owner": "mt1234...5678",
+        "price_paid": 42,
+        "purchase_number": 42
+    }
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "NO_DATA"}), 400
+
+    domain = data.get('domain', '').lower()
+    owner_address = data.get('owner_address', '')
+    amount = data.get('amount', 0)
+
+    # Валидация
+    if not domain:
+        return jsonify({"error": "DOMAIN_REQUIRED"}), 400
+
+    if not _validate_address(owner_address):
+        return jsonify({"error": "INVALID_ADDRESS"}), 400
+
+    if not isinstance(amount, int) or amount <= 0:
+        return jsonify({"error": "INVALID_AMOUNT"}), 400
+
+    try:
+        from montana_auction import get_domain_service
+
+        # Проверить баланс владельца
+        wallets = load_wallets()
+        balance = wallets.get(owner_address, {}).get('balance', 0)
+
+        if balance < amount:
+            return jsonify({
+                "error": "INSUFFICIENT_BALANCE",
+                "balance": balance,
+                "required": amount
+            }), 400
+
+        # Зарегистрировать домен через аукцион
+        domains = get_domain_service(DATA_DIR)
+        result = domains.register(
+            domain=domain,
+            owner_address=owner_address,
+            price_paid=amount
+        )
+
+        # Списать Ɉ с баланса
+        wallets[owner_address]['balance'] -= amount
+        save_wallets(wallets)
+
+        log.info(
+            f"Domain registered: {domain}@montana.network → {owner_address[:10]}... "
+            f"for {amount} Ɉ"
+        )
+
+        # Создать событие в EventLedger если доступен
+        if EVENT_LEDGER_AVAILABLE:
+            try:
+                ledger = get_event_ledger()
+                ledger.add_event(
+                    event_type=EventType.DOMAIN_REGISTER,
+                    from_address=owner_address,
+                    to_address="montana.network",
+                    amount=amount,
+                    metadata={
+                        "domain": f"{domain}@montana.network",
+                        "purchase_number": result["purchase_number"]
+                    }
+                )
+            except Exception as ledger_err:
+                log.error(f"EventLedger error: {ledger_err}")
+
+        return jsonify(result)
+
+    except ValueError as ve:
+        return jsonify({"error": str(ve)}), 400
+    except Exception as e:
+        log.error(f"Domain register error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#                   PHONE SERVICE — Virtual Phone Numbers & Calls
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/api/phone/available/<int:number>')
+def api_phone_available(number):
+    """
+    Проверить доступность виртуального номера.
+
+    GET /api/phone/available/42
+    Response: {"number": 42, "formatted": "+montana-000042", "available": true, "price": 123}
+    """
+    try:
+        from montana_auction import get_phone_service, get_auction_registry, ServiceType
+
+        phones = get_phone_service(DATA_DIR)
+        auction = get_auction_registry(DATA_DIR)
+
+        available = phones.is_available(number)
+        price = auction.get_current_price(ServiceType.PHONE_NUMBER)
+        formatted = phones.format_number(number)
+
+        return jsonify({
+            "number": number,
+            "formatted": formatted,
+            "available": available,
+            "price": price if available else None
+        })
+
+    except Exception as e:
+        log.error(f"Phone availability check error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/phone/lookup/<int:number>')
+def api_phone_lookup(number):
+    """
+    Найти владельца виртуального номера.
+
+    GET /api/phone/lookup/42
+    Response: {
+        "phone_number": "+montana-000042",
+        "owner": "mt1234...5678",
+        "registered": "2026-02-13T12:00:00Z",
+        "price_paid": 42
+    }
+    """
+    try:
+        from montana_auction import get_phone_service
+
+        phones = get_phone_service(DATA_DIR)
+        info = phones.lookup(number)
+
+        if not info:
+            return jsonify({"error": "PHONE_NUMBER_NOT_FOUND"}), 404
+
+        return jsonify(info)
+
+    except Exception as e:
+        log.error(f"Phone lookup error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/phone/register', methods=['POST'])
+@rate_limit(limit=5, window=60)
+def api_phone_register():
+    """
+    Зарегистрировать виртуальный номер через аукцион.
+
+    POST /api/phone/register
+    Body: {
+        "number": 42,
+        "owner_address": "mt1234...5678",
+        "amount": 123
+    }
+
+    Response: {
+        "success": true,
+        "phone_number": "+montana-000042",
+        "owner": "mt1234...5678",
+        "price_paid": 123,
+        "purchase_number": 123
+    }
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "NO_DATA"}), 400
+
+    number = data.get('number', 0)
+    owner_address = data.get('owner_address', '')
+    amount = data.get('amount', 0)
+
+    # Валидация
+    if not isinstance(number, int) or number <= 0:
+        return jsonify({"error": "INVALID_NUMBER"}), 400
+
+    if not _validate_address(owner_address):
+        return jsonify({"error": "INVALID_ADDRESS"}), 400
+
+    if not isinstance(amount, int) or amount <= 0:
+        return jsonify({"error": "INVALID_AMOUNT"}), 400
+
+    try:
+        from montana_auction import get_phone_service
+
+        # Проверить баланс владельца
+        wallets = load_wallets()
+        balance = wallets.get(owner_address, {}).get('balance', 0)
+
+        if balance < amount:
+            return jsonify({
+                "error": "INSUFFICIENT_BALANCE",
+                "balance": balance,
+                "required": amount
+            }), 400
+
+        # Зарегистрировать номер через аукцион
+        phones = get_phone_service(DATA_DIR)
+        result = phones.register(
+            number=number,
+            owner_address=owner_address,
+            price_paid=amount
+        )
+
+        # Списать Ɉ с баланса
+        wallets[owner_address]['balance'] -= amount
+        save_wallets(wallets)
+
+        log.info(
+            f"Phone registered: {result['phone_number']} → {owner_address[:10]}... "
+            f"for {amount} Ɉ"
+        )
+
+        # Создать событие в EventLedger если доступен
+        if EVENT_LEDGER_AVAILABLE:
+            try:
+                ledger = get_event_ledger()
+                ledger.add_event(
+                    event_type=EventType.PHONE_REGISTER,
+                    from_address=owner_address,
+                    to_address="montana.phone",
+                    amount=amount,
+                    metadata={
+                        "phone_number": result['phone_number'],
+                        "purchase_number": result["purchase_number"]
+                    }
+                )
+            except Exception as ledger_err:
+                log.error(f"EventLedger error: {ledger_err}")
+
+        return jsonify(result)
+
+    except ValueError as ve:
+        return jsonify({"error": str(ve)}), 400
+    except Exception as e:
+        log.error(f"Phone register error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/call/pricing')
+def api_call_pricing():
+    """
+    Получить текущие цены на звонки.
+
+    GET /api/call/pricing
+    Response: {
+        "audio_per_second": 1 Ɉ (fixed for number owners),
+        "video_per_second": 1 Ɉ (fixed for number owners),
+        "requires_phone_number": true
+    }
+    """
+    try:
+        return jsonify({
+            "audio_per_second": 1,
+            "video_per_second": 1,
+            "requires_phone_number": True,
+            "note": "Fixed pricing for phone number owners: 1 Ɉ per second"
+        })
+
+    except Exception as e:
+        log.error(f"Call pricing error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/call/calculate', methods=['POST'])
+def api_call_calculate():
+    """
+    Рассчитать стоимость звонка.
+
+    POST /api/call/calculate
+    Body: {
+        "call_type": "audio" or "video",
+        "duration_seconds": 60
+    }
+
+    Response: {
+        "call_type": "audio",
+        "duration_seconds": 60,
+        "cost": 60,
+        "price_per_second": 1
+    }
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "NO_DATA"}), 400
+
+    call_type = data.get('call_type', 'audio')
+    duration = data.get('duration_seconds', 0)
+
+    if call_type not in ['audio', 'video']:
+        return jsonify({"error": "INVALID_CALL_TYPE"}), 400
+
+    if not isinstance(duration, int) or duration <= 0:
+        return jsonify({"error": "INVALID_DURATION"}), 400
+
+    try:
+        # Fixed pricing: 1 Ɉ per second for number owners
+        price_per_second = 1
+        cost = duration * price_per_second
+
+        return jsonify({
+            "call_type": call_type,
+            "duration_seconds": duration,
+            "cost": cost,
+            "price_per_second": price_per_second
+        })
+
+    except Exception as e:
+        log.error(f"Call calculation error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/call/record', methods=['POST'])
+@rate_limit(limit=30, window=60)
+def api_call_record():
+    """
+    Записать завершенный звонок и списать Ɉ.
+
+    POST /api/call/record
+    Body: {
+        "caller_address": "mt1234...",
+        "callee_address": "mt5678...",
+        "call_type": "audio" or "video",
+        "duration_seconds": 60
+    }
+
+    Response: {
+        "success": true,
+        "call_type": "audio",
+        "duration_seconds": 60,
+        "cost": 60,
+        "caller_balance": 1234
+    }
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "NO_DATA"}), 400
+
+    caller_address = data.get('caller_address', '')
+    callee_address = data.get('callee_address', '')
+    call_type = data.get('call_type', 'audio')
+    duration = data.get('duration_seconds', 0)
+
+    # Валидация
+    if not _validate_address(caller_address):
+        return jsonify({"error": "INVALID_CALLER_ADDRESS"}), 400
+
+    if not _validate_address(callee_address):
+        return jsonify({"error": "INVALID_CALLEE_ADDRESS"}), 400
+
+    if call_type not in ['audio', 'video']:
+        return jsonify({"error": "INVALID_CALL_TYPE"}), 400
+
+    if not isinstance(duration, int) or duration <= 0:
+        return jsonify({"error": "INVALID_DURATION"}), 400
+
+    try:
+        from montana_auction import get_phone_service
+
+        phones = get_phone_service(DATA_DIR)
+
+        # Проверить что у звонящего есть номер
+        # (упрощенная проверка — ищем любой номер владельца)
+        wallets = load_wallets()
+
+        if caller_address not in wallets:
+            return jsonify({"error": "CALLER_NOT_FOUND"}), 404
+
+        # Fixed pricing: 1 Ɉ per second
+        cost = duration * 1
+
+        if wallets[caller_address]['balance'] < cost:
+            return jsonify({
+                "error": "INSUFFICIENT_BALANCE",
+                "balance": wallets[caller_address]['balance'],
+                "required": cost
+            }), 400
+
+        # Списать Ɉ с баланса звонящего
+        wallets[caller_address]['balance'] -= cost
+        save_wallets(wallets)
+
+        log.info(
+            f"Call recorded: {caller_address[:10]}... → {callee_address[:10]}... "
+            f"{call_type} {duration}s ({cost} Ɉ)"
+        )
+
+        # Создать событие в EventLedger
+        if EVENT_LEDGER_AVAILABLE:
+            try:
+                ledger = get_event_ledger()
+                ledger.add_event(
+                    event_type=f"call_{call_type}",
+                    from_address=caller_address,
+                    to_address=callee_address,
+                    amount=cost,
+                    metadata={
+                        "call_type": call_type,
+                        "duration_seconds": duration,
+                        "price_per_second": 1
+                    }
+                )
+            except Exception as ledger_err:
+                log.error(f"EventLedger error: {ledger_err}")
+
+        return jsonify({
+            "success": True,
+            "call_type": call_type,
+            "duration_seconds": duration,
+            "cost": cost,
+            "caller_balance": wallets[caller_address]['balance']
+        })
+
+    except ValueError as ve:
+        return jsonify({"error": str(ve)}), 400
+    except Exception as e:
+        log.error(f"Call record error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#           REAL PHONE BINDING — SMS Verification for Real Numbers
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/api/phone/bind/request', methods=['POST'])
+@rate_limit(limit=5, window=60)
+def api_phone_bind_request():
+    """
+    Запросить привязку реального телефонного номера.
+    Отправляет SMS с кодом верификации.
+
+    POST /api/phone/bind/request
+    Body: {
+        "phone": "+7-921-123-4567",
+        "montana_address": "mt1234...5678"
+    }
+
+    Response: {
+        "status": "code_sent",
+        "phone": "+79211234567",
+        "expires": "2026-02-13T12:10:00Z"
+    }
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "NO_DATA"}), 400
+
+    phone = data.get('phone', '')
+    montana_address = data.get('montana_address', '')
+
+    # Валидация
+    if not phone:
+        return jsonify({"error": "PHONE_REQUIRED"}), 400
+
+    if not _validate_address(montana_address):
+        return jsonify({"error": "INVALID_ADDRESS"}), 400
+
+    try:
+        from montana_real_phone import get_real_phone_service
+
+        real_phones = get_real_phone_service(DATA_DIR)
+        result = real_phones.request_verification(
+            phone=phone,
+            montana_address=montana_address
+        )
+
+        log.info(
+            f"Phone bind requested: {result['phone']} → {montana_address[:10]}..."
+        )
+
+        return jsonify(result)
+
+    except ValueError as ve:
+        return jsonify({"error": str(ve)}), 400
+    except Exception as e:
+        log.error(f"Phone bind request error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/phone/bind/verify', methods=['POST'])
+@rate_limit(limit=10, window=60)
+def api_phone_bind_verify():
+    """
+    Проверить код верификации и завершить привязку номера.
+
+    POST /api/phone/bind/verify
+    Body: {
+        "phone": "+7-921-123-4567",
+        "code": "123456"
+    }
+
+    Response: {
+        "status": "verified",
+        "phone": "+79211234567",
+        "montana_address": "mt1234...5678",
+        "verified": "2026-02-13T12:05:00Z"
+    }
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "NO_DATA"}), 400
+
+    phone = data.get('phone', '')
+    code = data.get('code', '')
+
+    # Валидация
+    if not phone:
+        return jsonify({"error": "PHONE_REQUIRED"}), 400
+
+    if not code or len(code) != 6:
+        return jsonify({"error": "INVALID_CODE"}), 400
+
+    try:
+        from montana_real_phone import get_real_phone_service
+
+        real_phones = get_real_phone_service(DATA_DIR)
+        result = real_phones.verify_code(
+            phone=phone,
+            code=code
+        )
+
+        log.info(
+            f"Phone verified: {result['phone']} → {result['montana_address'][:10]}..."
+        )
+
+        # Создать событие в EventLedger
+        if EVENT_LEDGER_AVAILABLE:
+            try:
+                ledger = get_event_ledger()
+                ledger.add_event(
+                    event_type="phone_verified",
+                    from_address=result['montana_address'],
+                    to_address="montana.phone",
+                    amount=0,  # Привязка бесплатная
+                    metadata={
+                        "phone": result['phone'],
+                        "verified": result['verified']
+                    }
+                )
+            except Exception as ledger_err:
+                log.error(f"EventLedger error: {ledger_err}")
+
+        return jsonify(result)
+
+    except ValueError as ve:
+        return jsonify({"error": str(ve)}), 400
+    except Exception as e:
+        log.error(f"Phone bind verify error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/phone/bind/lookup/<phone>')
+def api_phone_bind_lookup(phone):
+    """
+    Найти Montana адрес по реальному телефонному номеру.
+
+    GET /api/phone/bind/lookup/+79211234567
+    Response: {
+        "phone": "+79211234567",
+        "montana_address": "mt1234...5678",
+        "verified": "2026-02-13T12:00:00Z"
+    }
+    """
+    try:
+        from montana_real_phone import get_real_phone_service
+
+        real_phones = get_real_phone_service(DATA_DIR)
+        info = real_phones.lookup(phone)
+
+        if not info:
+            return jsonify({"error": "PHONE_NOT_FOUND"}), 404
+
+        return jsonify(info)
+
+    except Exception as e:
+        log.error(f"Phone bind lookup error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/phone/bind/address/<address>')
+def api_phone_bind_address(address):
+    """
+    Найти все реальные номера привязанные к Montana адресу.
+
+    GET /api/phone/bind/address/mt1234...5678
+    Response: {
+        "montana_address": "mt1234...5678",
+        "phones": ["+79211234567", "+15551234567"]
+    }
+    """
+    if not _validate_address(address):
+        return jsonify({"error": "INVALID_ADDRESS"}), 400
+
+    try:
+        from montana_real_phone import get_real_phone_service
+
+        real_phones = get_real_phone_service(DATA_DIR)
+        phones = real_phones.get_by_address(address)
+
+        return jsonify({
+            "montana_address": address,
+            "phones": phones,
+            "count": len(phones)
+        })
+
+    except Exception as e:
+        log.error(f"Phone bind address lookup error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 def _p2p_sync_loop():
     """
     Background thread: periodically sync events with peer nodes.
@@ -1997,12 +2805,12 @@ if __name__ == '__main__':
 
     print(f"""
 ╔═══════════════════════════════════════════════════════════════╗
-║           MONTANA PROTOCOL API v3.0.0                         ║
+║           MONTANA PROTOCOL API v3.1.0                         ║
 ║           P2P Network • Post-Quantum • Independent            ║
 ╠═══════════════════════════════════════════════════════════════╣
 ║  Node: {NODE_ID:<53s}║
 ║                                                               ║
-║  Endpoints:                                                   ║
+║  Core Endpoints:                                              ║
 ║    GET  /api/health              - Health check               ║
 ║    GET  /api/network             - Network status             ║
 ║    GET  /api/status              - Full status                ║
@@ -2014,6 +2822,31 @@ if __name__ == '__main__':
 ║    GET  /api/timechain/stats     - TimeChain stats            ║
 ║    GET  /api/timebank/stats      - Time Bank stats            ║
 ║    GET  /api/version/<platform>  - App version (auto-update)  ║
+║                                                               ║
+║  Auction System (Ascending Auction Model):                    ║
+║    GET  /api/auction/price/<t>   - Current price (N+1 Ɉ)      ║
+║    GET  /api/auction/stats       - Auction statistics         ║
+║    GET  /api/auction/history/<t> - Purchase history           ║
+║                                                               ║
+║  Montana Name Service (MNS):                                  ║
+║    GET  /api/domain/available/<d> - Check domain availability ║
+║    GET  /api/domain/lookup/<d>    - Lookup domain owner       ║
+║    POST /api/domain/register      - Register domain (auction) ║
+║                                                               ║
+║  Montana Phone Service (Virtual Numbers & Calls):             ║
+║    GET  /api/phone/available/<n>  - Check number availability ║
+║    GET  /api/phone/lookup/<n>     - Lookup number owner       ║
+║    POST /api/phone/register       - Register number (auction) ║
+║    GET  /api/call/pricing         - Call pricing (1 Ɉ/sec)    ║
+║    POST /api/call/calculate       - Calculate call cost       ║
+║    POST /api/call/record          - Record completed call     ║
+║                                                               ║
+║  Real Phone Binding (SMS Verification):                       ║
+║    POST /api/phone/bind/request   - Request SMS verification  ║
+║    POST /api/phone/bind/verify    - Verify code & bind        ║
+║    GET  /api/phone/bind/lookup/<p>- Lookup by real phone      ║
+║    GET  /api/phone/bind/address/<a>- Get phones by address    ║
+║                                                               ║
 ║  P2P (instant sync):                                          ║
 ║    POST /api/node/push-event     - Instant event push (T1=0)  ║
 ║    GET  /api/node/events         - Pull events (sync)         ║

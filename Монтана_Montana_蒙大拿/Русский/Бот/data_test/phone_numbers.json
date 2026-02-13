@@ -1,0 +1,47 @@
+{
+  "+montana-000001": {
+    "owner": "mt0000000000000000000000000000000000000001",
+    "number": 1,
+    "registered": "2026-02-13T18:54:35.491966Z",
+    "purchase_number": 1,
+    "price_paid": 1,
+    "audio_seconds_used": 0,
+    "video_seconds_used": 0
+  },
+  "+montana-000002": {
+    "owner": "mt0000000000000000000000000000000000000002",
+    "number": 2,
+    "registered": "2026-02-13T18:54:35.492406Z",
+    "purchase_number": 2,
+    "price_paid": 2,
+    "audio_seconds_used": 0,
+    "video_seconds_used": 0
+  },
+  "+montana-000003": {
+    "owner": "mt0000000000000000000000000000000000000003",
+    "number": 3,
+    "registered": "2026-02-13T18:54:35.492773Z",
+    "purchase_number": 3,
+    "price_paid": 3,
+    "audio_seconds_used": 0,
+    "video_seconds_used": 0
+  },
+  "+montana-000042": {
+    "owner": "mt0000000000000000000000000000000000000042",
+    "number": 42,
+    "registered": "2026-02-13T18:54:35.493134Z",
+    "purchase_number": 4,
+    "price_paid": 4,
+    "audio_seconds_used": 0,
+    "video_seconds_used": 0
+  },
+  "+montana-000100": {
+    "owner": "mt00000000000000000000000000000000000000100",
+    "number": 100,
+    "registered": "2026-02-13T18:54:35.493499Z",
+    "purchase_number": 5,
+    "price_paid": 5,
+    "audio_seconds_used": 0,
+    "video_seconds_used": 0
+  }
+}
