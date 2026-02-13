@@ -32,8 +32,16 @@ struct TimeChainExplorerView: View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Image(systemName: "pentagon")
-                    .foregroundColor(cyan)
+                if let logoPath = Bundle.main.path(forResource: "NetworkLogo", ofType: "png"),
+                   let nsImage = NSImage(contentsOfFile: logoPath) {
+                    Image(nsImage: nsImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 24, height: 24)
+                } else {
+                    Image(systemName: "pentagon")
+                        .foregroundColor(cyan)
+                }
                 Text("Цепочка Времени")
                     .font(.system(size: 14, weight: .bold))
                 Spacer()

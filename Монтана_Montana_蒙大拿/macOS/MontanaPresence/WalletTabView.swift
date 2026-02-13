@@ -25,25 +25,13 @@ struct WalletTabView: View {
                 // ── LOGO ──
                 HStack {
                     Spacer()
-                    if let logoPath = Bundle.main.path(forResource: "JunonaLogo", ofType: "jpg"),
+                    if let logoPath = Bundle.main.path(forResource: "TimeCoin", ofType: "png"),
                        let nsImage = NSImage(contentsOfFile: logoPath) {
                         Image(nsImage: nsImage)
                             .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: 60, height: 60)
-                            .clipShape(Circle())
-                            .overlay(
-                                Circle()
-                                    .stroke(
-                                        LinearGradient(
-                                            colors: [gold, goldLight],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        ),
-                                        lineWidth: 2
-                                    )
-                            )
-                            .shadow(color: gold.opacity(0.3), radius: 10, x: 0, y: 5)
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 80, height: 80)
+                            .shadow(color: gold.opacity(0.5), radius: 20, x: 0, y: 10)
                     }
                     Spacer()
                 }

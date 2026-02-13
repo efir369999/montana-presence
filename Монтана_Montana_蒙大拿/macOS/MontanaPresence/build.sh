@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Montana v3.3.4 — Black Background (Website Style)
+# Build Montana v3.3.5 — All Genesis Logos
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$DIR/Montana.app"
 
-echo "Building Montana v3.3.4..."
+echo "Building Montana v3.3.5..."
 
 # Clean
 rm -rf "$APP"
