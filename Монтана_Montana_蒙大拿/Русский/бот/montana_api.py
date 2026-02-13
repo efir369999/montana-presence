@@ -40,6 +40,13 @@ try:
 except ImportError:
     EVENT_LEDGER_AVAILABLE = False
 
+# TIME_BANK — T2 finalization engine
+try:
+    from time_bank import get_time_bank
+    TIME_BANK_AVAILABLE = True
+except ImportError:
+    TIME_BANK_AVAILABLE = False
+
 log = logging.getLogger("montana_api")
 
 app = Flask(__name__)
@@ -476,33 +483,52 @@ def api_transfer():
                 "message": "Unsigned transfers require a registered wallet"
             }), 403
 
-    # Check balance
-    sender_balance = get_balance(from_addr)
+    # Check balance — MUST use EventLedger as single source of truth
+    if EVENT_LEDGER_AVAILABLE:
+        try:
+            ledger = get_event_ledger()
+            sender_balance = ledger.get_balance(from_addr)
+        except Exception as e:
+            log.error(f"EventLedger balance check failed: {e}")
+            sender_balance = get_balance(from_addr)  # Fallback to wallets.json
+    else:
+        sender_balance = get_balance(from_addr)
+
     if sender_balance < amount:
         return jsonify({
             "error": "INSUFFICIENT_FUNDS",
             "message": f"Balance: {sender_balance} Ɉ, required: {amount} Ɉ"
         }), 400
 
-    # [FIX CWE-682] Execute transfer with Decimal precision
-    sender_dec = Decimal(str(sender_balance))
-    recipient_dec = Decimal(str(get_balance(to_addr)))
-    set_balance(from_addr, float(sender_dec - amount_dec))
-    set_balance(to_addr, float(recipient_dec + amount_dec))
+    # [DEPRECATED] wallets.json is now read-only cache
+    # EventLedger maintains authoritative balance
 
     tx_id = hashlib.sha256(f"{from_addr}{to_addr}{amount}{timestamp}".encode()).hexdigest()[:16]
 
-    # Record in EventLedger for P2P replication
+    # Record in EventLedger for P2P replication + INSTANT PUSH
+    # EventLedger MUST verify balance (single source of truth)
     if EVENT_LEDGER_AVAILABLE:
         try:
             ledger = get_event_ledger()
-            ledger.transfer(from_addr, to_addr, int(amount), metadata={
+            ok, msg, event = ledger.transfer(from_addr, to_addr, int(amount), metadata={
                 "tx_id": tx_id,
                 "timestamp": timestamp,
                 "pq_signed": True
-            })
+            }, skip_balance_check=False)
+            if not ok:
+                # EventLedger rejected transfer (double-check failed)
+                return jsonify({
+                    "error": "TRANSFER_REJECTED",
+                    "message": msg
+                }), 400
+            if event:
+                _push_event_to_peers(event.to_dict())
         except Exception as e:
-            log.warning(f"EventLedger transfer error: {e}")
+            log.error(f"EventLedger transfer error: {e}")
+            return jsonify({
+                "error": "LEDGER_ERROR",
+                "message": str(e)
+            }), 500
 
     return jsonify({
         "status": "success",
@@ -908,16 +934,21 @@ def api_agent_transfer():
     timestamp = datetime.utcnow().isoformat() + "Z"
     tx_id = hashlib.sha256(f"{from_addr}{to_addr}{amount}{timestamp}".encode()).hexdigest()[:16]
 
-    # Record in EventLedger
+    # Record in EventLedger + INSTANT PUSH
+    # skip_balance_check=True: баланс уже проверен и списан в wallets.json выше
     if EVENT_LEDGER_AVAILABLE:
         try:
             ledger = get_event_ledger()
-            ledger.transfer(from_addr, to_addr, amount, metadata={
+            ok, msg, event = ledger.transfer(from_addr, to_addr, amount, metadata={
                 "type": "agent_transfer",
                 "agent_name": agent_name
-            })
+            }, skip_balance_check=True)
+            if ok and event:
+                _push_event_to_peers(event.to_dict())
+            else:
+                log.error(f"Agent transfer ledger FAILED: {msg} (agent={agent_name}, amount={amount})")
         except Exception as e:
-            log.warning(f"Agent transfer ledger error: {e}")
+            log.error(f"Agent transfer ledger error: {e}")
 
     return jsonify({
         "status": "success",
@@ -1177,29 +1208,26 @@ def api_presence():
         return jsonify({"error": "INVALID_SECONDS"}), 400
 
     try:
-        # Credit reported seconds directly (client is the presence authority)
-        if seconds > 0:
-            with _wallet_lock:
-                wallets = load_wallets()
-                if address not in wallets:
-                    wallets[address] = {"balance": 0, "type": "presence_app"}
-                wallets[address]["balance"] = wallets.get(address, {}).get("balance", 0) + seconds
-                wallets[address]["pq_verified"] = verified
-                wallets[address]["last_seen"] = datetime.utcnow().isoformat()
-                save_wallets(wallets)
+        # Register activity in TIME_BANK (накапливаем секунды в кэше)
+        # Эмиссия будет создана при финализации T2 (раз в 10 минут)
+        if seconds > 0 and TIME_BANK_AVAILABLE:
+            try:
+                bank = get_time_bank()
+                bank.activity(address, addr_type="presence_app")
+            except Exception as e:
+                log.warning(f"TIME_BANK activity error: {e}")
 
-            # Record in EventLedger for P2P replication
-            if EVENT_LEDGER_AVAILABLE:
-                try:
-                    ledger = get_event_ledger()
-                    ledger.emit(address, seconds, metadata={
-                        "source": "presence_app",
-                        "pq_verified": verified
-                    })
-                except Exception as e:
-                    log.warning(f"EventLedger emit error: {e}")
+        # Get balance from EventLedger (single source of truth)
+        if EVENT_LEDGER_AVAILABLE:
+            try:
+                ledger = get_event_ledger()
+                balance = ledger.balance(address)
+            except Exception as e:
+                log.warning(f"EventLedger balance error: {e}")
+                balance = 0
+        else:
+            balance = get_balance(address)
 
-        balance = get_balance(address)
         return jsonify({"balance": int(balance), "pq_verified": verified})
     except Exception as e:
         return jsonify({"error": "PRESENCE_ERROR", "message": str(e)}), 500
@@ -1211,10 +1239,10 @@ def api_presence():
 # Current app versions — update these on each release
 APP_VERSIONS = {
     "macos": {
-        "version": "2.6.0",
-        "build": 23,
-        "url": "https://efir.org/downloads/Montana_2.6.0.zip",
-        "notes": "Full balance, auto-start, zero-click install"
+        "version": "2.28.0",
+        "build": 46,
+        "url": "https://efir.org/downloads/Montana_2.28.0.zip",
+        "notes": "T2 finalization: emission only on window close (every 10 min), SendView: removed duplicate number tab"
     },
     "ios": {
         "version": "2.0.0",
@@ -1340,12 +1368,43 @@ def api_node_events():
         return jsonify({"error": "EVENT_LEDGER_UNAVAILABLE"}), 503
 
     since = request.args.get('since', '')
+    address = request.args.get('address', '')
     limit = min(int(request.args.get('limit', 1000)), 5000)
 
     try:
         ledger = get_event_ledger()
-        events = ledger.get_events_since(since)
-        event_list = [e.to_dict() for e in events[:limit]]
+        if address:
+            # Per-address filtering (for История / History view)
+            events = ledger.get_events(address=address, limit=limit)
+            event_list = [e.to_dict() for e in events]
+        elif since:
+            # Sync mode: events since last known event_id
+            events = ledger.get_events_since(since)
+            event_list = [e.to_dict() for e in events[:limit]]
+        else:
+            # [FIX] Default: get latest events (newest first, sorted by timestamp_ns)
+            events = ledger.get_events(limit=limit)
+            event_list = [e.to_dict() for e in events]
+
+        # Enrich events with aliases from registry
+        registry = load_registry() or {}
+        addr_to_alias = {}
+        for crypto_hash, info in registry.get("wallets", {}).items():
+            addr = f"mt{crypto_hash}"
+            number = info.get("number", "?")
+            custom_alias = info.get("custom_alias", "")
+            display = custom_alias if custom_alias else f"\u0248-{number}"
+            addr_to_alias[addr] = display
+
+        for evt in event_list:
+            to_addr = evt.get("to_addr", "")
+            from_addr = evt.get("from_addr", "")
+            evt["to_alias"] = addr_to_alias.get(to_addr, "")
+            evt["from_alias"] = addr_to_alias.get(from_addr, "")
+            # TIME_BANK emissions have no from_addr
+            if evt.get("event_type") == "EMISSION" and not from_addr:
+                evt["from_alias"] = "\u0248-0"
+
         return jsonify({
             "events": event_list,
             "node_id": ledger.node_id,
@@ -1659,6 +1718,105 @@ def _detect_node_identity():
     return NODE_ID
 
 
+_push_executor = None
+
+def _get_push_executor():
+    """ThreadPoolExecutor с лимитом 3 потоков для push."""
+    global _push_executor
+    if _push_executor is None:
+        from concurrent.futures import ThreadPoolExecutor
+        _push_executor = ThreadPoolExecutor(max_workers=3, thread_name_prefix="event-push")
+    return _push_executor
+
+
+def _push_event_to_peers(event_dict: dict):
+    """
+    INSTANT PUSH: отправляет новое событие на все пиры немедленно.
+    Только события созданные ЭТИМ узлом (без relay).
+    ThreadPoolExecutor с лимитом 3 потоков.
+    """
+    # Без relay — только свои события
+    if event_dict.get("node_id") != NODE_ID:
+        return
+
+    import urllib.request
+
+    def _push_to_peer(peer):
+        try:
+            push_data = json.dumps({
+                "event": event_dict,
+                "source_node": NODE_ID,
+                "timestamp_ns": time_module.time_ns()
+            }).encode('utf-8')
+
+            req = urllib.request.Request(
+                f"{peer['url']}/api/node/push-event",
+                data=push_data,
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                result = json.loads(resp.read())
+                if result.get("accepted"):
+                    log.info(f"PUSH: event → {peer['name']} (instant)")
+        except Exception as e:
+            log.debug(f"PUSH to {peer['name']}: {e}")
+
+    executor = _get_push_executor()
+    for peer in PEER_NODES:
+        if peer["name"] == NODE_ID:
+            continue
+        executor.submit(_push_to_peer, peer)
+
+
+@app.route('/api/node/push-event', methods=['POST'])
+def api_node_push_event():
+    """
+    Приём мгновенного push от пира.
+    Моментальная финализация — T1 окно = 0.
+    Только от known peers.
+    """
+    if not EVENT_LEDGER_AVAILABLE:
+        return jsonify({"accepted": False, "reason": "no_ledger"}), 503
+
+    data = request.get_json(silent=True) or {}
+    event_data = data.get("event")
+    source_node = data.get("source_node", "unknown")
+
+    # Validate source is a known peer
+    known_names = {p["name"] for p in PEER_NODES}
+    if source_node not in known_names:
+        return jsonify({"accepted": False, "reason": "unknown_peer"}), 403
+
+    if not event_data or not isinstance(event_data, dict):
+        return jsonify({"accepted": False, "reason": "invalid_event"}), 400
+
+    try:
+        ledger = get_event_ledger()
+        merged = ledger.merge_events([event_data])
+
+        if merged > 0:
+            _apply_ledger_events_to_wallets([event_data])
+            log.info(f"PUSH RECEIVED: {event_data.get('event_type')} from {source_node} (instant)")
+            return jsonify({
+                "accepted": True,
+                "merged": merged,
+                "node_id": NODE_ID,
+                "timestamp_ns": time_module.time_ns()
+            })
+        else:
+            return jsonify({
+                "accepted": True,
+                "merged": 0,
+                "reason": "duplicate",
+                "node_id": NODE_ID
+            })
+
+    except Exception as e:
+        log.error(f"Push event error: {e}")
+        return jsonify({"accepted": False, "reason": str(e)}), 500
+
+
 def _p2p_sync_loop():
     """
     Background thread: periodically sync events with peer nodes.
@@ -1819,8 +1977,8 @@ def _p2p_sync_loop():
         except Exception as e:
             log.error(f"P2P sync loop error: {e}")
 
-        # Sync every 30 seconds
-        time_module.sleep(30)
+        # Background consistency check every 10 seconds (push handles instant sync)
+        time_module.sleep(10)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1856,7 +2014,8 @@ if __name__ == '__main__':
 ║    GET  /api/timechain/stats     - TimeChain stats            ║
 ║    GET  /api/timebank/stats      - Time Bank stats            ║
 ║    GET  /api/version/<platform>  - App version (auto-update)  ║
-║  P2P:                                                         ║
+║  P2P (instant sync):                                          ║
+║    POST /api/node/push-event     - Instant event push (T1=0)  ║
 ║    GET  /api/node/events         - Pull events (sync)         ║
 ║    POST /api/node/sync           - Bidirectional sync         ║
 ║    GET  /api/node/peers          - List peers                 ║
@@ -1873,6 +2032,13 @@ if __name__ == '__main__':
         print(f"P2P: Background sync thread started (node={NODE_ID})")
     else:
         print("P2P: EventLedger not available — sync disabled")
+
+    # Start TIME_BANK for T2 finalization (every 10 minutes)
+    if TIME_BANK_AVAILABLE:
+        bank = get_time_bank()
+        print(f"⏱️ TIME_BANK: Started (T2 finalization every 10 minutes)")
+    else:
+        print("⏱️ TIME_BANK: Not available")
 
     print(f"Starting Montana API on http://{host}:{port}")
     app.run(host=host, port=port, debug=False, threaded=True)

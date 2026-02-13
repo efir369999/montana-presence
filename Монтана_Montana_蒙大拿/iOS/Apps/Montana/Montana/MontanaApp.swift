@@ -1055,11 +1055,11 @@ struct SideMenuView: View {
                         MenuRow(icon: "creditcard.fill", name: "Кошелёк", isActive: true)
                     }
 
-                    // TimeChain Explorer
+                    // Цепочка Времени
                     Button {
                         showTimeChain = true
                     } label: {
-                        MenuRow(icon: "link.circle.fill", name: "TimeChain", isActive: true)
+                        MenuRow(icon: "pentagon", name: "Цепочка", isActive: true)
                     }
                 }
 
@@ -1836,80 +1836,276 @@ struct SettingsDeviceRow: View {
 
 struct SendSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var address = ""
+    @ObservedObject var wallet = WalletService.shared
+    @State private var recipient = ""
     @State private var amount = ""
+    @State private var isSending = false
+    @State private var statusText = ""
+    @State private var statusColor: Color = .secondary
+    @State private var sendSuccess = false
+    @State private var sentAmount = 0
+    @State private var sentRecipient = ""
+    @State private var sentTimestamp = ""
+
+    private let gold = Color(hex: "D4AF37")
+    private let cyan = Color(red: 0, green: 0.83, blue: 1)
+    private let cardBg = Color.white.opacity(0.05)
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.black.ignoresSafeArea()
 
-                VStack(spacing: 32) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Адрес")
-                            .font(.system(size: 12, weight: .light))
-                            .foregroundColor(.white.opacity(0.4))
-
-                        TextField("mt...", text: $address)
-                            .font(.system(size: 16, design: .monospaced))
-                            .foregroundColor(.white)
-                            .padding()
-                            .background(Color.white.opacity(0.05))
-                            .cornerRadius(12)
-                    }
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Сумма")
-                            .font(.system(size: 12, weight: .light))
-                            .foregroundColor(.white.opacity(0.4))
-
-                        HStack {
-                            TextField("0", text: $amount)
-                                .keyboardType(.numberPad)
-                                .font(.system(size: 32, weight: .thin))
-                                .foregroundColor(.white)
-
-                            Text("Ɉ")
-                                .font(.system(size: 24, weight: .bold))
-                                .foregroundColor(Color(hex: "D4AF37"))
-                        }
-                        .padding()
-                        .background(Color.white.opacity(0.05))
-                        .cornerRadius(12)
-                    }
-
-                    Spacer()
-
-                    Button {
-                        dismiss()
-                    } label: {
-                        Text("Отправить")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.black)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(
-                                address.isEmpty || amount.isEmpty
-                                    ? Color.white.opacity(0.2)
-                                    : Color(hex: "D4AF37")
-                            )
-                            .cornerRadius(12)
-                    }
-                    .disabled(address.isEmpty || amount.isEmpty)
-                    .padding(.bottom, 32)
+                if sendSuccess {
+                    confirmationView
+                } else {
+                    sendFormView
                 }
-                .padding(.horizontal, 24)
-                .padding(.top, 32)
             }
-            .navigationTitle("Отправить")
+            .navigationTitle(sendSuccess ? "" : "Отправить")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Отмена") { dismiss() }
-                        .foregroundColor(.white.opacity(0.6))
+                    if !sendSuccess {
+                        Button("Отмена") { dismiss() }
+                            .foregroundColor(.white.opacity(0.6))
+                    }
                 }
             }
         }
+    }
+
+    private var confirmationView: some View {
+        VStack(spacing: 0) {
+            Spacer()
+
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 64))
+                .foregroundColor(.green)
+                .padding(.bottom, 20)
+
+            Text("Отправлено")
+                .font(.system(size: 22, weight: .bold))
+                .foregroundColor(.green)
+                .padding(.bottom, 28)
+
+            VStack(spacing: 16) {
+                confirmRow(label: "Сумма", value: formatAmt(sentAmount))
+                confirmRow(label: "Получатель", value: sentRecipient)
+                confirmRow(label: "Время", value: sentTimestamp)
+            }
+            .padding(20)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(cardBg)
+            )
+            .padding(.horizontal, 32)
+
+            Spacer()
+
+            Button { dismiss() } label: {
+                Text("Готово")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(cyan)
+                    .cornerRadius(12)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 40)
+        }
+    }
+
+    private func confirmRow(label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 13))
+                .foregroundColor(.white.opacity(0.5))
+            Spacer()
+            Text(value)
+                .font(.system(size: 15, weight: .bold, design: .monospaced))
+                .foregroundColor(.white)
+        }
+    }
+
+    private var currentBalance: Int {
+        Int(wallet.balance)
+    }
+
+    private var sendFormView: some View {
+        VStack(spacing: 24) {
+            // Balance card
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Доступно")
+                        .font(.system(size: 11, weight: .light))
+                        .foregroundColor(.white.opacity(0.4))
+                    Text(formatAmt(currentBalance))
+                        .font(.system(size: 20, weight: .bold, design: .monospaced))
+                        .foregroundColor(cyan)
+                }
+                Spacer()
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(cardBg)
+            )
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Адрес или номер")
+                    .font(.system(size: 12, weight: .light))
+                    .foregroundColor(.white.opacity(0.4))
+
+                TextField("mt... / 1 / @ник", text: $recipient)
+                    .font(.system(size: 16, design: .monospaced))
+                    .foregroundColor(.white)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                    .padding()
+                    .background(Color.white.opacity(0.05))
+                    .cornerRadius(12)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Сумма")
+                    .font(.system(size: 12, weight: .light))
+                    .foregroundColor(.white.opacity(0.4))
+
+                HStack {
+                    TextField("0", text: $amount)
+                        .keyboardType(.numberPad)
+                        .font(.system(size: 32, weight: .thin))
+                        .foregroundColor(.white)
+
+                    Text("Ɉ")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(gold)
+                }
+                .padding()
+                .background(Color.white.opacity(0.05))
+                .cornerRadius(12)
+            }
+
+            if let amt = Int(amount), amt > currentBalance, currentBalance > 0 {
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 11))
+                    Text("Недостаточно средств")
+                }
+                .font(.system(size: 12))
+                .foregroundColor(.orange)
+            }
+
+            if !statusText.isEmpty {
+                Text(statusText)
+                    .font(.system(size: 13))
+                    .foregroundColor(statusColor)
+                    .multilineTextAlignment(.center)
+            }
+
+            Spacer()
+
+            Button { sendTransfer() } label: {
+                HStack(spacing: 8) {
+                    if isSending {
+                        ProgressView().tint(.black)
+                    } else {
+                        Image(systemName: "paperplane.fill")
+                            .foregroundColor(.black)
+                    }
+                    Text("Отправить")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.black)
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(
+                    canSend ? gold : Color.white.opacity(0.2)
+                )
+                .cornerRadius(12)
+            }
+            .disabled(!canSend)
+            .padding(.bottom, 32)
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 32)
+    }
+
+    private var canSend: Bool {
+        guard let amt = Int(amount), amt > 0 else { return false }
+        return !recipient.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isSending
+    }
+
+    private func sendTransfer() {
+        guard !isSending else { return }
+        guard let amt = Int(amount), amt > 0 else { return }
+        let input = recipient.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !input.isEmpty else { return }
+        guard let fromAddr = UserDefaults.standard.string(forKey: "montana_address"), !fromAddr.isEmpty else {
+            statusText = "Кошелёк не настроен"
+            statusColor = .orange
+            return
+        }
+
+        isSending = true
+        statusText = ""
+        Task { @MainActor in
+            defer { isSending = false }
+            do {
+                // Resolve address
+                var toAddr = ""
+                var toAlias = ""
+                if input.hasPrefix("mt") && input.count == 42 {
+                    toAddr = input
+                    toAlias = String(input.prefix(8)) + "..." + String(input.suffix(4))
+                } else {
+                    let lookupID: String
+                    if input.hasPrefix("@") {
+                        lookupID = String(input.dropFirst())
+                    } else if input.hasPrefix("Ɉ-") {
+                        lookupID = String(input.dropFirst(2))
+                    } else {
+                        lookupID = input.filter { $0.isNumber }
+                    }
+                    guard !lookupID.isEmpty else {
+                        statusText = "Неверный адрес"
+                        statusColor = .red
+                        return
+                    }
+                    let result = try await wallet.lookupWallet(identifier: lookupID)
+                    toAddr = result.address
+                    toAlias = result.alias
+                }
+
+                guard toAddr != fromAddr else {
+                    statusText = "Нельзя отправить себе"
+                    statusColor = .orange
+                    return
+                }
+
+                try await wallet.transfer(from: fromAddr, to: toAddr, amount: amt)
+
+                let df = DateFormatter()
+                df.dateFormat = "dd.MM.yyyy HH:mm:ss"
+                sentAmount = amt
+                sentRecipient = toAlias.isEmpty ? (String(toAddr.prefix(8)) + "..." + String(toAddr.suffix(4))) : toAlias
+                sentTimestamp = df.string(from: Date())
+                sendSuccess = true
+            } catch {
+                statusText = "Ошибка: \(error.localizedDescription)"
+                statusColor = .red
+            }
+        }
+    }
+
+    private func formatAmt(_ amount: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = " "
+        let formatted = formatter.string(from: NSNumber(value: amount)) ?? "\(amount)"
+        return "\(formatted) Ɉ"
     }
 }
 
@@ -2674,20 +2870,112 @@ class WalletService: ObservableObject {
         }
     }
 
-    /// Получить историю транзакций (для TransactionHistoryView)
-    func fetchTransactionHistory(limit: Int = 50) async -> [TransactionItem] {
-        let transactions = await fetchTransactions(limit: limit)
-        return transactions.map { tx in
-            let formatter = ISO8601DateFormatter()
-            let date = formatter.date(from: tx.timestamp) ?? Date()
-            return TransactionItem(
-                id: tx.id,
-                from: tx.from,
-                to: tx.to,
-                amount: tx.amount,
-                timestamp: date,
-                isIncoming: tx.isIncoming
-            )
+    // ═══════════════════════════════════════════════════════════════════
+    //  Transfer API (new — matches macOS MontanaAPIClient)
+    // ═══════════════════════════════════════════════════════════════════
+
+    func transfer(from: String, to: String, amount: Int) async throws {
+        try await tryAllEndpoints { endpoint in
+            guard let url = URL(string: "\(endpoint)/api/transfer") else {
+                throw URLError(.badURL)
+            }
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.timeoutInterval = 15
+
+            let timestamp = ISO8601DateFormatter().string(from: Date())
+            let body: [String: Any] = [
+                "from_address": from,
+                "to_address": to,
+                "amount": amount,
+                "timestamp": timestamp
+            ]
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw URLError(.cannotParseResponse)
+            }
+            if httpResponse.statusCode != 200 {
+                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let error = json["error"] as? String {
+                    throw NSError(domain: "Montana", code: httpResponse.statusCode,
+                                  userInfo: [NSLocalizedDescriptionKey: error])
+                }
+                throw URLError(.cannotParseResponse)
+            }
+            return ()
+        }
+    }
+
+    func lookupWallet(identifier: String) async throws -> (address: String, alias: String) {
+        return try await tryAllEndpoints { endpoint in
+            let encoded = identifier.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? identifier
+            guard let url = URL(string: "\(endpoint)/api/wallet/lookup/\(encoded)") else {
+                throw URLError(.badURL)
+            }
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 10
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                throw URLError(.cannotParseResponse)
+            }
+
+            let cryptoHash = json["crypto_hash"] as? String ?? ""
+            let mtAddress = "mt" + cryptoHash
+            let alias = json["alias"] as? String ?? ""
+            return (mtAddress, alias)
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  Event Ledger API — events & addresses (matches macOS)
+    // ═══════════════════════════════════════════════════════════════════
+
+    func fetchMyEvents(address: String, limit: Int = 100) async throws -> [[String: Any]] {
+        return try await tryAllEndpoints { endpoint in
+            let encoded = address.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? address
+            guard let url = URL(string: "\(endpoint)/api/node/events?address=\(encoded)&limit=\(limit)") else {
+                throw URLError(.badURL)
+            }
+            let (data, _) = try await URLSession.shared.data(from: url)
+            guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let events = json["events"] as? [[String: Any]] else {
+                throw URLError(.cannotParseResponse)
+            }
+            return events
+        }
+    }
+
+    func fetchEvents(limit: Int = 50) async throws -> [[String: Any]] {
+        return try await tryAllEndpoints { endpoint in
+            guard let url = URL(string: "\(endpoint)/api/node/events?limit=\(limit)") else {
+                throw URLError(.badURL)
+            }
+            let (data, _) = try await URLSession.shared.data(from: url)
+            guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let events = json["events"] as? [[String: Any]] else {
+                throw URLError(.cannotParseResponse)
+            }
+            return events
+        }
+    }
+
+    func fetchAddresses() async throws -> [[String: Any]] {
+        return try await tryAllEndpoints { endpoint in
+            guard let url = URL(string: "\(endpoint)/api/addresses") else {
+                throw URLError(.badURL)
+            }
+            let (data, _) = try await URLSession.shared.data(from: url)
+            guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let addresses = json["addresses"] as? [[String: Any]] else {
+                throw URLError(.cannotParseResponse)
+            }
+            return addresses
         }
     }
 
@@ -3088,12 +3376,29 @@ extension Color {
     }
 }
 
-// MARK: - Transaction History
+// MARK: - Transaction History (Event Ledger — matches macOS)
 
 struct TransactionHistoryView: View {
     @ObservedObject var wallet = WalletService.shared
-    @State private var transactions: [TransactionItem] = []
+    @State private var displayItems: [HistoryItem] = []
     @State private var isLoading = true
+    @State private var errorText = ""
+
+    private let cyan = Color(red: 0, green: 0.83, blue: 1)
+    private let gold = Color(hex: "D4AF37")
+    private let cardBg = Color.white.opacity(0.05)
+
+    struct HistoryItem: Identifiable {
+        let id = UUID()
+        var eventType: String
+        var amount: Int
+        var fromAddr: String
+        var toAddr: String
+        var fromAlias: String
+        var toAlias: String
+        var timestamp: String
+        var emissionCount: Int
+    }
 
     var body: some View {
         ZStack {
@@ -3102,149 +3407,268 @@ struct TransactionHistoryView: View {
             if isLoading {
                 VStack(spacing: 16) {
                     ProgressView()
-                        .tint(Color(hex: "10B981"))
-                    Text("Загрузка истории...")
+                        .tint(gold)
+                    Text("Загрузка...")
                         .foregroundColor(.white.opacity(0.6))
                 }
-            } else if transactions.isEmpty {
+            } else if !errorText.isEmpty {
+                VStack(spacing: 16) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 40))
+                        .foregroundColor(.orange)
+                    Text(errorText)
+                        .foregroundColor(.white.opacity(0.6))
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+            } else if displayItems.isEmpty {
                 VStack(spacing: 24) {
-                    Image(systemName: "clock.arrow.circlepath")
-                        .font(.system(size: 64))
-                        .foregroundColor(.white.opacity(0.3))
-
-                    VStack(spacing: 8) {
-                        Text("Нет транзакций")
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
-
-                        Text("Ваши переводы и начисления\nпоявятся здесь")
-                            .font(.subheadline)
-                            .foregroundColor(.white.opacity(0.5))
-                            .multilineTextAlignment(.center)
-                    }
+                    Image(systemName: "tray")
+                        .font(.system(size: 48))
+                        .foregroundColor(.white.opacity(0.2))
+                    Text("Нет транзакций")
+                        .font(.title3)
+                        .foregroundColor(.white.opacity(0.5))
                 }
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(transactions) { tx in
-                            TransactionRowView(transaction: tx)
-                            Divider()
-                                .background(Color.white.opacity(0.1))
+                    LazyVStack(spacing: 8) {
+                        ForEach(displayItems) { item in
+                            historyRow(item)
                         }
                     }
-                    .padding(.horizontal)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
                 }
             }
         }
         .navigationTitle("История")
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            await loadTransactions()
-        }
-        .refreshable {
-            await loadTransactions()
-        }
-    }
-
-    private func loadTransactions() async {
-        isLoading = true
-        // Загружаем с API
-        transactions = await wallet.fetchTransactionHistory(limit: 100)
-        isLoading = false
-    }
-}
-
-struct TransactionItem: Identifiable {
-    let id: String
-    let from: String
-    let to: String
-    let amount: Int
-    let timestamp: Date
-    let isIncoming: Bool
-
-    var formattedDate: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "dd.MM.yyyy HH:mm"
-        return formatter.string(from: timestamp)
-    }
-}
-
-struct TransactionRowView: View {
-    let transaction: TransactionItem
-
-    var body: some View {
-        HStack(spacing: 16) {
-            // Иконка направления
-            ZStack {
-                Circle()
-                    .fill(transaction.isIncoming ?
-                          Color(hex: "10B981").opacity(0.2) :
-                          Color(hex: "D4AF37").opacity(0.2))
-                    .frame(width: 44, height: 44)
-
-                Image(systemName: transaction.isIncoming ?
-                      "arrow.down.left" : "arrow.up.right")
-                    .foregroundColor(transaction.isIncoming ?
-                                     Color(hex: "10B981") : Color(hex: "D4AF37"))
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button { Task { await loadHistory() } } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .foregroundColor(gold)
+                }
             }
+        }
+        .task { await loadHistory() }
+        .refreshable { await loadHistory() }
+    }
 
-            // Детали
+    private func historyRow(_ item: HistoryItem) -> some View {
+        let myAddr = UserDefaults.standard.string(forKey: "montana_address") ?? ""
+        let isSent = item.fromAddr == myAddr
+        let isReceived = item.toAddr == myAddr
+        let isEmission = item.eventType == "EMISSION"
+
+        let directionIcon: String = {
+            if isEmission && isReceived { return "arrow.down.circle.fill" }
+            if isSent { return "arrow.up.circle.fill" }
+            return "arrow.down.circle.fill"
+        }()
+
+        let directionColor: Color = {
+            if isEmission { return .green }
+            if isSent { return .orange }
+            return cyan
+        }()
+
+        let directionLabel: String = {
+            if isEmission && isReceived {
+                return item.emissionCount > 1 ? "Эмиссия (10 мин)" : "Эмиссия"
+            }
+            if isSent { return "Отправлено" }
+            return "Получено"
+        }()
+
+        let counterparty: String = {
+            if isEmission {
+                let alias = item.fromAlias.isEmpty ? "Ɉ-0" : item.fromAlias
+                return item.emissionCount > 1 ? "\(alias) ×\(item.emissionCount)" : alias
+            }
+            if isSent { return displayAddr(item.toAddr, alias: item.toAlias) }
+            return displayAddr(item.fromAddr, alias: item.fromAlias)
+        }()
+
+        let amountPrefix = (isSent && !isEmission) ? "-" : "+"
+
+        return HStack(spacing: 12) {
+            Image(systemName: directionIcon)
+                .foregroundColor(directionColor)
+                .font(.system(size: 24))
+
             VStack(alignment: .leading, spacing: 4) {
-                Text(transaction.isIncoming ? "Получено" : "Отправлено")
-                    .font(.headline)
-                    .foregroundColor(.white)
-
-                Text(transaction.isIncoming ?
-                     "От: \(formatAddress(transaction.from))" :
-                     "Кому: \(formatAddress(transaction.to))")
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.5))
-
-                Text(transaction.formattedDate)
-                    .font(.caption2)
-                    .foregroundColor(.white.opacity(0.3))
+                Text(directionLabel)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(directionColor)
+                HStack(spacing: 4) {
+                    if isSent && !isEmission {
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 10))
+                            .foregroundColor(.white.opacity(0.4))
+                    } else if !isEmission {
+                        Image(systemName: "arrow.left")
+                            .font(.system(size: 10))
+                            .foregroundColor(.white.opacity(0.4))
+                    }
+                    Text(counterparty)
+                        .font(.system(size: 13, design: .monospaced))
+                        .foregroundColor(.white.opacity(0.5))
+                }
             }
 
             Spacer()
 
-            // Сумма
-            VStack(alignment: .trailing, spacing: 2) {
-                HStack(spacing: 2) {
-                    Text(transaction.isIncoming ? "+" : "-")
-                    Text("\(transaction.amount)")
-                        .fontDesign(.monospaced)
-                    Text("Ɉ")
-                        .foregroundColor(Color(hex: "D4AF37"))
-                }
-                .font(.headline)
-                .foregroundColor(transaction.isIncoming ?
-                                 Color(hex: "10B981") : .white)
-
-                // Примерная стоимость в рублях
-                Text("≈ \(rubleValue) ₽")
-                    .font(.caption2)
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("\(amountPrefix)\(formatAmount(item.amount))")
+                    .font(.system(size: 16, weight: .bold, design: .monospaced))
+                    .foregroundColor(directionColor)
+                Text(formatTimestamp(item.timestamp))
+                    .font(.system(size: 10, design: .monospaced))
                     .foregroundColor(.white.opacity(0.3))
             }
         }
-        .padding(.vertical, 12)
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(cardBg)
+        )
     }
 
-    private func formatAddress(_ addr: String) -> String {
-        if addr == "TIME_BANK" {
-            return "TIME_BANK"
-        }
-        if addr.hasPrefix("MT") && addr.count < 10 {
-            return addr  // MT1, MT2 показываем полностью
-        }
-        if addr.count > 12 {
-            return "\(addr.prefix(6))...\(addr.suffix(4))"
-        }
-        return addr
+    private func displayAddr(_ addr: String, alias: String) -> String {
+        if !alias.isEmpty { return alias }
+        guard addr.count > 10 else { return addr }
+        return String(addr.prefix(6)) + "..." + String(addr.suffix(4))
     }
 
-    private var rubleValue: String {
-        let rubles = Double(transaction.amount) * 12.2
-        return String(format: "%.0f", rubles)
+    private func formatAmount(_ amount: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = " "
+        let formatted = formatter.string(from: NSNumber(value: amount)) ?? "\(amount)"
+        return "\(formatted) \u{0248}"
+    }
+
+    private func formatTimestamp(_ ts: String) -> String {
+        guard ts.count >= 20 else { return ts }
+        let parts = ts.split(separator: ".", maxSplits: 1)
+        guard parts.count >= 1 else { return ts }
+
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = isoFormatter.date(from: ts) {
+            let df = DateFormatter()
+            df.dateFormat = "dd.MM.yyyy HH:mm"
+            return df.string(from: date)
+        }
+
+        isoFormatter.formatOptions = [.withInternetDateTime]
+        if let date = isoFormatter.date(from: String(parts[0]) + "Z") {
+            let df = DateFormatter()
+            df.dateFormat = "dd.MM.yyyy HH:mm"
+            return df.string(from: date)
+        }
+
+        return String(ts.prefix(16))
+    }
+
+    private func loadHistory() async {
+        guard let myAddr = UserDefaults.standard.string(forKey: "montana_address"), !myAddr.isEmpty else {
+            errorText = "Кошелёк не настроен"
+            isLoading = false
+            return
+        }
+        isLoading = true
+        errorText = ""
+        do {
+            let events = try await wallet.fetchMyEvents(address: myAddr, limit: 200)
+            displayItems = consolidateEvents(events)
+            isLoading = false
+        } catch {
+            errorText = "Ошибка загрузки"
+            isLoading = false
+        }
+    }
+
+    private func consolidateEvents(_ events: [[String: Any]]) -> [HistoryItem] {
+        let t2Window: TimeInterval = 600
+
+        var items: [HistoryItem] = []
+        var emissionBucket: (amount: Int, count: Int, fromAddr: String, toAddr: String,
+                             fromAlias: String, toAlias: String, timestamp: String, date: Date)?
+
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let isoFallback = ISO8601DateFormatter()
+        isoFallback.formatOptions = [.withInternetDateTime]
+
+        func parseDate(_ ts: String) -> Date? {
+            isoFormatter.date(from: ts) ?? isoFallback.date(from: ts)
+        }
+
+        func flushEmission() {
+            if let bucket = emissionBucket {
+                items.append(HistoryItem(
+                    eventType: "EMISSION",
+                    amount: bucket.amount,
+                    fromAddr: bucket.fromAddr,
+                    toAddr: bucket.toAddr,
+                    fromAlias: bucket.fromAlias,
+                    toAlias: bucket.toAlias,
+                    timestamp: bucket.timestamp,
+                    emissionCount: bucket.count
+                ))
+                emissionBucket = nil
+            }
+        }
+
+        for event in events {
+            let eventType = event["event_type"] as? String ?? ""
+            let amount = event["amount"] as? Int ?? 0
+            let fromAddr = String((event["from_addr"] as? String ?? "").prefix(100))
+            let toAddr = String((event["to_addr"] as? String ?? "").prefix(100))
+            let fromAlias = event["from_alias"] as? String ?? ""
+            let toAlias = event["to_alias"] as? String ?? ""
+            let timestamp = event["timestamp_iso"] as? String ?? (event["timestamp"] as? String ?? "")
+
+            if eventType == "EMISSION" {
+                let eventDate = parseDate(timestamp) ?? Date.distantPast
+                if let bucket = emissionBucket {
+                    if abs(bucket.date.timeIntervalSince(eventDate)) <= t2Window {
+                        emissionBucket = (
+                            amount: bucket.amount + amount,
+                            count: bucket.count + 1,
+                            fromAddr: bucket.fromAddr,
+                            toAddr: bucket.toAddr,
+                            fromAlias: bucket.fromAlias,
+                            toAlias: bucket.toAlias,
+                            timestamp: bucket.timestamp,
+                            date: bucket.date
+                        )
+                    } else {
+                        flushEmission()
+                        emissionBucket = (amount, 1, fromAddr, toAddr, fromAlias, toAlias, timestamp, eventDate)
+                    }
+                } else {
+                    emissionBucket = (amount, 1, fromAddr, toAddr, fromAlias, toAlias, timestamp, eventDate)
+                }
+            } else {
+                flushEmission()
+                items.append(HistoryItem(
+                    eventType: eventType,
+                    amount: amount,
+                    fromAddr: fromAddr,
+                    toAddr: toAddr,
+                    fromAlias: fromAlias,
+                    toAlias: toAlias,
+                    timestamp: timestamp,
+                    emissionCount: 1
+                ))
+            }
+        }
+        flushEmission()
+
+        return items
     }
 }

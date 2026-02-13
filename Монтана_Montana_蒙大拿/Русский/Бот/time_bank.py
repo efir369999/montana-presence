@@ -334,31 +334,21 @@ class TimeBank:
         }
 
     def end(self, address: str) -> Optional[Dict[str, Any]]:
-        """Завершает присутствие, начисляет монеты с халвингом"""
+        """
+        Завершает присутствие.
+
+        Монеты НЕ начисляются сразу — они будут начислены при финализации T2.
+        Накопленные t2_seconds остаются в кэше до закрытия окна времени (раз в 10 минут).
+        """
         entry = self.presence.get(address)
         if not entry:
             return None
 
-        # Начисляем за T2 с учётом халвинга
-        if entry["t2_seconds"] > 0:
-            coins = int(entry["t2_seconds"] * self.current_halving_coefficient)
+        # Помечаем как неактивный, но НЕ удаляем из кэша
+        # t2_seconds будут начислены при следующей финализации T2
+        entry["is_active"] = False
 
-            if self.ledger:
-                # EVENT SOURCING
-                self.ledger.emit(
-                    to_addr=address,
-                    amount=coins,
-                    metadata={"reason": "session_end", "halving": self.current_halving_coefficient}
-                )
-            else:
-                self.db.credit(address, coins, entry["addr_type"])
-
-            # TIMECHAIN — IMMUTABLE LEDGER (append-only, hash chaining)
-            if self.timechain:
-                self.timechain.append(address, entry["t2_seconds"])
-
-        self.presence.remove(address)
-        logger.info(f"🏁 Завершено: {address}, {entry['presence_seconds']} сек")
+        logger.info(f"🏁 Завершено: {address}, {entry['presence_seconds']} сек, pending T2: {entry['t2_seconds']} сек")
         return entry
 
     def get(self, address: str) -> Optional[Dict[str, Any]]:
@@ -691,16 +681,8 @@ class TimeBank:
 
     def _tick_loop(self):
         """Основной цикл"""
-        sync_counter = 0
         while self._running:
             self._tick()
-            sync_counter += 1
-
-            # Синхронизация с БД каждые 30 секунд
-            if sync_counter >= 30:
-                self._sync_all_sessions()
-                sync_counter = 0
-
             time.sleep(Protocol.TICK_INTERVAL_SEC)
 
     def _tick(self):
@@ -808,6 +790,15 @@ class TimeBank:
         self.t2_distributed = distributed
         self.total_distributed += distributed
 
+        # Очищаем неактивные записи после финализации
+        inactive_addresses = [
+            addr for addr, entry in self.presence.items_snapshot()
+            if not entry.get("is_active") and entry.get("t2_seconds", 0) == 0
+        ]
+        for addr in inactive_addresses:
+            self.presence.remove(addr)
+            logger.debug(f"🗑️ Очистка неактивной записи: {addr}")
+
         # Проверяем τ₃ checkpoint (каждые 2016 T2 = 14 дней)
         if self.t2_count % Protocol.T2_PER_TAU3 == 0:
             self.tau3_count += 1
@@ -843,34 +834,6 @@ class TimeBank:
         logger.info(f"⏳ Резерв: {bank_minutes_remaining:,} мин (~{bank_years_remaining:.1f} лет)")
 
         self.current_t2_start = time.time()
-
-    def _sync_all_sessions(self):
-        """Синхронизирует все активные сессии с БД (с учётом халвинга)"""
-        for address, entry in self.presence.items_snapshot():
-            if entry["t2_seconds"] > 0:
-                seconds_earned = entry["t2_seconds"]
-                coins = int(seconds_earned * self.current_halving_coefficient)
-
-                if self.ledger:
-                    # EVENT SOURCING
-                    self.ledger.emit(
-                        to_addr=address,
-                        amount=coins,
-                        metadata={
-                            "t2_index": self.t2_count,
-                            "sync": True,
-                            "halving": self.current_halving_coefficient
-                        }
-                    )
-                else:
-                    self.db.credit(address, coins, entry.get("addr_type", "unknown"))
-
-                # TIMECHAIN — IMMUTABLE LEDGER (append-only, hash chaining)
-                if self.timechain:
-                    self.timechain.append(address, seconds_earned)
-
-                self.total_distributed += coins
-                entry["t2_seconds"] = 0
 
 # ============================================================
 # SINGLETON

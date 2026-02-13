@@ -134,13 +134,19 @@ class MontanaDB:
     # ═══════════════════════════════════════════════════════════════════════════════
 
     def create_wallet(self, address: str, public_key: str = None) -> Dict[str, Any]:
-        """Create or get existing wallet."""
+        """Create or get existing wallet (race-condition safe)."""
         if not address.startswith('mt') or len(address) != 42:
             raise ValueError(f"Invalid address format: {address}")
 
         now = datetime.utcnow().isoformat()
 
         with self.transaction():
+            # INSERT OR IGNORE prevents UNIQUE constraint failures on concurrent access
+            self.conn.execute("""
+                INSERT OR IGNORE INTO wallets (address, public_key, balance, created_at)
+                VALUES (?, ?, 0.0, ?)
+            """, (address, public_key, now))
+
             cursor = self.conn.execute(
                 "SELECT * FROM wallets WHERE address = ?",
                 (address,)
@@ -149,11 +155,6 @@ class MontanaDB:
 
             if row:
                 return dict(row)
-
-            self.conn.execute("""
-                INSERT INTO wallets (address, public_key, balance, created_at)
-                VALUES (?, ?, 0.0, ?)
-            """, (address, public_key, now))
 
             logger.info(f"🔐 Wallet created: {address[:16]}...")
 

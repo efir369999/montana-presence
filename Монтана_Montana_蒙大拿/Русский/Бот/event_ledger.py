@@ -77,8 +77,25 @@ class Event:
     node_id: str
     prev_hash: str
     event_hash: str = ""
+    timestamp_ns: int = 0  # Наносекундная точность (time.time_ns())
 
     def __post_init__(self):
+        # [FIX] Валидация timestamp_ns для защиты от future timestamps
+        if self.timestamp_ns > 0:
+            now_ns = time.time_ns()
+            # Genesis: 09.01.2026 00:00:00 UTC
+            genesis_ns = 1736380800_000_000_000
+
+            # Future check (allow 1 hour clock drift для P2P sync)
+            if self.timestamp_ns > now_ns + 3600_000_000_000:
+                logger.warning(f"Future timestamp detected: {self.timestamp_ns}, clamping to now")
+                self.timestamp_ns = now_ns
+
+            # Past check (before genesis)
+            if self.timestamp_ns < genesis_ns:
+                logger.warning(f"Timestamp before genesis: {self.timestamp_ns}, using timestamp fallback")
+                self.timestamp_ns = int(self.timestamp * 1e9) if self.timestamp > 0 else now_ns
+
         if not self.event_hash:
             self.event_hash = self._compute_hash()
 
@@ -92,11 +109,31 @@ class Event:
         return self.event_hash == self._compute_hash()
 
     def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
+        d = asdict(self)
+
+        # [FIX] Convert timestamp_ns=0 → timestamp*1e9 for old events
+        if d["timestamp_ns"] == 0 and self.timestamp > 0:
+            d["timestamp_ns"] = int(self.timestamp * 1e9)
+
+        # Add ISO 8601 with nanoseconds: 2026-02-12T15:30:45.123456789Z
+        timestamp_ns = d["timestamp_ns"]
+        if timestamp_ns > 0:
+            secs = timestamp_ns // 1_000_000_000
+            nanos = timestamp_ns % 1_000_000_000
+            dt = datetime.fromtimestamp(secs, tz=timezone.utc)
+            d["timestamp_iso"] = dt.strftime(f"%Y-%m-%dT%H:%M:%S.{nanos:09d}Z")
+        else:
+            # Fallback: microsecond precision from float timestamp
+            dt = datetime.fromtimestamp(self.timestamp, tz=timezone.utc)
+            d["timestamp_iso"] = dt.strftime("%Y-%m-%dT%H:%M:%S.") + f"{int((self.timestamp % 1) * 1e9):09d}Z"
+        return d
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Event':
-        return cls(**data)
+        # Filter out computed fields (timestamp_iso) that aren't dataclass fields
+        d = dict(data)
+        d.pop("timestamp_iso", None)
+        return cls(**d)
 
 
 # ============================================================
@@ -139,6 +176,12 @@ class EventLedger:
         # Кэш балансов (пересчитывается из событий)
         self._balances: Dict[str, int] = {}
         self._balances_lock = threading.RLock()
+
+        # File write lock (prevents concurrent writes to events.jsonl)
+        self._write_lock = threading.Lock()
+
+        # In-memory event ID cache (avoids full file read on merge)
+        self._known_event_ids: set = set()
 
         # Последний hash для цепочки
         self._last_hash = self.GENESIS_HASH
@@ -183,9 +226,9 @@ class EventLedger:
         - Читаемость: человекочитаемый формат
         """
         with self._counter_lock:
-            timestamp_ms = int(time.time() * 1000)
+            timestamp_ns = time.time_ns()
             self._event_counter += 1
-            return f"{timestamp_ms}.{self.node_id}.{self._event_counter}"
+            return f"{timestamp_ns}.{self.node_id}.{self._event_counter}"
 
     # --------------------------------------------------------
     # PERSISTENCE
@@ -225,17 +268,20 @@ class EventLedger:
                         if counter > self._event_counter:
                             self._event_counter = counter
 
+                    self._known_event_ids.add(event.event_id)
                     events_loaded += 1
 
                 except Exception as e:
                     logger.error(f"Error loading event: {e}")
 
-        logger.info(f"Loaded {events_loaded} events")
+        logger.info(f"Loaded {events_loaded} events, {len(self._known_event_ids)} IDs cached")
 
     def _append_event(self, event: Event):
-        """Записывает событие в файл (append-only)"""
-        with open(self.events_file, 'a', encoding='utf-8') as f:
-            f.write(json.dumps(event.to_dict(), ensure_ascii=False) + '\n')
+        """Записывает событие в файл (append-only, thread-safe)"""
+        with self._write_lock:
+            with open(self.events_file, 'a', encoding='utf-8') as f:
+                f.write(json.dumps(event.to_dict(), ensure_ascii=False) + '\n')
+            self._known_event_ids.add(event.event_id)
 
     def _apply_event_to_balances(self, event: Event):
         """Применяет событие к кэшу балансов"""
@@ -291,7 +337,8 @@ class EventLedger:
             amount=amount,
             metadata=metadata or {},
             node_id=self.node_id,
-            prev_hash=self._last_hash
+            prev_hash=self._last_hash,
+            timestamp_ns=time.time_ns()
         )
 
         # Сохраняем и применяем
@@ -307,7 +354,8 @@ class EventLedger:
         from_addr: str,
         to_addr: str,
         amount: int,
-        metadata: Optional[Dict] = None
+        metadata: Optional[Dict] = None,
+        skip_balance_check: bool = False
     ) -> Tuple[bool, str, Optional[Event]]:
         """
         Создаёт событие TRANSFER (перевод).
@@ -317,6 +365,7 @@ class EventLedger:
             to_addr: Адрес получателя
             amount: Сумма в Ɉ
             metadata: Дополнительные данные
+            skip_balance_check: Пропустить проверку баланса (для уже подтверждённых переводов)
 
         Returns:
             (success, message, event)
@@ -324,11 +373,12 @@ class EventLedger:
         from_addr = str(from_addr)
         to_addr = str(to_addr)
 
-        # Проверяем баланс
-        with self._balances_lock:
-            balance = self._balances.get(from_addr, 0)
-            if balance < amount:
-                return False, f"Недостаточно средств: {balance} < {amount}", None
+        # Проверяем баланс (если не пропущена проверка)
+        if not skip_balance_check:
+            with self._balances_lock:
+                balance = self._balances.get(from_addr, 0)
+                if balance < amount:
+                    return False, f"Недостаточно средств: {balance} < {amount}", None
 
         event = Event(
             event_id=self._generate_event_id(),
@@ -339,7 +389,8 @@ class EventLedger:
             amount=amount,
             metadata=metadata or {},
             node_id=self.node_id,
-            prev_hash=self._last_hash
+            prev_hash=self._last_hash,
+            timestamp_ns=time.time_ns()
         )
 
         # Сохраняем и применяем
@@ -387,7 +438,8 @@ class EventLedger:
             amount=amount,
             metadata={**(metadata or {}), "contract_id": contract_id},
             node_id=self.node_id,
-            prev_hash=self._last_hash
+            prev_hash=self._last_hash,
+            timestamp_ns=time.time_ns()
         )
 
         self._append_event(event)
@@ -432,7 +484,8 @@ class EventLedger:
             amount=amount,
             metadata={**(metadata or {}), "contract_id": contract_id},
             node_id=self.node_id,
-            prev_hash=self._last_hash
+            prev_hash=self._last_hash,
+            timestamp_ns=time.time_ns()
         )
 
         self._append_event(event)
@@ -471,21 +524,21 @@ class EventLedger:
             limit: Максимальное количество
 
         Returns:
-            Список событий (newest first)
+            Список событий (newest first, sorted by timestamp_ns)
         """
+        # [FIX] DoS Protection: Max limit 10000 events
+        limit = min(limit, 10000)
+
         events = []
 
         if not self.events_file.exists():
             return events
 
-        # Читаем в обратном порядке (newest first)
+        # Читаем ВСЕ события (до сортировки)
         with open(self.events_file, 'r', encoding='utf-8') as f:
             lines = f.readlines()
 
-        for line in reversed(lines):
-            if len(events) >= limit:
-                break
-
+        for line in lines:
             line = line.strip()
             if not line:
                 continue
@@ -509,7 +562,11 @@ class EventLedger:
             except Exception as e:
                 logger.error(f"Error parsing event: {e}")
 
-        return events
+        # КРИТИЧНО: Сортировка по timestamp_ns (наносекунды) — newest first
+        events.sort(key=lambda e: e.timestamp_ns if e.timestamp_ns > 0 else int(e.timestamp * 1e9), reverse=True)
+
+        # Лимит после сортировки
+        return events[:limit]
 
     def get_events_since(self, last_event_id: str) -> List[Event]:
         """
@@ -553,7 +610,7 @@ class EventLedger:
         """
         Мержит события от другого узла.
 
-        Дедупликация по event_id.
+        Дедупликация по event_id (in-memory cache, O(1) lookup).
 
         Args:
             remote_events: Список событий от удалённого узла
@@ -561,26 +618,12 @@ class EventLedger:
         Returns:
             Количество добавленных событий
         """
-        # Загружаем существующие event_id
-        existing_ids = set()
-        if self.events_file.exists():
-            with open(self.events_file, 'r', encoding='utf-8') as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        data = json.loads(line)
-                        existing_ids.add(data.get("event_id"))
-                    except:
-                        pass
-
         added = 0
         for event_data in remote_events:
             event_id = event_data.get("event_id")
 
-            # Пропускаем дубликаты
-            if event_id in existing_ids:
+            # Пропускаем дубликаты (in-memory cache — без чтения файла)
+            if event_id in self._known_event_ids:
                 continue
 
             try:
@@ -591,10 +634,9 @@ class EventLedger:
                     logger.warning(f"Invalid remote event: {event_id}")
                     continue
 
-                # Добавляем
+                # Добавляем (thread-safe: _append_event handles write lock + cache)
                 self._append_event(event)
                 self._apply_event_to_balances(event)
-                existing_ids.add(event_id)
                 added += 1
 
                 logger.info(f"MERGED: {event.event_type} {event_id}")

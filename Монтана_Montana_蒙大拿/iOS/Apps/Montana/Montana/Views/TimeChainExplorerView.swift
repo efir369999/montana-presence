@@ -1,552 +1,372 @@
 //
 //  TimeChainExplorerView.swift
-//  Montana — TimeChain Explorer
+//  Montana — Цепочка Времени (Event Ledger)
 //
-//  Просмотр блоков TimeChain v3.1-PQ-NTS
-//  Атомные метки времени с NTS синхронизацией
+//  Matches macOS v2.25.0: events + addresses tabs, pentagon icon
 //
 
 import SwiftUI
 
-// MARK: - TimeChain Block Model
-
-struct TimeChainBlock: Identifiable, Codable {
-    let id: Int
-    let timestamp: String
-    let address: String
-    let seconds: Int
-    let prevHash: String
-    let blockHash: String
-    let nodePubkey: String?
-    let signature: String?
-    let ntsVerified: Bool?
-    let ntsEncrypted: Bool?
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case timestamp
-        case address
-        case seconds
-        case prevHash = "prev_hash"
-        case blockHash = "block_hash"
-        case nodePubkey = "node_pubkey"
-        case signature
-        case ntsVerified = "nts_verified"
-        case ntsEncrypted = "nts_encrypted"
-    }
-
-    var shortHash: String {
-        String(blockHash.prefix(8)) + "..." + String(blockHash.suffix(6))
-    }
-
-    var shortAddress: String {
-        guard address.count > 12 else { return address }
-        return String(address.prefix(8)) + "..." + String(address.suffix(4))
-    }
-
-    var formattedTime: String {
-        // Parse ISO 8601 with nanoseconds: 2026-01-30T14:31:11.123456789Z
-        let parts = timestamp.split(separator: "T")
-        guard parts.count == 2 else { return timestamp }
-
-        let datePart = parts[0]
-        let timePart = parts[1].dropLast() // Remove Z
-        let timeComponents = timePart.split(separator: ".")
-        let time = timeComponents.first ?? ""
-
-        return "\(datePart) \(time)"
-    }
-
-    var postQuantum: Bool {
-        signature != nil && !signature!.isEmpty
-    }
-}
-
-// MARK: - TimeChain Stats Model
-
-struct TimeChainStats: Codable {
-    let version: String
-    let totalBlocks: Int
-    let signedBlocks: Int
-    let uniqueAddresses: Int
-    let registeredAliases: Int
-    let lastMtNumber: Int
-    let mlDsa65: Bool
-    let ntsModule: Bool
-    let ntsSynchronized: Bool?
-    let ntsEncrypted: Bool?
-    let poolSize: Int?
-
-    enum CodingKeys: String, CodingKey {
-        case version
-        case totalBlocks = "total_blocks"
-        case signedBlocks = "signed_blocks"
-        case uniqueAddresses = "unique_addresses"
-        case registeredAliases = "registered_aliases"
-        case lastMtNumber = "last_mt_number"
-        case mlDsa65 = "ml_dsa_65"
-        case ntsModule = "nts_module"
-        case ntsSynchronized = "nts_synchronized"
-        case ntsEncrypted = "nts_encrypted"
-        case poolSize = "pool_size"
-    }
-}
-
-// MARK: - TimeChain Service
-
-@MainActor
-class TimeChainService: ObservableObject {
-    static let shared = TimeChainService()
-
-    @Published var stats: TimeChainStats?
-    @Published var blocks: [TimeChainBlock] = []
-    @Published var isLoading = false
-    @Published var error: String?
-
-    private let baseURL = "https://1394793-cy33234.tw1.ru"
-
-    func loadStats() async {
-        isLoading = true
-        error = nil
-
-        guard let url = URL(string: "\(baseURL)/api/timechain/stats") else {
-            error = "Invalid URL"
-            isLoading = false
-            return
-        }
-
-        do {
-            let (data, response) = try await URLSession.shared.data(from: url)
-            guard let httpResponse = response as? HTTPURLResponse,
-                  httpResponse.statusCode == 200 else {
-                error = "Server error"
-                isLoading = false
-                return
-            }
-
-            let decoder = JSONDecoder()
-            stats = try decoder.decode(TimeChainStats.self, from: data)
-        } catch {
-            self.error = "Failed to load stats"
-            print("[TimeChain] Stats error: \(error)")
-        }
-
-        isLoading = false
-    }
-
-    func loadBlocks(address: String? = nil, limit: Int = 50) async {
-        isLoading = true
-        error = nil
-
-        var urlString = "\(baseURL)/api/timechain/blocks?limit=\(limit)"
-        if let addr = address {
-            urlString += "&address=\(addr)"
-        }
-
-        guard let url = URL(string: urlString) else {
-            error = "Invalid URL"
-            isLoading = false
-            return
-        }
-
-        do {
-            let (data, response) = try await URLSession.shared.data(from: url)
-            guard let httpResponse = response as? HTTPURLResponse,
-                  httpResponse.statusCode == 200 else {
-                error = "Server error"
-                isLoading = false
-                return
-            }
-
-            let decoder = JSONDecoder()
-            if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let blocksArray = json["blocks"] as? [[String: Any]] {
-                let blocksData = try JSONSerialization.data(withJSONObject: blocksArray)
-                blocks = try decoder.decode([TimeChainBlock].self, from: blocksData)
-            }
-        } catch {
-            self.error = "Failed to load blocks"
-            print("[TimeChain] Blocks error: \(error)")
-        }
-
-        isLoading = false
-    }
-}
-
-// MARK: - TimeChain Explorer View
-
 struct TimeChainExplorerView: View {
-    @StateObject private var service = TimeChainService.shared
-    @State private var searchAddress = ""
-    @State private var showStats = true
+    @ObservedObject var wallet = WalletService.shared
+    @State private var selectedTab = 0
+    @State private var events: [[String: Any]] = []
+    @State private var addresses: [[String: Any]] = []
+    @State private var isLoading = true
+    @State private var errorText = ""
+
+    private let cyan = Color(red: 0, green: 0.83, blue: 1)
+    private let gold = Color(hex: "D4AF37")
+    private let cardBg = Color.white.opacity(0.05)
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.black.ignoresSafeArea()
+        ZStack {
+            Color.black.ignoresSafeArea()
 
-                ScrollView {
-                    VStack(spacing: 24) {
-                        // Stats Card
-                        if showStats, let stats = service.stats {
-                            StatsCard(stats: stats)
-                        }
-
-                        // Search
-                        SearchBar(text: $searchAddress, onSearch: {
-                            Task {
-                                if searchAddress.isEmpty {
-                                    await service.loadBlocks()
-                                } else {
-                                    await service.loadBlocks(address: searchAddress)
-                                }
-                            }
-                        })
-
-                        // Loading
-                        if service.isLoading {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: Color(hex: "10B981")))
-                                .padding()
-                        }
-
-                        // Error
-                        if let error = service.error {
-                            Text(error)
-                                .foregroundColor(.red)
-                                .font(.caption)
-                                .padding()
-                        }
-
-                        // Blocks List
-                        LazyVStack(spacing: 12) {
-                            ForEach(service.blocks) { block in
-                                BlockCard(block: block)
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
-                    .padding(.vertical)
+            VStack(spacing: 0) {
+                // Tabs
+                HStack(spacing: 0) {
+                    tabButton("Транзакции", tab: 0)
+                    tabButton("Адреса", tab: 1)
                 }
-            }
-            .navigationTitle("TimeChain")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        Task {
-                            await service.loadStats()
-                            await service.loadBlocks()
-                        }
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                            .foregroundColor(Color(hex: "10B981"))
-                    }
-                }
-            }
-            .task {
-                await service.loadStats()
-                await service.loadBlocks()
-            }
-        }
-    }
-}
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
 
-// MARK: - Stats Card
+                Divider()
+                    .background(Color.white.opacity(0.1))
 
-struct StatsCard: View {
-    let stats: TimeChainStats
-
-    var body: some View {
-        VStack(spacing: 16) {
-            // Header
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("TimeChain")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-
-                    Text("v\(stats.version)")
-                        .font(.caption)
-                        .foregroundColor(Color(hex: "10B981"))
-                }
-
-                Spacer()
-
-                // Status badges
-                HStack(spacing: 8) {
-                    if stats.mlDsa65 {
-                        StatusBadge(text: "ML-DSA-65", color: Color(hex: "10B981"))
-                    }
-                    if stats.ntsModule {
-                        StatusBadge(text: "NTS", color: Color(hex: "D4AF37"))
-                    }
-                }
-            }
-
-            Divider()
-                .background(Color.white.opacity(0.1))
-
-            // Stats Grid
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 16) {
-                StatItem(value: "\(stats.totalBlocks)", label: "Блоков")
-                StatItem(value: "\(stats.signedBlocks)", label: "Подписано")
-                StatItem(value: "\(stats.uniqueAddresses)", label: "Адресов")
-                StatItem(value: "\(stats.registeredAliases)", label: "Алиасов")
-                StatItem(value: "Ɉ-\(stats.lastMtNumber)", label: "Последний")
-                if let poolSize = stats.poolSize {
-                    StatItem(value: "\(poolSize)", label: "Pool Size")
-                }
-            }
-
-            // NTS Status
-            if let ntsSynced = stats.ntsSynchronized {
-                HStack {
-                    Circle()
-                        .fill(ntsSynced ? Color(hex: "10B981") : Color.orange)
-                        .frame(width: 8, height: 8)
-
-                    Text(ntsSynced ? "NTS Синхронизировано" : "NTS Синхронизация...")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.6))
-
-                    if stats.ntsEncrypted == true {
-                        Text("• TLS 1.3")
-                            .font(.caption)
-                            .foregroundColor(Color(hex: "D4AF37"))
-                    }
-
+                if isLoading {
                     Spacer()
+                    ProgressView()
+                        .tint(cyan)
+                    Text("Загрузка...")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.5))
+                        .padding(.top, 8)
+                    Spacer()
+                } else if !errorText.isEmpty {
+                    Spacer()
+                    Text(errorText)
+                        .font(.callout)
+                        .foregroundColor(.red)
+                        .multilineTextAlignment(.center)
+                        .padding()
+                    Spacer()
+                } else {
+                    if selectedTab == 0 {
+                        eventsTab
+                    } else {
+                        addressesTab
+                    }
                 }
             }
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white.opacity(0.05))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color(hex: "10B981").opacity(0.3), lineWidth: 1)
-                )
-        )
-        .padding(.horizontal)
-    }
-}
-
-// MARK: - Status Badge
-
-struct StatusBadge: View {
-    let text: String
-    let color: Color
-
-    var body: some View {
-        Text(text)
-            .font(.system(size: 10, weight: .semibold))
-            .foregroundColor(color)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(
-                Capsule()
-                    .fill(color.opacity(0.2))
-            )
-    }
-}
-
-// MARK: - Stat Item
-
-struct StatItem: View {
-    let value: String
-    let label: String
-
-    var body: some View {
-        VStack(spacing: 4) {
-            Text(value)
-                .font(.system(size: 18, weight: .semibold, design: .monospaced))
-                .foregroundColor(.white)
-
-            Text(label)
-                .font(.caption)
-                .foregroundColor(.white.opacity(0.5))
-        }
-    }
-}
-
-// MARK: - Search Bar
-
-struct SearchBar: View {
-    @Binding var text: String
-    let onSearch: () -> Void
-
-    var body: some View {
-        HStack {
-            Image(systemName: "magnifyingglass")
-                .foregroundColor(.white.opacity(0.5))
-
-            TextField("Поиск по адресу (mt...)", text: $text)
-                .foregroundColor(.white)
-                .autocapitalization(.none)
-                .autocorrectionDisabled()
-                .onSubmit {
-                    onSearch()
+        .navigationTitle("Цепочка Времени")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button { Task { await loadData() } } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .foregroundColor(cyan)
                 }
+            }
+        }
+        .task { await loadData() }
+    }
 
-            if !text.isEmpty {
-                Button {
-                    text = ""
-                    onSearch()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
+    // MARK: - Events Tab
+
+    private var eventsTab: some View {
+        ScrollView {
+            LazyVStack(spacing: 6) {
+                if events.isEmpty {
+                    Text("Нет транзакций")
+                        .font(.callout)
+                        .foregroundColor(.white.opacity(0.4))
+                        .padding(.top, 40)
+                } else {
+                    ForEach(Array(events.enumerated()), id: \.offset) { _, event in
+                        eventRow(event)
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+        }
+        .refreshable { await loadData() }
+    }
+
+    private func eventRow(_ event: [String: Any]) -> some View {
+        let eventType = event["event_type"] as? String ?? ""
+        let amount = event["amount"] as? Int ?? 0
+        let toAddr = String((event["to_addr"] as? String ?? "").prefix(100))
+        let fromAddr = String((event["from_addr"] as? String ?? "").prefix(100))
+        let timestamp = event["timestamp_iso"] as? String ?? (event["timestamp"] as? String ?? "")
+        let toAlias = event["to_alias"] as? String ?? ""
+        let fromAlias = event["from_alias"] as? String ?? ""
+
+        let myAddr = UserDefaults.standard.string(forKey: "montana_address") ?? ""
+        let isUserInvolved = (!myAddr.isEmpty) && (fromAddr == myAddr || toAddr == myAddr)
+
+        let color: Color = {
+            switch eventType {
+            case "EMISSION": return .green
+            case "TRANSFER": return cyan
+            case "ESCROW": return .orange
+            default: return .secondary
+            }
+        }()
+
+        let icon: String = {
+            switch eventType {
+            case "EMISSION": return "plus.circle.fill"
+            case "TRANSFER": return "arrow.right.circle.fill"
+            case "ESCROW": return "lock.circle.fill"
+            default: return "questionmark.circle"
+            }
+        }()
+
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .foregroundColor(color)
+                    .font(.system(size: 14))
+                Text(eventType)
+                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    .foregroundColor(color)
+                if isUserInvolved {
+                    Text("МОЙ")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(cyan)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(cyan.opacity(0.15))
+                        .cornerRadius(4)
+                }
+                Spacer()
+                Text(formatAmount(amount))
+                    .font(.system(size: 14, weight: .bold, design: .monospaced))
+                    .foregroundColor(color)
+            }
+
+            if eventType == "EMISSION" {
+                HStack(spacing: 4) {
+                    Text(fromAlias.isEmpty ? "Ɉ-0" : fromAlias)
+                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                        .foregroundColor(.green.opacity(0.7))
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 9))
+                        .foregroundColor(.white.opacity(0.3))
+                    Text(displayAddr(toAddr, alias: toAlias))
+                        .font(.system(size: 12, design: .monospaced))
                         .foregroundColor(.white.opacity(0.5))
                 }
-            }
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white.opacity(0.08))
-        )
-        .padding(.horizontal)
-    }
-}
-
-// MARK: - Block Card
-
-struct BlockCard: View {
-    let block: TimeChainBlock
-    @State private var expanded = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Header
-            HStack {
-                // Block ID
-                Text("#\(block.id)")
-                    .font(.system(size: 14, weight: .bold, design: .monospaced))
-                    .foregroundColor(Color(hex: "10B981"))
-
-                Spacer()
-
-                // Timestamp
-                Text(block.formattedTime)
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.5))
-
-                // PQ Badge
-                if block.postQuantum {
-                    Image(systemName: "checkmark.shield.fill")
-                        .foregroundColor(Color(hex: "10B981"))
-                        .font(.caption)
-                }
-
-                // NTS Badge
-                if block.ntsVerified == true {
-                    Image(systemName: "clock.badge.checkmark.fill")
-                        .foregroundColor(Color(hex: "D4AF37"))
-                        .font(.caption)
-                }
-            }
-
-            // Address & Seconds
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Адрес")
-                        .font(.system(size: 10))
-                        .foregroundColor(.white.opacity(0.4))
-
-                    Text(block.shortAddress)
+            } else if eventType == "TRANSFER" {
+                HStack(spacing: 4) {
+                    Text(displayAddr(fromAddr, alias: fromAlias))
                         .font(.system(size: 12, design: .monospaced))
-                        .foregroundColor(.white)
+                        .foregroundColor(.white.opacity(0.5))
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 9))
+                        .foregroundColor(.white.opacity(0.3))
+                    Text(displayAddr(toAddr, alias: toAlias))
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundColor(.white.opacity(0.5))
                 }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text("Секунды")
-                        .font(.system(size: 10))
-                        .foregroundColor(.white.opacity(0.4))
-
-                    Text("+\(block.seconds) Ɉ")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(Color(hex: "10B981"))
-                }
-            }
-
-            // Hash (expandable)
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    expanded.toggle()
-                }
-            } label: {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Block Hash")
-                        .font(.system(size: 10))
-                        .foregroundColor(.white.opacity(0.4))
-
-                    Text(expanded ? block.blockHash : block.shortHash)
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundColor(Color(hex: "D4AF37"))
-                        .lineLimit(expanded ? nil : 1)
+            } else if eventType == "ESCROW" {
+                HStack(spacing: 4) {
+                    Text(displayAddr(fromAddr, alias: fromAlias))
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundColor(.white.opacity(0.5))
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 9))
+                        .foregroundColor(.white.opacity(0.3))
+                    Text("ESCROW")
+                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                        .foregroundColor(.orange)
                 }
             }
-            .buttonStyle(.plain)
 
-            // Expanded details
-            if expanded {
-                VStack(alignment: .leading, spacing: 8) {
-                    Divider()
-                        .background(Color.white.opacity(0.1))
-
-                    // Previous Hash
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Previous Hash")
-                            .font(.system(size: 10))
-                            .foregroundColor(.white.opacity(0.4))
-
-                        Text(block.prevHash)
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundColor(.white.opacity(0.6))
-                    }
-
-                    // Full timestamp
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Full Timestamp (nanoseconds)")
-                            .font(.system(size: 10))
-                            .foregroundColor(.white.opacity(0.4))
-
-                        Text(block.timestamp)
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundColor(.white.opacity(0.6))
-                    }
-
-                    // Signature status
-                    if let sig = block.signature, !sig.isEmpty {
-                        HStack {
-                            Image(systemName: "signature")
-                                .foregroundColor(Color(hex: "10B981"))
-                            Text("ML-DSA-65 Подпись")
-                                .font(.caption)
-                                .foregroundColor(Color(hex: "10B981"))
-                        }
-                    }
-                }
-            }
+            Text(formatTimestamp(timestamp))
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundColor(.white.opacity(0.3))
         }
-        .padding()
+        .padding(12)
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white.opacity(0.05))
+            RoundedRectangle(cornerRadius: 10)
+                .fill(isUserInvolved ? cyan.opacity(0.05) : cardBg)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(isUserInvolved ? cyan.opacity(0.3) : Color.clear, lineWidth: 1)
         )
     }
-}
 
-// MARK: - Preview
+    // MARK: - Addresses Tab
 
-#Preview {
-    TimeChainExplorerView()
-        .preferredColorScheme(.dark)
+    private var addressesTab: some View {
+        ScrollView {
+            LazyVStack(spacing: 6) {
+                if addresses.isEmpty {
+                    Text("Нет адресов")
+                        .font(.callout)
+                        .foregroundColor(.white.opacity(0.4))
+                        .padding(.top, 40)
+                } else {
+                    ForEach(Array(addresses.enumerated()), id: \.offset) { _, addr in
+                        addressRow(addr)
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+        }
+        .refreshable { await loadData() }
+    }
+
+    private func addressRow(_ addr: [String: Any]) -> some View {
+        let address = addr["address"] as? String ?? ""
+        let balance = addr["balance"] as? Int ?? 0
+        let walletType = addr["type"] as? String ?? ""
+        let alias = addr["alias"] as? String ?? ""
+        let customAlias = addr["custom_alias"] as? String ?? ""
+        let agentName = addr["agent_name"] as? String ?? ""
+
+        let isAgent = walletType.contains("agent") || walletType.contains("AI")
+        let typeIcon = isAgent ? "cpu" : "person.fill"
+        let typeColor: Color = isAgent ? .purple : cyan
+
+        return HStack(spacing: 12) {
+            Image(systemName: typeIcon)
+                .foregroundColor(typeColor)
+                .font(.system(size: 16))
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    if !alias.isEmpty {
+                        Text(alias)
+                            .font(.system(size: 14, weight: .bold, design: .monospaced))
+                            .foregroundColor(gold)
+                    }
+                    if !customAlias.isEmpty {
+                        Text(customAlias)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(cyan)
+                    } else if !agentName.isEmpty {
+                        Text(agentName)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.purple.opacity(0.8))
+                    }
+                }
+                Text(String(address.prefix(8)) + "..." + String(address.suffix(4)))
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.4))
+            }
+
+            Spacer()
+
+            Text(formatAmount(balance))
+                .font(.system(size: 14, weight: .bold, design: .monospaced))
+                .foregroundColor(gold)
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(cardBg)
+        )
+    }
+
+    // MARK: - Helpers
+
+    private func tabButton(_ title: String, tab: Int) -> some View {
+        Button(action: { selectedTab = tab }) {
+            Text(title)
+                .font(.system(size: 14, weight: selectedTab == tab ? .bold : .regular))
+                .foregroundColor(selectedTab == tab ? cyan : .white.opacity(0.5))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .background(selectedTab == tab ? cyan.opacity(0.1) : Color.clear)
+                .cornerRadius(8)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func displayAddr(_ addr: String, alias: String) -> String {
+        if !alias.isEmpty { return alias }
+        guard addr.count > 10 else { return addr }
+        return String(addr.prefix(6)) + "..." + String(addr.suffix(4))
+    }
+
+    private func formatAmount(_ amount: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = " "
+        let formatted = formatter.string(from: NSNumber(value: amount)) ?? "\(amount)"
+        return "\(formatted) \u{0248}"
+    }
+
+    private func formatTimestamp(_ ts: String) -> String {
+        guard ts.count >= 20 else { return ts }
+        let parts = ts.split(separator: ".", maxSplits: 1)
+        guard parts.count >= 1 else { return ts }
+
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = isoFormatter.date(from: ts) {
+            let df = DateFormatter()
+            df.dateFormat = "dd.MM.yyyy HH:mm:ss"
+            let base = df.string(from: date)
+
+            if parts.count == 2 {
+                let fracPart = String(parts[1]).replacingOccurrences(of: "Z", with: "")
+                let nanos = fracPart.padding(toLength: 9, withPad: "0", startingAt: 0)
+                return "\(base).\(nanos)"
+            }
+            return base
+        }
+
+        isoFormatter.formatOptions = [.withInternetDateTime]
+        if let date = isoFormatter.date(from: String(parts[0]) + "Z") {
+            let df = DateFormatter()
+            df.dateFormat = "dd.MM.yyyy HH:mm:ss"
+            let base = df.string(from: date)
+            if parts.count == 2 {
+                let fracPart = String(parts[1]).replacingOccurrences(of: "Z", with: "")
+                let nanos = fracPart.padding(toLength: 9, withPad: "0", startingAt: 0)
+                return "\(base).\(nanos)"
+            }
+            return base
+        }
+
+        return String(ts.prefix(30))
+    }
+
+    private func loadData() async {
+        isLoading = true
+        errorText = ""
+        do {
+            async let evts = wallet.fetchEvents(limit: 50)
+            async let addrs = wallet.fetchAddresses()
+            var fetchedEvents = try await evts
+            addresses = try await addrs
+
+            // КРИТИЧНО: Сортировка по timestamp_ns (наносекунды) — newest first
+            fetchedEvents.sort { evt1, evt2 in
+                // [FIX] Fallback на timestamp * 1e9 для старых событий (как в Python)
+                let ts1 = evt1["timestamp_ns"] as? Int ?? Int((evt1["timestamp"] as? Double ?? 0) * 1e9)
+                let ts2 = evt2["timestamp_ns"] as? Int ?? Int((evt2["timestamp"] as? Double ?? 0) * 1e9)
+                return ts1 > ts2
+            }
+            events = fetchedEvents
+
+            addresses.sort {
+                ($0["balance"] as? Int ?? 0) > ($1["balance"] as? Int ?? 0)
+            }
+            isLoading = false
+        } catch {
+            errorText = "Ошибка загрузки. Попробуйте позже"
+            isLoading = false
+        }
+    }
 }

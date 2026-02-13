@@ -36,6 +36,7 @@ class PresenceEngine: ObservableObject {
     @Published var protocolCrypto: String = "ML-DSA-65 (FIPS 204)"
     @Published var ledgerVerified: Bool = false
     @Published var ledgerBalance: Int = 0
+    @Published var walletSynced: Bool = false
     @Published var t2BlockNumber: Int = 0
     @Published var t2SecondsElapsed: Int = 0
     @Published var t2TrackingSeconds: Int = 0
@@ -491,5 +492,14 @@ class PresenceEngine: ObservableObject {
             ledgerVerified = verify.verified
             ledgerBalance = verify.ledgerBalance
         } catch {}
+
+        // Consensus sync check: 51%+ servers agree on balance → synced
+        let results = await api.fetchBalanceFromAll(address: addr)
+        if results.count > 0 {
+            // Count how many servers report same balance as our serverBalance
+            let agreeing = results.filter { $0.balance == serverBalance }.count
+            let majority = results.count / 2 + 1  // 51% threshold
+            walletSynced = agreeing >= majority
+        }
     }
 }

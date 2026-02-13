@@ -269,6 +269,26 @@ class MontanaAPIClient {
     //  TimeChain Explorer API — events & addresses
     // ═══════════════════════════════════════════════════════════════════
 
+    func fetchMyEvents(address: String, limit: Int = 100) async throws -> [[String: Any]] {
+        return try await tryAllEndpoints { endpoint in
+            let encoded = address.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? address
+            guard let url = URL(string: "\(endpoint)/api/node/events?address=\(encoded)&limit=\(limit)") else {
+                throw URLError(.badURL)
+            }
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 10
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let events = json["events"] as? [[String: Any]] else {
+                throw URLError(.cannotParseResponse)
+            }
+            return events
+        }
+    }
+
     func fetchEvents(limit: Int = 50) async throws -> [[String: Any]] {
         return try await tryAllEndpoints { endpoint in
             guard let url = URL(string: "\(endpoint)/api/node/events?limit=\(limit)") else {
@@ -304,6 +324,33 @@ class MontanaAPIClient {
                 throw URLError(.cannotParseResponse)
             }
             return addresses
+        }
+    }
+
+    /// Query balance from ALL endpoints in parallel, return array of (name, balance) for consensus check
+    func fetchBalanceFromAll(address: String) async -> [(name: String, balance: Int)] {
+        let encoded = address.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? address
+        return await withTaskGroup(of: (String, Int)?.self) { group in
+            for ep in endpoints {
+                group.addTask {
+                    guard let url = URL(string: "\(ep.url)/api/balance/\(encoded)") else { return nil }
+                    var request = URLRequest(url: url)
+                    request.timeoutInterval = 8
+                    do {
+                        let (data, response) = try await URLSession.shared.data(for: request)
+                        guard let httpResponse = response as? HTTPURLResponse,
+                              httpResponse.statusCode == 200,
+                              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                              let balance = json["balance"] as? Int else { return nil }
+                        return (ep.name, balance)
+                    } catch { return nil }
+                }
+            }
+            var results: [(name: String, balance: Int)] = []
+            for await result in group {
+                if let r = result { results.append(r) }
+            }
+            return results
         }
     }
 

@@ -9,6 +9,7 @@ struct MenuBarView: View {
     @State private var showSend = false
     @State private var showReceive = false
     @State private var showExplorer = false
+    @State private var showHistory = false
     @State private var showSensorInfo: String? = nil
     @State private var showNetworkNodes = false
 
@@ -79,11 +80,14 @@ struct MenuBarView: View {
 
                 // ── КОШЕЛЁК ──
                 VStack(spacing: 6) {
-                    row(icon: engine.ledgerVerified ? "checkmark.shield.fill" : "shield.slash",
-                        iconColor: engine.ledgerVerified ? .green : .orange,
-                        label: "\u{041a}\u{043e}\u{0448}\u{0435}\u{043b}\u{0451}\u{043a}",
-                        value: engine.ledgerVerified ? "\u{0432}\u{0435}\u{0440}\u{0438}\u{0444}\u{0438}\u{0446}\u{0438}\u{0440}\u{043e}\u{0432}\u{0430}\u{043d}" : "\u{043d}\u{0435} \u{043f}\u{0440}\u{043e}\u{0432}\u{0435}\u{0440}\u{0435}\u{043d}",
-                        valueColor: engine.ledgerVerified ? .green : .orange)
+                    Button(action: { Task { await engine.reportToServer(); await engine.syncBalance() } }) {
+                        row(icon: engine.walletSynced ? "checkmark.shield.fill" : "arrow.triangle.2.circlepath",
+                            iconColor: engine.walletSynced ? .green : .orange,
+                            label: "\u{041a}\u{043e}\u{0448}\u{0435}\u{043b}\u{0451}\u{043a}",
+                            value: engine.walletSynced ? "\u{0441}\u{0438}\u{043d}\u{0445}\u{0440}\u{043e}\u{043d}\u{0438}\u{0437}\u{0438}\u{0440}\u{043e}\u{0432}\u{0430}\u{043d}" : "\u{0441}\u{0438}\u{043d}\u{0445}\u{0440}\u{043e}\u{043d}\u{0438}\u{0437}\u{0430}\u{0446}\u{0438}\u{044f}...",
+                            valueColor: engine.walletSynced ? .green : .orange)
+                    }
+                    .buttonStyle(.plain)
 
                     row(icon: "banknote",
                         iconColor: gold,
@@ -136,24 +140,45 @@ struct MenuBarView: View {
                         }
                     }
 
-                    // ── ОБОЗРЕВАТЕЛЬ ──
-                    Button(action: { showExplorer = true }) {
-                        HStack(spacing: 5) {
-                            Image(systemName: "cube.transparent")
-                                .font(.system(size: 13, weight: .bold))
-                            Text("\u{041e}\u{0431}\u{043e}\u{0437}\u{0440}\u{0435}\u{0432}\u{0430}\u{0442}\u{0435}\u{043b}\u{044c}")
-                                .font(.system(size: 12, weight: .semibold))
+                    // ── ИСТОРИЯ / ЦЕПОЧКА ВРЕМЕНИ ──
+                    HStack(spacing: 8) {
+                        Button(action: { showHistory = true }) {
+                            HStack(spacing: 5) {
+                                Image(systemName: "clock.arrow.circlepath")
+                                    .font(.system(size: 12, weight: .bold))
+                                Text("\u{0418}\u{0441}\u{0442}\u{043e}\u{0440}\u{0438}\u{044f}")
+                                    .font(.system(size: 12, weight: .semibold))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 9)
+                            .background(gold.opacity(0.15))
+                            .foregroundColor(gold)
+                            .cornerRadius(8)
+                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(gold.opacity(0.3), lineWidth: 1))
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 9)
-                        .background(goldDim.opacity(0.15))
-                        .foregroundColor(goldLight)
-                        .cornerRadius(8)
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(goldDim.opacity(0.3), lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
-                    .popover(isPresented: $showExplorer) {
-                        TimeChainExplorerView().environmentObject(engine)
+                        .buttonStyle(.plain)
+                        .popover(isPresented: $showHistory) {
+                            HistoryView().environmentObject(engine)
+                        }
+
+                        Button(action: { showExplorer = true }) {
+                            HStack(spacing: 5) {
+                                Image(systemName: "pentagon")
+                                    .font(.system(size: 13, weight: .bold))
+                                Text("\u{0426}\u{0435}\u{043f}\u{043e}\u{0447}\u{043a}\u{0430}")
+                                    .font(.system(size: 12, weight: .semibold))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 9)
+                            .background(goldDim.opacity(0.15))
+                            .foregroundColor(goldLight)
+                            .cornerRadius(8)
+                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(goldDim.opacity(0.3), lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                        .popover(isPresented: $showExplorer) {
+                            TimeChainExplorerView().environmentObject(engine)
+                        }
                     }
                 }
                 .padding(.horizontal, 16)
@@ -753,6 +778,13 @@ struct MenuBarView: View {
     @ViewBuilder
     private func menuBarEyeRow(icon: String, name: String, enabled: Bool, action: @escaping () -> Void) -> some View {
         HStack(spacing: 6) {
+            Button(action: action) {
+                Image(systemName: enabled ? "eye.fill" : "eye.slash")
+                    .font(.system(size: 13))
+                    .foregroundColor(enabled ? gold : Color.white.opacity(0.35))
+            }
+            .buttonStyle(.plain)
+            .help(enabled ? "\u{0421}\u{043a}\u{0440}\u{044b}\u{0442}\u{044c} \u{0432} \u{043c}\u{0435}\u{043d}\u{044e} \u{0431}\u{0430}\u{0440}\u{0435}" : "\u{041f}\u{043e}\u{043a}\u{0430}\u{0437}\u{0430}\u{0442}\u{044c} \u{0432} \u{043c}\u{0435}\u{043d}\u{044e} \u{0431}\u{0430}\u{0440}\u{0435}")
             Image(systemName: icon)
                 .font(.system(size: 12))
                 .frame(width: 18)
@@ -761,13 +793,6 @@ struct MenuBarView: View {
                 .font(.system(size: 12))
                 .foregroundColor(Color.white.opacity(0.7))
             Spacer()
-            Button(action: action) {
-                Image(systemName: enabled ? "eye.fill" : "eye.slash")
-                    .font(.system(size: 13))
-                    .foregroundColor(enabled ? gold : Color.white.opacity(0.35))
-            }
-            .buttonStyle(.plain)
-            .help(enabled ? "\u{0421}\u{043a}\u{0440}\u{044b}\u{0442}\u{044c} \u{0432} \u{043c}\u{0435}\u{043d}\u{044e} \u{0431}\u{0430}\u{0440}\u{0435}" : "\u{041f}\u{043e}\u{043a}\u{0430}\u{0437}\u{0430}\u{0442}\u{044c} \u{0432} \u{043c}\u{0435}\u{043d}\u{044e} \u{0431}\u{0430}\u{0440}\u{0435}")
         }
         .padding(.vertical, 1)
     }
