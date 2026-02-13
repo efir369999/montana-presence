@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Montana v3.2.2 — Junona Sidebar (burger menu + Montana nav + chat sessions)
+# Build Montana v3.2.3 — Junona Beautiful Logo (120px gradient with shadow)
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$DIR/Montana.app"
 
-echo "Building Montana v3.2.2..."
+echo "Building Montana v3.2.3..."
 
 # Clean
 rm -rf "$APP"
