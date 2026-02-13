@@ -11,9 +11,13 @@ struct PrivateView: View {
     @State private var privateBalance = 0
     @State private var privateAddress = ""
 
-    private let darkPurple = Color(red: 0.25, green: 0.0, blue: 0.4)
-    private let neonPurple = Color(red: 0.48, green: 0.18, blue: 1.0)
-    private let cyan = Color(red: 0.0, green: 0.83, blue: 1.0)
+    // Montana colors (from website efir.org)
+    private let gold = Color(red: 0.83, green: 0.69, blue: 0.22) // #D4AF37
+    private let goldLight = Color(red: 0.94, green: 0.82, blue: 0.38) // #F0D060
+    private let goldDark = Color(red: 0.55, green: 0.41, blue: 0.08) // #8B6914
+    private let bgDark = Color(red: 0.04, green: 0.04, blue: 0.04) // #0a0a0a
+    private let textBeige = Color(red: 0.91, green: 0.88, blue: 0.82) // #e8e0d0
+    private let crimson = Color(red: 0.55, green: 0.10, blue: 0.10) // #8B1A1A
 
     var body: some View {
         VStack(spacing: 0) {
@@ -49,11 +53,11 @@ struct PrivateView: View {
 
     private var header: some View {
         HStack(spacing: 12) {
-            // Private icon
+            // Private icon (gold style)
             Circle()
                 .fill(
                     LinearGradient(
-                        colors: [darkPurple, neonPurple],
+                        colors: [goldDark, gold],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -62,12 +66,13 @@ struct PrivateView: View {
                 .overlay(
                     Image(systemName: "eye.slash.fill")
                         .font(.system(size: 20))
-                        .foregroundColor(.white)
+                        .foregroundColor(.black)
                 )
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Приват")
                     .font(.headline)
+                    .foregroundColor(textBeige)
                 Text("Зашифрованные транзакции")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -75,17 +80,17 @@ struct PrivateView: View {
 
             Spacer()
 
-            // Privacy badge
+            // Privacy badge (gold)
             HStack(spacing: 4) {
                 Image(systemName: "lock.shield.fill")
                     .font(.system(size: 10))
                 Text("ZERO-KNOWLEDGE")
                     .font(.system(size: 8, weight: .bold))
             }
-            .foregroundColor(neonPurple)
+            .foregroundColor(gold)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(neonPurple.opacity(0.1))
+            .background(gold.opacity(0.1))
             .cornerRadius(8)
         }
         .padding()
@@ -97,11 +102,12 @@ struct PrivateView: View {
         VStack(spacing: 20) {
             Image(systemName: "eye.slash.circle.fill")
                 .font(.system(size: 60))
-                .foregroundColor(neonPurple)
+                .foregroundColor(gold)
 
             Text("🔐 Приватный кошелёк")
                 .font(.title)
                 .fontWeight(.bold)
+                .foregroundColor(textBeige)
 
             Text("Покупка приватного ника открывает доступ к зашифрованным транзакциям. Баланс, история, адрес — всё скрыто от blockchain explorer.")
                 .font(.body)
@@ -138,7 +144,7 @@ struct PrivateView: View {
                 }
             }
 
-            // Purchase button
+            // Purchase button (gold gradient like website)
             Button(action: purchasePrivateNick) {
                 HStack(spacing: 8) {
                     if isPurchasing {
@@ -152,25 +158,30 @@ struct PrivateView: View {
                     Text("Купить приватный ник")
                         .font(.system(size: 14, weight: .semibold))
                 }
-                .foregroundColor(.white)
+                .foregroundColor(.black)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
                 .background(
                     LinearGradient(
-                        colors: [darkPurple, neonPurple],
+                        colors: [goldDark, gold, goldLight],
                         startPoint: .leading,
                         endPoint: .trailing
                     )
                 )
-                .cornerRadius(10)
+                .cornerRadius(12)
+                .shadow(color: gold.opacity(0.4), radius: 8, x: 0, y: 4)
             }
             .buttonStyle(.plain)
             .disabled(privateNickname.isEmpty || isPurchasing)
         }
         .frame(maxWidth: .infinity)
         .padding(40)
-        .background(darkPurple.opacity(0.05))
-        .cornerRadius(12)
+        .background(gold.opacity(0.03))
+        .cornerRadius(20)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(gold.opacity(0.08), lineWidth: 1)
+        )
     }
 
     // MARK: - Private Wallet Card
@@ -185,7 +196,7 @@ struct PrivateView: View {
 
                     Text("\(privateNickname)@private.montana")
                         .font(.system(size: 16, weight: .bold, design: .monospaced))
-                        .foregroundColor(neonPurple)
+                        .foregroundColor(gold)
                 }
                 Spacer()
                 Image(systemName: "checkmark.shield.fill")
@@ -203,15 +214,15 @@ struct PrivateView: View {
                         .foregroundColor(.secondary)
                     Text("█████ Ɉ")
                         .font(.system(size: 20, weight: .bold, design: .monospaced))
-                        .foregroundColor(cyan)
+                        .foregroundColor(gold)
                 }
                 Spacer()
                 Text("🔒 ЗАШИФРОВАНО")
                     .font(.system(size: 9, weight: .bold))
-                    .foregroundColor(neonPurple)
+                    .foregroundColor(crimson)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(neonPurple.opacity(0.1))
+                    .background(crimson.opacity(0.1))
                     .cornerRadius(6)
             }
 
@@ -226,7 +237,7 @@ struct PrivateView: View {
                     .lineLimit(1)
             }
 
-            // Private actions
+            // Private actions (gold style)
             HStack(spacing: 8) {
                 Button(action: {}) {
                     HStack(spacing: 4) {
@@ -239,8 +250,8 @@ struct PrivateView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
-                    .background(neonPurple.opacity(0.15))
-                    .foregroundColor(neonPurple)
+                    .background(gold.opacity(0.15))
+                    .foregroundColor(gold)
                     .cornerRadius(8)
                 }
                 .buttonStyle(.plain)
@@ -256,26 +267,21 @@ struct PrivateView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
-                    .background(darkPurple.opacity(0.15))
-                    .foregroundColor(neonPurple)
+                    .background(goldDark.opacity(0.15))
+                    .foregroundColor(goldLight)
                     .cornerRadius(8)
                 }
                 .buttonStyle(.plain)
             }
         }
         .padding(16)
-        .background(
-            LinearGradient(
-                colors: [darkPurple.opacity(0.1), neonPurple.opacity(0.05)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-        .cornerRadius(12)
+        .background(gold.opacity(0.03))
+        .cornerRadius(20)
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(neonPurple.opacity(0.3), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(gold.opacity(0.25), lineWidth: 1)
         )
+        .shadow(color: gold.opacity(0.1), radius: 10, x: 0, y: 4)
     }
 
     // MARK: - Info Section
@@ -285,6 +291,7 @@ struct PrivateView: View {
             Text("💡 Как работает приват")
                 .font(.title3)
                 .fontWeight(.semibold)
+                .foregroundColor(textBeige)
 
             VStack(alignment: .leading, spacing: 8) {
                 InfoRow(icon: "🔐", text: "Zero-knowledge proof — никто не видит баланс")
@@ -295,8 +302,12 @@ struct PrivateView: View {
             }
         }
         .padding()
-        .background(darkPurple.opacity(0.05))
-        .cornerRadius(12)
+        .background(gold.opacity(0.05))
+        .cornerRadius(20)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(gold.opacity(0.08), lineWidth: 1)
+        )
     }
 
     // MARK: - Actions

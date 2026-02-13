@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build Montana v3.3.0 — Private Wallets + Zero-Knowledge + Stealth Addresses
+# Build Montana v3.3.1 — Website Style (Gold Theme) + Junona Default
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
