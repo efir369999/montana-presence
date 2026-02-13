@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build Montana v3.6.2 — Slow rotation (3 sec) + smooth opacity transition
+# Build Montana v3.6.3 — Fix coin flip: abs(cos) for front, abs(sin) for back
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
