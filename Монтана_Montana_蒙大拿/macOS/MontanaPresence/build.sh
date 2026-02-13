@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Montana v3.4.0 — Spinning Coin (Junona/Pyramid)
+# Build Montana v3.4.1 — Fix: Copy logos to bundle
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$DIR/Montana.app"
 
-echo "Building Montana v3.4.0..."
+echo "Building Montana v3.4.1..."
 
 # Clean
 rm -rf "$APP"
@@ -54,6 +54,11 @@ mkdir -p "$APP/Contents/Resources"
 mv "$DIR/MontanaPresence" "$APP/Contents/MacOS/"
 cp "$DIR/Info.plist" "$APP/Contents/"
 cp "$DIR/Montana.icns" "$APP/Contents/Resources/" 2>/dev/null || true
+
+# Copy logo images to Resources
+cp "$DIR/JunonaLogo.jpg" "$APP/Contents/Resources/" 2>/dev/null || true
+cp "$DIR/NetworkLogo.png" "$APP/Contents/Resources/" 2>/dev/null || true
+cp "$DIR/TimeCoin.png" "$APP/Contents/Resources/" 2>/dev/null || true
 
 # Sign with entitlements (ad-hoc)
 codesign --force --sign - --entitlements "$DIR/Entitlements.plist" "$APP"
