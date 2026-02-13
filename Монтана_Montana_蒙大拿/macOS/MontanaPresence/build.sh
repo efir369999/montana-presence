@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Montana v3.4.2 — Auto-start presence (weight=1)
+# Build Montana v3.5.0 — Spinning Junona coin (МЫ ПОВСЮДУ)
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$DIR/Montana.app"
 
-echo "Building Montana v3.4.2..."
+echo "Building Montana v3.5.0..."
 
 # Clean
 rm -rf "$APP"
@@ -57,6 +57,7 @@ cp "$DIR/Montana.icns" "$APP/Contents/Resources/" 2>/dev/null || true
 
 # Copy logo images to Resources
 cp "$DIR/JunonaLogo.jpg" "$APP/Contents/Resources/" 2>/dev/null || true
+cp "$DIR/JunonaReverse.jpg" "$APP/Contents/Resources/" 2>/dev/null || true
 cp "$DIR/NetworkLogo.png" "$APP/Contents/Resources/" 2>/dev/null || true
 cp "$DIR/TimeCoin.png" "$APP/Contents/Resources/" 2>/dev/null || true
 

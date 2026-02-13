@@ -4,18 +4,62 @@
 <dict>
 	<key>files</key>
 	<dict>
+		<key>Resources/JunonaLogo.jpg</key>
+		<data>
+		oNQ7Lm/oQkdSrW8CTd2goGGIvcE=
+		</data>
+		<key>Resources/JunonaReverse.jpg</key>
+		<data>
+		F3bHn7UwSnRYTHZYwmhVmK5sqTk=
+		</data>
 		<key>Resources/Montana.icns</key>
 		<data>
 		n4zgOG7r9xSZKKQDQnQqtwJXt4Q=
 		</data>
+		<key>Resources/NetworkLogo.png</key>
+		<data>
+		BC//swh5G2a9H/0H7SF3PFUmsi4=
+		</data>
+		<key>Resources/TimeCoin.png</key>
+		<data>
+		Y6dJ0wplDmRRELHv+EeuznwAHRs=
+		</data>
 	</dict>
 	<key>files2</key>
 	<dict>
+		<key>Resources/JunonaLogo.jpg</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			Lk2m2LnlfHXg51wES2IzLwM4lBpZ8ZP4Fyc1mSPvy9k=
+			</data>
+		</dict>
+		<key>Resources/JunonaReverse.jpg</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			IJwX8StqfmhLc6Ge05qT9+5oYBIEHoEArZ1tE2fckK4=
+			</data>
+		</dict>
 		<key>Resources/Montana.icns</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			qijiv0LY50N4DvVFrmSKEDMTT/eLgduMvcbC7jTWmr0=
+			</data>
+		</dict>
+		<key>Resources/NetworkLogo.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			W1n3M98Neh5utIyxY6KLgc2aQALxbWyUaSqb3/mmJZk=
+			</data>
+		</dict>
+		<key>Resources/TimeCoin.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			aX4pvHKtYyKLoWuwjunRK4q4lXbwrxcMm8YKvv0nJmA=
 			</data>
 		</dict>
 	</dict>

@@ -22,6 +22,9 @@ struct JunonaView: View {
     @State private var hasMessages = false
     @State private var activityTimer: Timer?
 
+    // Spinning coin animation
+    @State private var coinRotation: Double = 0
+
     var body: some View {
         ZStack(alignment: .leading) {
             // Main content
@@ -413,29 +416,65 @@ struct JunonaView: View {
         VStack(spacing: 24) {
             Spacer()
 
-            // Junona logo
-            if let logoPath = Bundle.main.path(forResource: "JunonaLogo", ofType: "jpg"),
-               let nsImage = NSImage(contentsOfFile: logoPath) {
-                Image(nsImage: nsImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 200, height: 200)
-                    .clipShape(Circle())
-                    .overlay(
-                        Circle()
-                            .stroke(
-                                LinearGradient(
-                                    colors: [
-                                        Color(red: 0.83, green: 0.69, blue: 0.22),
-                                        Color(red: 0.94, green: 0.82, blue: 0.38)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 3
-                            )
-                    )
-                    .shadow(color: Color(red: 0.83, green: 0.69, blue: 0.22).opacity(0.3), radius: 20, x: 0, y: 10)
+            // Spinning Junona coin
+            ZStack {
+                // Front side: Junona goddess
+                if let junonaPath = Bundle.main.path(forResource: "JunonaLogo", ofType: "jpg"),
+                   let junonaImage = NSImage(contentsOfFile: junonaPath) {
+                    Image(nsImage: junonaImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 200, height: 200)
+                        .clipShape(Circle())
+                        .overlay(
+                            Circle()
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [
+                                            Color(red: 0.83, green: 0.69, blue: 0.22),
+                                            Color(red: 0.94, green: 0.82, blue: 0.38)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 3
+                                )
+                        )
+                        .opacity(cos(coinRotation * .pi / 180) > 0 ? cos(coinRotation * .pi / 180) : 0)
+                }
+
+                // Back side: МЫ ПОВСЮДУ (We Are Everywhere)
+                if let reversePath = Bundle.main.path(forResource: "JunonaReverse", ofType: "jpg"),
+                   let reverseImage = NSImage(contentsOfFile: reversePath) {
+                    Image(nsImage: reverseImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 200, height: 200)
+                        .clipShape(Circle())
+                        .overlay(
+                            Circle()
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [
+                                            Color(red: 0.55, green: 0.41, blue: 0.08),
+                                            Color(red: 0.83, green: 0.69, blue: 0.22)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 3
+                                )
+                        )
+                        .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
+                        .opacity(cos(coinRotation * .pi / 180) < 0 ? -cos(coinRotation * .pi / 180) : 0)
+                }
+            }
+            .rotation3DEffect(.degrees(coinRotation), axis: (x: 0, y: 1, z: 0))
+            .shadow(color: Color(red: 0.83, green: 0.69, blue: 0.22).opacity(0.3), radius: 20, x: 0, y: 10)
+            .onAppear {
+                withAnimation(.linear(duration: 5.0).repeatForever(autoreverses: false)) {
+                    coinRotation = 360
+                }
             }
 
             VStack(spacing: 12) {
