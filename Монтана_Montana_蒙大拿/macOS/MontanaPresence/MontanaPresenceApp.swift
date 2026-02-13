@@ -22,19 +22,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // ╔══════════════════════════════════════════════════════════════════╗
-        // ║  SINGLE INSTANCE CHECK                                          ║
+        // ║  SINGLE INSTANCE ENFORCEMENT                                    ║
         // ║  1 устройство = 1 Montana. Строго.                              ║
+        // ║  Автоматически убивает все дубликаты.                           ║
         // ╚══════════════════════════════════════════════════════════════════╝
-        if isAnotherInstanceRunning() {
-            let alert = NSAlert()
-            alert.messageText = "Montana уже запущен"
-            alert.informativeText = "На этом устройстве может работать только один экземпляр Montana Protocol.\n\nЗакройте дубликат и используйте активное приложение."
-            alert.alertStyle = .critical
-            alert.addButton(withTitle: "Закрыть дубликат")
-            alert.runModal()
-            NSApp.terminate(nil)
-            return
-        }
+        terminateOtherInstances()
 
         // ╔══════════════════════════════════════════════════════════════════╗
         // ║  DEVICE ID LOCK                                                 ║
@@ -72,16 +64,31 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
-    // MARK: - Single Instance Protection
+    // MARK: - Single Instance Protection (NSRunningApplication API)
 
-    private func isAnotherInstanceRunning() -> Bool {
-        let bundleID = Bundle.main.bundleIdentifier ?? "network.montana.presence"
-        let runningApps = NSWorkspace.shared.runningApplications
-        let montanaInstances = runningApps.filter { $0.bundleIdentifier == bundleID }
+    private func terminateOtherInstances() {
+        let bundleID = Bundle.main.bundleIdentifier!
+        let currentPID = ProcessInfo.processInfo.processIdentifier
 
-        // If more than 1 instance (including current) — another is running
-        return montanaInstances.count > 1
+        let runningInstances = NSWorkspace.shared.runningApplications.filter {
+            $0.bundleIdentifier == bundleID && $0.processIdentifier != currentPID
+        }
+
+        if !runningInstances.isEmpty {
+            print("⚠️ Found \(runningInstances.count) other Montana instances. Terminating...")
+            for app in runningInstances {
+                print("   Killing PID \(app.processIdentifier)")
+                app.terminate()
+                // Force kill if terminate() doesn't work
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    if app.isActive {
+                        app.forceTerminate()
+                    }
+                }
+            }
+        }
     }
+
 
     // MARK: - Device Binding
 

@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Montana v3.0.4 — Fix: Dock/Launchpad click always shows window
+# Build Montana v3.0.5 — Fix: Single instance enforcement (auto-kill duplicates)
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$DIR/Montana.app"
 
-echo "Building Montana v3.0.4..."
+echo "Building Montana v3.0.5..."
 
 # Clean
 rm -rf "$APP"
