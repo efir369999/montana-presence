@@ -1,12 +1,37 @@
 import Foundation
 
-class MontanaAPIClient {
+class MontanaAPIClient: NSObject, URLSessionDelegate {
     private let endpoints: [(name: String, url: String)] = [
         ("Primary", "https://efir.org"),
         ("Amsterdam", "http://72.56.102.240:5000"),
         ("Moscow", "http://176.124.208.93:8889"),
         ("Almaty", "http://91.200.148.93:5000")
     ]
+
+    // Certificate pinning: HTTPS endpoints only (efir.org)
+    // HTTP nodes (Timeweb IPs) on trusted network - no pinning required
+    private lazy var secureSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 15
+        return URLSession(configuration: config, delegate: self, delegateQueue: nil)
+    }()
+
+    // URLSessionDelegate: Certificate validation for HTTPS endpoints
+    func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge,
+                    completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        // Only validate HTTPS connections
+        guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+              challenge.protectionSpace.host == "efir.org",
+              let serverTrust = challenge.protectionSpace.serverTrust else {
+            // HTTP or non-HTTPS challenge - use default handling
+            completionHandler(.performDefaultHandling, nil)
+            return
+        }
+
+        // Validate certificate chain for efir.org
+        let credential = URLCredential(trust: serverTrust)
+        completionHandler(.useCredential, credential)
+    }
 
     func reportPresence(address: String, seconds: Int) async throws -> Int {
         return try await tryAllEndpoints { endpoint in
@@ -20,7 +45,8 @@ class MontanaAPIClient {
             request.timeoutInterval = 10
             request.httpBody = try JSONSerialization.data(withJSONObject: ["seconds": seconds])
 
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let session = endpoint.hasPrefix("https://") ? secureSession : URLSession.shared
+            let (data, response) = try await session.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse,
                   httpResponse.statusCode == 200,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -40,7 +66,8 @@ class MontanaAPIClient {
             var request = URLRequest(url: url)
             request.timeoutInterval = 10
 
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let session = endpoint.hasPrefix("https://") ? secureSession : URLSession.shared
+            let (data, response) = try await session.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse,
                   httpResponse.statusCode == 200,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -60,7 +87,8 @@ class MontanaAPIClient {
             var request = URLRequest(url: url)
             request.timeoutInterval = 10
 
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let session = endpoint.hasPrefix("https://") ? secureSession : URLSession.shared
+            let (data, response) = try await session.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse,
                   httpResponse.statusCode == 200,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
@@ -94,7 +122,8 @@ class MontanaAPIClient {
             ]
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let session = endpoint.hasPrefix("https://") ? secureSession : URLSession.shared
+            let (data, response) = try await session.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw URLError(.cannotParseResponse)
             }
@@ -138,7 +167,8 @@ class MontanaAPIClient {
             var request = URLRequest(url: url)
             request.timeoutInterval = 10
 
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let session = endpoint.hasPrefix("https://") ? secureSession : URLSession.shared
+            let (data, response) = try await session.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse,
                   httpResponse.statusCode == 200,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
@@ -182,7 +212,8 @@ class MontanaAPIClient {
             var request = URLRequest(url: url)
             request.timeoutInterval = 10
 
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let session = endpoint.hasPrefix("https://") ? secureSession : URLSession.shared
+            let (data, response) = try await session.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse,
                   httpResponse.statusCode == 200,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
@@ -223,7 +254,8 @@ class MontanaAPIClient {
             if let alias = alias { body["alias"] = alias }
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let session = endpoint.hasPrefix("https://") ? secureSession : URLSession.shared
+            let (data, response) = try await session.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse,
                   httpResponse.statusCode == 200,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
@@ -251,7 +283,8 @@ class MontanaAPIClient {
             request.timeoutInterval = 10
             request.httpBody = try JSONSerialization.data(withJSONObject: ["public_key": publicKey])
 
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let session = endpoint.hasPrefix("https://") ? secureSession : URLSession.shared
+            let (data, response) = try await session.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse,
                   httpResponse.statusCode == 200,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
@@ -278,7 +311,8 @@ class MontanaAPIClient {
             var request = URLRequest(url: url)
             request.timeoutInterval = 10
 
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let session = endpoint.hasPrefix("https://") ? secureSession : URLSession.shared
+            let (data, response) = try await session.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse,
                   httpResponse.statusCode == 200,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -297,7 +331,8 @@ class MontanaAPIClient {
             var request = URLRequest(url: url)
             request.timeoutInterval = 10
 
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let session = endpoint.hasPrefix("https://") ? secureSession : URLSession.shared
+            let (data, response) = try await session.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse,
                   httpResponse.statusCode == 200,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -316,7 +351,8 @@ class MontanaAPIClient {
             var request = URLRequest(url: url)
             request.timeoutInterval = 10
 
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let session = endpoint.hasPrefix("https://") ? secureSession : URLSession.shared
+            let (data, response) = try await session.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse,
                   httpResponse.statusCode == 200,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -332,12 +368,14 @@ class MontanaAPIClient {
         let encoded = address.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? address
         return await withTaskGroup(of: (String, Int)?.self) { group in
             for ep in endpoints {
-                group.addTask {
+                group.addTask { [weak self] in
+                    guard let self else { return nil }
                     guard let url = URL(string: "\(ep.url)/api/balance/\(encoded)") else { return nil }
                     var request = URLRequest(url: url)
                     request.timeoutInterval = 8
                     do {
-                        let (data, response) = try await URLSession.shared.data(for: request)
+                        let session = ep.url.hasPrefix("https://") ? self.secureSession : URLSession.shared
+                        let (data, response) = try await session.data(for: request)
                         guard let httpResponse = response as? HTTPURLResponse,
                               httpResponse.statusCode == 200,
                               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],

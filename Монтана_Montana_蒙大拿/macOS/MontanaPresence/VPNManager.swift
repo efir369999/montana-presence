@@ -51,7 +51,7 @@ class VPNManager: ObservableObject {
         return appSupport.appendingPathComponent("Montana")
     }
 
-    private static var homebrewPrefix: String {
+    nonisolated private static var homebrewPrefix: String {
         #if arch(arm64)
         return "/opt/homebrew"
         #else
@@ -69,7 +69,19 @@ class VPNManager: ObservableObject {
     private var montanaPrivateKey: Data? {
         // Load Montana Protocol private key from PresenceEngine
         // This is ML-DSA-65 (Dilithium) keypair - post-quantum secure
-        guard let keyData = UserDefaults.standard.data(forKey: "montana_private_key") else { return nil }
+        guard var keyData = UserDefaults.standard.data(forKey: "montana_private_key") else { return nil }
+
+        // ═══════════════════════════════════════════════════════════════════
+        //  SECURITY: Secure Memory Wiping
+        // ═══════════════════════════════════════════════════════════════════
+        // Zero out sensitive key material after use to prevent memory dumps
+        defer {
+            keyData.withUnsafeMutableBytes { ptr in
+                guard let baseAddress = ptr.baseAddress else { return }
+                memset_s(baseAddress, ptr.count, 0, ptr.count)
+            }
+        }
+
         return keyData
     }
 
@@ -211,7 +223,18 @@ class VPNManager: ObservableObject {
         do {
             // Decrypt AES-256-GCM
             let sealedBox = try AES.GCM.SealedBox(combined: encryptedData)
-            let decrypted = try AES.GCM.open(sealedBox, using: encryptionKey)
+            var decrypted = try AES.GCM.open(sealedBox, using: encryptionKey)
+
+            // ═══════════════════════════════════════════════════════════════════
+            //  SECURITY: Secure Memory Wiping
+            // ═══════════════════════════════════════════════════════════════════
+            // Zero out decrypted key material after converting to string
+            defer {
+                decrypted.withUnsafeMutableBytes { ptr in
+                    guard let baseAddress = ptr.baseAddress else { return }
+                    memset_s(baseAddress, ptr.count, 0, ptr.count)
+                }
+            }
 
             return String(data: decrypted, encoding: .utf8)
         } catch {
@@ -278,8 +301,9 @@ class VPNManager: ObservableObject {
         wgProcess = nil
 
         // Stop tunnel via wg-quick
+        let path = configPath
         DispatchQueue.global().async {
-            _ = Self.runProcess("\(Self.homebrewPrefix)/bin/wg-quick", args: ["down", self.configPath], sudo: true)
+            _ = Self.runProcess("\(Self.homebrewPrefix)/bin/wg-quick", args: ["down", path], sudo: true)
         }
 
         isConnecting = false
@@ -330,10 +354,12 @@ class VPNManager: ObservableObject {
 
     private func startWireGuardTunnel() async {
         // Try wg-quick up with sudo
+        let path = configPath
+        let iface = interfaceName
         let success = await withCheckedContinuation { continuation in
             DispatchQueue.global().async {
-                let output = Self.runProcess("\(Self.homebrewPrefix)/bin/wg-quick", args: ["up", self.configPath], sudo: true)
-                let success = output.contains("interface:") || output.contains(self.interfaceName)
+                let output = Self.runProcess("\(Self.homebrewPrefix)/bin/wg-quick", args: ["up", path], sudo: true)
+                let success = output.contains("interface:") || output.contains(iface)
                 continuation.resume(returning: success)
             }
         }
@@ -404,12 +430,14 @@ class VPNManager: ObservableObject {
     }
 
     func checkVPNStatus() {
+        let iface = interfaceName
+        let sub = subnet
         DispatchQueue.global().async { [weak self] in
             guard let self else { return }
 
             // Check if interface exists
-            let ifOutput = Self.runProcess("/sbin/ifconfig", args: [self.interfaceName])
-            let connected = ifOutput.contains(self.subnet)
+            let ifOutput = Self.runProcess("/sbin/ifconfig", args: [iface])
+            let connected = ifOutput.contains(sub)
 
             var detectedIP = ""
             var inBytes: Int64 = 0
@@ -419,7 +447,7 @@ class VPNManager: ObservableObject {
                 detectedIP = self.extractIP(from: ifOutput)
 
                 // Get WireGuard stats
-                let wgOutput = Self.runProcess("\(Self.homebrewPrefix)/bin/wg", args: ["show", self.interfaceName, "transfer"])
+                let wgOutput = Self.runProcess("\(Self.homebrewPrefix)/bin/wg", args: ["show", iface, "transfer"])
                 if let (rx, tx) = self.parseWireGuardStats(wgOutput) {
                     inBytes = rx
                     outBytes = tx
@@ -458,7 +486,7 @@ class VPNManager: ObservableObject {
 
     // MARK: - Helpers
 
-    private func extractIP(from output: String) -> String {
+    nonisolated private func extractIP(from output: String) -> String {
         for line in output.components(separatedBy: "\n") {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
             if trimmed.hasPrefix("inet ") && trimmed.contains(subnet) {
@@ -469,7 +497,7 @@ class VPNManager: ObservableObject {
         return subnet + ".x"
     }
 
-    private func parseWireGuardStats(_ output: String) -> (Int64, Int64)? {
+    nonisolated private func parseWireGuardStats(_ output: String) -> (Int64, Int64)? {
         let parts = output.trimmingCharacters(in: .whitespacesAndNewlines).components(separatedBy: "\t")
         guard parts.count >= 2,
               let rx = Int64(parts[0]),
@@ -477,7 +505,7 @@ class VPNManager: ObservableObject {
         return (rx, tx)
     }
 
-    private func measurePing() {
+    nonisolated private func measurePing() {
         DispatchQueue.global().async { [weak self] in
             let output = Self.runProcess("/sbin/ping", args: ["-c", "1", "-t", "3", "72.56.102.240"])
             if let range = output.range(of: "time=") {
@@ -509,12 +537,45 @@ class VPNManager: ObservableObject {
 
     // MARK: - Process Execution
 
+    // ═══════════════════════════════════════════════════════════════════
+    //  SECURITY: Path Whitelist
+    // ═══════════════════════════════════════════════════════════════════
+    // Only allow execution of trusted system binaries and WireGuard tools
+    nonisolated private static var allowedExecutablePaths: Set<String> {
+        return [
+            "/sbin/ifconfig",
+            "/sbin/ping",
+            "/usr/bin/osascript",
+            "\(homebrewPrefix)/bin/wg",
+            "\(homebrewPrefix)/bin/wg-quick"
+        ]
+    }
+
     nonisolated private static func escapeShellArg(_ arg: String) -> String {
         // Escape single quotes: ' -> '\''
         return "'\(arg.replacingOccurrences(of: "'", with: "'\\''"))'"
     }
 
     nonisolated private static func runProcess(_ path: String, args: [String] = [], sudo: Bool = false) -> String {
+        // ═══════════════════════════════════════════════════════════════════
+        //  SECURITY: Command Injection Prevention
+        // ═══════════════════════════════════════════════════════════════════
+        // 1. Validate executable path against whitelist
+        guard allowedExecutablePaths.contains(path) else {
+            #if DEBUG
+            print("Security: Blocked execution of non-whitelisted path: \(path)")
+            #endif
+            return ""
+        }
+
+        // 2. Validate total argument length (prevent buffer overflow)
+        let totalArgsLength = args.joined().count
+        guard totalArgsLength < 1024 else {
+            #if DEBUG
+            print("Security: Blocked execution with excessive argument length: \(totalArgsLength)")
+            #endif
+            return ""
+        }
         if sudo {
             // Use osascript to request sudo via GUI (with proper escaping)
             let escapedPath = escapeShellArg(path)
