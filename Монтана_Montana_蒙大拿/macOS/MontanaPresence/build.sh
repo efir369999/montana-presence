@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build Montana v3.7.0 — Static clock: Junona logo + seconds hand + balance display
+# Build Montana v3.7.1 — Golden dot clock: real-time sync + live balance
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"

@@ -510,28 +510,24 @@ struct JunonaView: View {
                         .shadow(color: Color(red: 0.83, green: 0.69, blue: 0.22).opacity(0.3), radius: 20, x: 0, y: 10)
                 }
 
-                // Seconds hand (like a clock)
-                Rectangle()
+                // Golden dot traveling around the edge
+                Circle()
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color(red: 0.0, green: 0.83, blue: 1.0),
-                                Color(red: 0.48, green: 0.18, blue: 1.0)
+                                Color(red: 0.83, green: 0.69, blue: 0.22),
+                                Color(red: 0.94, green: 0.82, blue: 0.38)
                             ],
-                            startPoint: .bottom,
-                            endPoint: .top
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
                         )
                     )
-                    .frame(width: 3, height: 90)
-                    .offset(y: -45)
-                    .rotationEffect(.degrees(secondsAngle))
-                    .shadow(color: Color(red: 0.0, green: 0.83, blue: 1.0).opacity(0.5), radius: 5)
-
-                // Center dot
-                Circle()
-                    .fill(Color(red: 0.0, green: 0.83, blue: 1.0))
-                    .frame(width: 10, height: 10)
-                    .shadow(color: Color(red: 0.0, green: 0.83, blue: 1.0).opacity(0.5), radius: 3)
+                    .frame(width: 12, height: 12)
+                    .offset(
+                        x: 100 * cos((secondsAngle - 90) * .pi / 180),
+                        y: 100 * sin((secondsAngle - 90) * .pi / 180)
+                    )
+                    .shadow(color: Color(red: 0.94, green: 0.82, blue: 0.38), radius: 8)
             }
             .frame(width: 220, height: 220)
             .onAppear {
@@ -913,10 +909,15 @@ struct JunonaView: View {
     // MARK: - Clock Animation
 
     private func startClock() {
-        // Update seconds hand every second
+        // Set initial position to current time
+        let currentSecond = Calendar.current.component(.second, from: Date())
+        secondsAngle = Double(currentSecond) * 6  // 0-59 seconds → 0-354°
+
+        // Update dot position every second based on real time
         clockTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [self] _ in
+            let second = Calendar.current.component(.second, from: Date())
             withAnimation(.linear(duration: 1.0)) {
-                secondsAngle += 6  // 360° / 60 seconds = 6° per second
+                secondsAngle = Double(second) * 6  // 360° / 60 seconds = 6° per second
             }
             // Mint a coin every second (synchronized with clock)
             mintNewCoin()
