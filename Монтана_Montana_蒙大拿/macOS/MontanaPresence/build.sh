@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Montana v3.2.1 — Junona Sensor (conversation = presence anchor)
+# Build Montana v3.2.2 — Junona Sidebar (burger menu + Montana nav + chat sessions)
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$DIR/Montana.app"
 
-echo "Building Montana v3.2.1..."
+echo "Building Montana v3.2.2..."
 
 # Clean
 rm -rf "$APP"

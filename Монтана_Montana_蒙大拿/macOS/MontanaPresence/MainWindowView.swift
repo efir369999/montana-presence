@@ -96,9 +96,15 @@ struct MainWindowView: View {
         .onReceive(NotificationCenter.default.publisher(for: .switchToSettingsTab)) { _ in
             selectedTab = 9  // Settings moved to tab 9
         }
+        .onReceive(NotificationCenter.default.publisher(for: .switchToTab)) { notification in
+            if let tab = notification.userInfo?["tab"] as? Int {
+                selectedTab = tab
+            }
+        }
     }
 }
 
 extension Notification.Name {
     static let switchToSettingsTab = Notification.Name("switchToSettingsTab")
+    static let switchToTab = Notification.Name("switchToTab")
 }
