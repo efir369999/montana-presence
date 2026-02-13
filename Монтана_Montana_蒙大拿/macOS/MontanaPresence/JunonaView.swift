@@ -237,6 +237,16 @@ struct JunonaView: View {
 
                     Divider()
 
+                    // Приложения
+                    appsNavigation
+
+                    Divider()
+
+                    // Обмен
+                    exchangeNavigation
+
+                    Divider()
+
                     // Junona Sessions
                     junonaSessions
                 }
@@ -265,6 +275,35 @@ struct JunonaView: View {
                 NavItem(icon: "clock.arrow.circlepath", label: "История", tag: 7)
                 NavItem(icon: "pentagon", label: "Цепочка", tag: 8)
                 NavItem(icon: "gear", label: "Настройки", tag: 9)
+            }
+        }
+    }
+
+    private var appsNavigation: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Приложения")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundColor(.secondary)
+
+            VStack(spacing: 4) {
+                AppItem(icon: "shippingbox.fill", label: "SeaFare Montana", url: "https://efir.org/seafare")
+                AppItem(icon: "hammer.fill", label: "Аукцион", url: "https://efir.org/auction")
+            }
+        }
+    }
+
+    private var exchangeNavigation: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Обмен")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundColor(.secondary)
+
+            VStack(spacing: 4) {
+                ExchangeItem(icon: "bitcoinsign.circle.fill", label: "BTC → Ɉ")
+                ExchangeItem(icon: "dollarsign.circle.fill", label: "USD → Ɉ")
+                ExchangeItem(icon: "rublesign.circle.fill", label: "RUB → Ɉ")
             }
         }
     }
@@ -679,6 +718,83 @@ struct NavItem: View {
             RoundedRectangle(cornerRadius: 6)
                 .fill(Color.gray.opacity(0.0))
         )
+        .onHover { hovering in
+            if hovering {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
+    }
+}
+
+struct AppItem: View {
+    let icon: String
+    let label: String
+    let url: String
+
+    var body: some View {
+        Button(action: {
+            if let appUrl = URL(string: url) {
+                NSWorkspace.shared.open(appUrl)
+            }
+        }) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 14))
+                    .foregroundColor(Color(red: 0.48, green: 0.18, blue: 1.0))
+                    .frame(width: 20)
+
+                Text(label)
+                    .font(.callout)
+                    .foregroundColor(.primary)
+
+                Spacer()
+
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+            }
+            .padding(.vertical, 6)
+            .padding(.horizontal, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            if hovering {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
+    }
+}
+
+struct ExchangeItem: View {
+    let icon: String
+    let label: String
+
+    var body: some View {
+        Button(action: {
+            // TODO: Open exchange view/dialog
+        }) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 14))
+                    .foregroundColor(Color(red: 0.0, green: 0.83, blue: 1.0))
+                    .frame(width: 20)
+
+                Text(label)
+                    .font(.callout)
+                    .foregroundColor(.primary)
+
+                Spacer()
+            }
+            .padding(.vertical, 6)
+            .padding(.horizontal, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
         .onHover { hovering in
             if hovering {
                 NSCursor.pointingHand.push()

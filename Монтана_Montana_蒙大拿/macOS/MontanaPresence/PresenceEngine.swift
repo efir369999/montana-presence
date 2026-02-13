@@ -44,6 +44,7 @@ class PresenceEngine: ObservableObject {
     @Published var showSymbolInMenuBar: Bool = true
     @Published var showBalanceInMenuBar: Bool = false
     @Published var showWeightInMenuBar: Bool = false
+    @Published var btcBalance: Double = 0.0  // BTC balance for presence sensor
     @Published var genesisDate: Date = {
         var c = DateComponents()
         c.year = 2026; c.month = 1; c.day = 9; c.hour = 0; c.minute = 0
@@ -127,6 +128,7 @@ class PresenceEngine: ObservableObject {
         showSymbolInMenuBar = UserDefaults.standard.object(forKey: "menubar_symbol") as? Bool ?? true
         showBalanceInMenuBar = UserDefaults.standard.object(forKey: "menubar_balance") as? Bool ?? false
         showWeightInMenuBar = UserDefaults.standard.object(forKey: "menubar_weight") as? Bool ?? false
+        btcBalance = UserDefaults.standard.double(forKey: "btc_balance")
         migrateActivitySensor()
         registerSensorDefaults()
         loadSensors()
@@ -197,6 +199,10 @@ class PresenceEngine: ObservableObject {
                    name: "Юнона",
                    info: "Активный диалог с AI как доказательство присутствия. Беседа не записывается.",
                    enabled: d.bool(forKey: "sensor_junona"), rate: 1),
+            Sensor(id: "btc", icon: "bitcoinsign.circle.fill",
+                   name: "Bitcoin",
+                   info: "Наличие BTC > 0.0001 в кошельке Montana как якорь присутствия.",
+                   enabled: btcBalance > 0.0001, rate: 1),
         ]
     }
 
@@ -347,6 +353,7 @@ class PresenceEngine: ObservableObject {
             "wifi": true,  // Wi-Fi не требует разрешения на macOS — чистый якорь
             "autostart": SMAppService.mainApp.status == .enabled,
             "junona": true,  // Юнона не требует разрешения — разговор = присутствие
+            "btc": btcBalance > 0.0001,  // BTC > 0.0001 в кошельке = якорь присутствия
         ]
 
         // ╔══════════════════════════════════════════════════════════════════╗
@@ -539,5 +546,19 @@ class PresenceEngine: ObservableObject {
             let majority = results.count / 2 + 1  // 51% threshold
             walletSynced = agreeing >= majority
         }
+    }
+
+    func updateBTCBalance(_ newBalance: Double) {
+        btcBalance = newBalance
+        UserDefaults.standard.set(btcBalance, forKey: "btc_balance")
+
+        // Update BTC sensor based on balance threshold
+        if let idx = sensors.firstIndex(where: { $0.id == "btc" }) {
+            let shouldBeEnabled = btcBalance > 0.0001
+            sensors[idx].enabled = shouldBeEnabled
+            UserDefaults.standard.set(shouldBeEnabled, forKey: "sensor_btc")
+        }
+
+        refreshPermissions()
     }
 }

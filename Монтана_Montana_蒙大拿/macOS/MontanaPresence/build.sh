@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build Montana v3.2.6 — Blank Junona + Burger Menu Restored
+# Build Montana v3.2.7 — Sidebar Apps + Exchange + BTC Sensor
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
