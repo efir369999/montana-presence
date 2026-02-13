@@ -7,8 +7,8 @@ struct MontanaPresenceApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
-        // No Settings scene needed - MainWindow handles all UI
-        WindowGroup {
+        // Settings scene doesn't create windows - perfect for menu bar apps
+        Settings {
             EmptyView()
         }
     }

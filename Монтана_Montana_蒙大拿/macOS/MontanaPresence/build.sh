@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Montana v3.0.0 — Window-based UI with tabs (Wallet | History | TimeChain | Settings)
+# Build Montana v3.0.1 — Fix empty window bug (Settings scene instead of WindowGroup)
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$DIR/Montana.app"
 
-echo "Building Montana v3.0.0..."
+echo "Building Montana v3.0.1..."
 
 # Clean
 rm -rf "$APP"
