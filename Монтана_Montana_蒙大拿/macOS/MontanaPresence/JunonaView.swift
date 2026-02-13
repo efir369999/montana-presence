@@ -216,6 +216,9 @@ struct JunonaView: View {
         inputText = ""
         isLoading = true
 
+        // Activate Junona sensor (conversation = presence)
+        engine.activateJunona()
+
         // Get AI response
         Task {
             do {

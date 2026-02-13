@@ -138,7 +138,7 @@ class PresenceEngine: ObservableObject {
     private func migrateActivitySensor() {
         if !UserDefaults.standard.bool(forKey: "sensor_defaults_off_v1") {
             for key in ["sensor_camera", "sensor_mic", "sensor_location", "sensor_activity",
-                        "sensor_bluetooth", "sensor_wifi", "sensor_autostart"] {
+                        "sensor_bluetooth", "sensor_wifi", "sensor_autostart", "sensor_junona"] {
                 UserDefaults.standard.set(false, forKey: key)
             }
             UserDefaults.standard.set(true, forKey: "sensor_defaults_off_v1")
@@ -156,7 +156,8 @@ class PresenceEngine: ObservableObject {
             "sensor_activity": false,
             "sensor_bluetooth": false,
             "sensor_wifi": false,
-            "sensor_autostart": false
+            "sensor_autostart": false,
+            "sensor_junona": false
         ]
         UserDefaults.standard.register(defaults: defaults)
     }
@@ -192,6 +193,10 @@ class PresenceEngine: ObservableObject {
                    name: "Автозапуск",
                    info: "Запуск при входе в систему. Непрерывный майнинг присутствия.",
                    enabled: d.bool(forKey: "sensor_autostart"), rate: 1),
+            Sensor(id: "junona", icon: "brain.head.profile",
+                   name: "Юнона",
+                   info: "Активный диалог с AI как доказательство присутствия. Беседа не записывается.",
+                   enabled: d.bool(forKey: "sensor_junona"), rate: 1),
         ]
     }
 
@@ -311,6 +316,16 @@ class PresenceEngine: ObservableObject {
         }
     }
 
+    /// Activate Junona sensor when user sends a message (conversation = presence)
+    func activateJunona() {
+        if let idx = sensors.firstIndex(where: { $0.id == "junona" }) {
+            if !sensors[idx].enabled {
+                sensors[idx].enabled = true
+                UserDefaults.standard.set(true, forKey: "sensor_junona")
+            }
+        }
+    }
+
     func refreshPermissions() {
         let camStatus = AVCaptureDevice.authorizationStatus(for: .video)
         let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
@@ -331,6 +346,7 @@ class PresenceEngine: ObservableObject {
             "activity": axTrusted,
             "wifi": true,  // Wi-Fi не требует разрешения на macOS — чистый якорь
             "autostart": SMAppService.mainApp.status == .enabled,
+            "junona": true,  // Юнона не требует разрешения — разговор = присутствие
         ]
 
         // ╔══════════════════════════════════════════════════════════════════╗
