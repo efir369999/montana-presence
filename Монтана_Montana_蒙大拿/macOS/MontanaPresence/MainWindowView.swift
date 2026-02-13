@@ -101,6 +101,8 @@ struct MainWindowView: View {
                 .tag(10)
         }
         .frame(minWidth: 600, minHeight: 500)
+        .background(Color(red: 0.04, green: 0.04, blue: 0.04))  // #0a0a0a like website
+        .preferredColorScheme(.dark)
         .onReceive(NotificationCenter.default.publisher(for: .switchToSettingsTab)) { _ in
             selectedTab = 9  // Settings moved to tab 9
         }

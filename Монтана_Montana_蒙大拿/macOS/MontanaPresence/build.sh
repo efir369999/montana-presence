@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Montana v3.3.3 — Wallet Logo
+# Build Montana v3.3.4 — Black Background (Website Style)
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$DIR/Montana.app"
 
-echo "Building Montana v3.3.3..."
+echo "Building Montana v3.3.4..."
 
 # Clean
 rm -rf "$APP"
