@@ -144,4 +144,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         PresenceEngine.shared.stopTracking()
         NSApp.terminate(nil)
     }
+
+    // TimeChain Explorer window
+    func openTimeChainExplorer() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 700),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "TimeChain Explorer — Montana Protocol"
+        window.center()
+        window.setFrameAutosaveName("TimeChainExplorer")
+        window.isReleasedWhenClosed = false
+        window.appearance = NSAppearance(named: .darkAqua)
+
+        let contentView = TimeChainExplorerView()
+            .environmentObject(PresenceEngine.shared)
+            .frame(minWidth: 700, minHeight: 500)
+
+        let hostingController = NSHostingController(rootView: contentView)
+        window.contentViewController = hostingController
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
 }

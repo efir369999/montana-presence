@@ -161,7 +161,12 @@ struct MenuBarView: View {
                             HistoryView().environmentObject(engine)
                         }
 
-                        Button(action: { showExplorer = true }) {
+                        Button(action: {
+                            // Open TimeChain Explorer in separate window
+                            if let appDelegate = NSApp.delegate as? AppDelegate {
+                                appDelegate.openTimeChainExplorer()
+                            }
+                        }) {
                             HStack(spacing: 5) {
                                 Image(systemName: "pentagon")
                                     .font(.system(size: 13, weight: .bold))
@@ -176,9 +181,6 @@ struct MenuBarView: View {
                             .overlay(RoundedRectangle(cornerRadius: 8).stroke(goldDim.opacity(0.3), lineWidth: 1))
                         }
                         .buttonStyle(.plain)
-                        .popover(isPresented: $showExplorer) {
-                            TimeChainExplorerView().environmentObject(engine)
-                        }
                     }
                 }
                 .padding(.horizontal, 16)
