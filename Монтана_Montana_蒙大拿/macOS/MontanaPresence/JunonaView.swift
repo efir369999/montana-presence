@@ -31,8 +31,9 @@ struct JunonaView: View {
     @State private var hasMessages = false
     @State private var activityTimer: Timer?
 
-    // Spinning coin animation
-    @State private var coinRotation: Double = 0
+    // Clock seconds hand animation
+    @State private var secondsAngle: Double = 0
+    @State private var clockTimer: Timer?
 
     // Floating minted coins
     @State private var mintedCoins: [MintedCoin] = []
@@ -441,12 +442,50 @@ struct JunonaView: View {
                 }
             }
 
-            VStack(spacing: 24) {
+            VStack(spacing: 16) {
                 Spacer()
 
-                // Spinning Junona coin (main)
+                // Balance + Weight info (top)
+                HStack(spacing: 12) {
+                    // Balance
+                    let formatter = NumberFormatter()
+                    let _ = {
+                        formatter.numberStyle = .decimal
+                        formatter.groupingSeparator = ","
+                    }()
+                    let balanceStr = formatter.string(from: NSNumber(value: engine.displayBalance)) ?? "\(engine.displayBalance)"
+
+                    Text(balanceStr)
+                        .font(.system(size: 32, weight: .bold, design: .monospaced))
+                        .foregroundColor(Color(red: 0.83, green: 0.69, blue: 0.22))
+
+                    Text("Ɉ")
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundColor(Color(red: 0.94, green: 0.82, blue: 0.38))
+
+                    // Weight
+                    Text("x\(engine.weight)")
+                        .font(.system(size: 24, weight: .semibold, design: .monospaced))
+                        .foregroundColor(.secondary)
+                }
+
+                // Static Junona clock
             ZStack {
-                // Front side: Junona goddess (visible 0°-90°, 270°-360°)
+                // Floating minted coins (background)
+                ForEach(mintedCoins) { coin in
+                    if let logoPath = Bundle.main.path(forResource: "TimeCoin", ofType: "png"),
+                       let coinImage = NSImage(contentsOfFile: logoPath) {
+                        Image(nsImage: coinImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 40, height: 40)
+                            .opacity(coin.opacity)
+                            .scaleEffect(coin.scale)
+                            .position(x: coin.x, y: coin.y)
+                    }
+                }
+
+                // Static Junona logo (center)
                 if let junonaPath = Bundle.main.path(forResource: "JunonaLogo", ofType: "jpg"),
                    let junonaImage = NSImage(contentsOfFile: junonaPath) {
                     Image(nsImage: junonaImage)
@@ -468,46 +507,39 @@ struct JunonaView: View {
                                     lineWidth: 3
                                 )
                         )
-                        .opacity(abs(cos(coinRotation * .pi / 180)))
+                        .shadow(color: Color(red: 0.83, green: 0.69, blue: 0.22).opacity(0.3), radius: 20, x: 0, y: 10)
                 }
 
-                // Back side: МЫ ПОВСЮДУ (visible 90°-270°, flipped)
-                if let reversePath = Bundle.main.path(forResource: "JunonaReverse", ofType: "jpg"),
-                   let reverseImage = NSImage(contentsOfFile: reversePath) {
-                    Image(nsImage: reverseImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 200, height: 200)
-                        .clipShape(Circle())
-                        .overlay(
-                            Circle()
-                                .stroke(
-                                    LinearGradient(
-                                        colors: [
-                                            Color(red: 0.55, green: 0.41, blue: 0.08),
-                                            Color(red: 0.83, green: 0.69, blue: 0.22)
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
-                                    lineWidth: 3
-                                )
+                // Seconds hand (like a clock)
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.0, green: 0.83, blue: 1.0),
+                                Color(red: 0.48, green: 0.18, blue: 1.0)
+                            ],
+                            startPoint: .bottom,
+                            endPoint: .top
                         )
-                        .scaleEffect(x: -1, y: 1)  // Flip horizontally
-                        .opacity(abs(sin(coinRotation * .pi / 180)))
-                }
+                    )
+                    .frame(width: 3, height: 90)
+                    .offset(y: -45)
+                    .rotationEffect(.degrees(secondsAngle))
+                    .shadow(color: Color(red: 0.0, green: 0.83, blue: 1.0).opacity(0.5), radius: 5)
+
+                // Center dot
+                Circle()
+                    .fill(Color(red: 0.0, green: 0.83, blue: 1.0))
+                    .frame(width: 10, height: 10)
+                    .shadow(color: Color(red: 0.0, green: 0.83, blue: 1.0).opacity(0.5), radius: 3)
             }
-            .rotation3DEffect(.degrees(coinRotation), axis: (x: 0, y: 1, z: 0))  // Rotate entire coin
-            .shadow(color: Color(red: 0.83, green: 0.69, blue: 0.22).opacity(0.3), radius: 20, x: 0, y: 10)
+            .frame(width: 220, height: 220)
             .onAppear {
-                // Slow rotation: 3 seconds per revolution (smooth and visible)
-                withAnimation(.linear(duration: 3.0).repeatForever(autoreverses: false)) {
-                    coinRotation = 360
-                }
-                // Start minting coins
+                startClock()
                 startMintingCoins()
             }
             .onDisappear {
+                stopClock()
                 stopMintingCoins()
             }
 
@@ -878,12 +910,29 @@ struct JunonaView: View {
         }
     }
 
+    // MARK: - Clock Animation
+
+    private func startClock() {
+        // Update seconds hand every second
+        clockTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [self] _ in
+            withAnimation(.linear(duration: 1.0)) {
+                secondsAngle += 6  // 360° / 60 seconds = 6° per second
+            }
+            // Mint a coin every second (synchronized with clock)
+            mintNewCoin()
+        }
+    }
+
+    private func stopClock() {
+        clockTimer?.invalidate()
+        clockTimer = nil
+    }
+
     // MARK: - Coin Minting Animation
 
     private func startMintingCoins() {
-        mintTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [self] _ in
-            mintNewCoin()
-        }
+        // Initial coin
+        mintNewCoin()
     }
 
     private func stopMintingCoins() {
@@ -894,10 +943,10 @@ struct JunonaView: View {
 
     private func mintNewCoin() {
         // Random position around center
-        let centerX: CGFloat = 300  // Approximate center
-        let centerY: CGFloat = 250
-        let randomX = centerX + CGFloat.random(in: -150...150)
-        let randomY = centerY + CGFloat.random(in: -100...100)
+        let centerX: CGFloat = 110  // Center of clock
+        let centerY: CGFloat = 110
+        let randomX = centerX + CGFloat.random(in: -80...80)
+        let randomY = centerY + CGFloat.random(in: -80...80)
 
         let coin = MintedCoin(x: randomX, y: randomY)
 

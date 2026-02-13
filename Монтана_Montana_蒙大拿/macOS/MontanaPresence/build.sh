@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build Montana v3.6.3 — Fix coin flip: abs(cos) for front, abs(sin) for back
+# Build Montana v3.7.0 — Static clock: Junona logo + seconds hand + balance display
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
