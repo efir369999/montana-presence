@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Montana v3.5.0 — Spinning Junona coin (МЫ ПОВСЮДУ)
+# Build Montana v3.5.1 — Fix coin reverse visibility
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$DIR/Montana.app"
 
-echo "Building Montana v3.5.0..."
+echo "Building Montana v3.5.1..."
 
 # Clean
 rm -rf "$APP"

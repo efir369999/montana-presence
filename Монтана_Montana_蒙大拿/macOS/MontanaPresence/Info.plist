@@ -9,9 +9,9 @@
     <key>CFBundleIdentifier</key>
     <string>network.montana.presence</string>
     <key>CFBundleShortVersionString</key>
-    <string>3.5.0</string>
+    <string>3.5.1</string>
     <key>CFBundleVersion</key>
-    <string>82</string>
+    <string>83</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleExecutable</key>
