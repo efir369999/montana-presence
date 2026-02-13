@@ -116,24 +116,47 @@ struct JunonaView: View {
             }
             .buttonStyle(.plain)
 
-            // Junona icon
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color(red: 0.0, green: 0.83, blue: 1.0),   // #00d4ff cyan
-                            Color(red: 0.48, green: 0.18, blue: 1.0)   // #7b2fff purple
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+            // Junona logo
+            if let logoPath = Bundle.main.path(forResource: "JunonaLogo", ofType: "jpg"),
+               let nsImage = NSImage(contentsOfFile: logoPath) {
+                Image(nsImage: nsImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 40, height: 40)
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(
+                                LinearGradient(
+                                    colors: [
+                                        Color(red: 0.83, green: 0.69, blue: 0.22),  // gold
+                                        Color(red: 0.94, green: 0.82, blue: 0.38)   // goldLight
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 2
+                            )
                     )
-                )
-                .frame(width: 40, height: 40)
-                .overlay(
-                    Text("Ю")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(.white)
-                )
+            } else {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.0, green: 0.83, blue: 1.0),
+                                Color(red: 0.48, green: 0.18, blue: 1.0)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 40, height: 40)
+                    .overlay(
+                        Text("Ю")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.white)
+                    )
+            }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Junona")
@@ -187,23 +210,46 @@ struct JunonaView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Sidebar header
             HStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.0, green: 0.83, blue: 1.0),
-                                Color(red: 0.48, green: 0.18, blue: 1.0)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+                if let logoPath = Bundle.main.path(forResource: "JunonaLogo", ofType: "jpg"),
+                   let nsImage = NSImage(contentsOfFile: logoPath) {
+                    Image(nsImage: nsImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 32, height: 32)
+                        .clipShape(Circle())
+                        .overlay(
+                            Circle()
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [
+                                            Color(red: 0.83, green: 0.69, blue: 0.22),
+                                            Color(red: 0.94, green: 0.82, blue: 0.38)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1.5
+                                )
                         )
-                    )
-                    .frame(width: 32, height: 32)
-                    .overlay(
-                        Text("Ю")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.white)
-                    )
+                } else {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color(red: 0.0, green: 0.83, blue: 1.0),
+                                    Color(red: 0.48, green: 0.18, blue: 1.0)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 32, height: 32)
+                        .overlay(
+                            Text("Ю")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.white)
+                        )
+                }
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Junona")
@@ -364,8 +410,67 @@ struct JunonaView: View {
     // MARK: - Welcome Message
 
     private var welcomeMessage: some View {
-        // Empty - just blank chat interface
-        EmptyView()
+        VStack(spacing: 24) {
+            Spacer()
+
+            // Junona logo
+            if let logoPath = Bundle.main.path(forResource: "JunonaLogo", ofType: "jpg"),
+               let nsImage = NSImage(contentsOfFile: logoPath) {
+                Image(nsImage: nsImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 200, height: 200)
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(
+                                LinearGradient(
+                                    colors: [
+                                        Color(red: 0.83, green: 0.69, blue: 0.22),
+                                        Color(red: 0.94, green: 0.82, blue: 0.38)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 3
+                            )
+                    )
+                    .shadow(color: Color(red: 0.83, green: 0.69, blue: 0.22).opacity(0.3), radius: 20, x: 0, y: 10)
+            }
+
+            VStack(spacing: 12) {
+                Text("Добро пожаловать в Junona")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(Color(red: 0.91, green: 0.88, blue: 0.82))  // textBeige
+
+                Text("Montana Protocol AI Assistant")
+                    .font(.system(size: 16))
+                    .foregroundColor(.secondary)
+
+                Divider()
+                    .padding(.vertical, 8)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    FeatureRow(icon: "brain.head.profile", text: "Dual-AI система (Claude + GPT)")
+                    FeatureRow(icon: "shield.fill", text: "Безопасность и конфиденциальность")
+                    FeatureRow(icon: "network", text: "Управление Montana Protocol")
+                    FeatureRow(icon: "lightbulb.fill", text: "Обучение и помощь 24/7")
+                }
+                .padding()
+                .background(Color(red: 0.83, green: 0.69, blue: 0.22).opacity(0.05))
+                .cornerRadius(16)
+
+                Text("Начни разговор с Junona →")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 8)
+            }
+            .frame(maxWidth: 500)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
     }
 
     // MARK: - Input Area
@@ -867,23 +972,46 @@ struct MessageBubble: View {
         HStack(alignment: .top, spacing: 8) {
             if message.role == .assistant {
                 // Junona avatar
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.0, green: 0.83, blue: 1.0),   // #00d4ff cyan
-                                Color(red: 0.48, green: 0.18, blue: 1.0)   // #7b2fff purple
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+                if let logoPath = Bundle.main.path(forResource: "JunonaLogo", ofType: "jpg"),
+                   let nsImage = NSImage(contentsOfFile: logoPath) {
+                    Image(nsImage: nsImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 32, height: 32)
+                        .clipShape(Circle())
+                        .overlay(
+                            Circle()
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [
+                                            Color(red: 0.83, green: 0.69, blue: 0.22),
+                                            Color(red: 0.94, green: 0.82, blue: 0.38)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1
+                                )
                         )
-                    )
-                    .frame(width: 32, height: 32)
-                    .overlay(
-                        Text("Ю")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.white)
-                    )
+                } else {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color(red: 0.0, green: 0.83, blue: 1.0),
+                                    Color(red: 0.48, green: 0.18, blue: 1.0)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 32, height: 32)
+                        .overlay(
+                            Text("Ю")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.white)
+                        )
+                }
             }
 
             VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 4) {
