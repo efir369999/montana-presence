@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Montana v3.2.4 — Default Wallet Tab + Junona 10min Activity Rule
+# Build Montana v3.2.5 — Clean Junona UI (no sidebar)
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$DIR/Montana.app"
 
-echo "Building Montana v3.2.4..."
+echo "Building Montana v3.2.5..."
 
 # Clean
 rm -rf "$APP"
