@@ -22,6 +22,34 @@ struct WalletTabView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
+                // ── LOGO ──
+                HStack {
+                    Spacer()
+                    if let logoPath = Bundle.main.path(forResource: "JunonaLogo", ofType: "jpg"),
+                       let nsImage = NSImage(contentsOfFile: logoPath) {
+                        Image(nsImage: nsImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 60, height: 60)
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle()
+                                    .stroke(
+                                        LinearGradient(
+                                            colors: [gold, goldLight],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 2
+                                    )
+                            )
+                            .shadow(color: gold.opacity(0.3), radius: 10, x: 0, y: 5)
+                    }
+                    Spacer()
+                }
+                .padding(.top, 12)
+                .padding(.bottom, 8)
+
                 // ── BALANCE HEADER ──
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .firstTextBaseline) {

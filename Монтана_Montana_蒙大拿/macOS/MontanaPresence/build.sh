@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Montana v3.3.2 — Genesis Logos + Descriptions
+# Build Montana v3.3.3 — Wallet Logo
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$DIR/Montana.app"
 
-echo "Building Montana v3.3.2..."
+echo "Building Montana v3.3.3..."
 
 # Clean
 rm -rf "$APP"
