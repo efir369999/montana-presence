@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Montana v3.2.5 — Clean Junona UI (no sidebar)
+# Build Montana v3.2.6 — Blank Junona + Burger Menu Restored
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$DIR/Montana.app"
 
-echo "Building Montana v3.2.5..."
+echo "Building Montana v3.2.6..."
 
 # Clean
 rm -rf "$APP"

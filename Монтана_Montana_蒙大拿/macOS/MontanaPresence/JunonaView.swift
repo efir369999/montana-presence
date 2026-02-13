@@ -7,10 +7,15 @@ struct JunonaView: View {
     @State private var messages: [ChatMessage] = []
     @State private var inputText = ""
     @State private var isLoading = false
+    @State private var showSidebar = false
 
     // AI toggles
     @State private var claudeEnabled = true
     @State private var gptEnabled = false
+
+    // Chat sessions
+    @State private var sessions: [JunonaSession] = []
+    @State private var currentSessionId: UUID?
 
     // Presence tracking (10 min activity required)
     @State private var activeStartTime: Date?
@@ -18,7 +23,9 @@ struct JunonaView: View {
     @State private var activityTimer: Timer?
 
     var body: some View {
-        VStack(spacing: 0) {
+        ZStack(alignment: .leading) {
+            // Main content
+            VStack(spacing: 0) {
             // Header
             header
 
@@ -68,18 +75,47 @@ struct JunonaView: View {
             inputArea
         }
         .background(Color(NSColor.windowBackgroundColor))
-        .onAppear {
-            startActivityTracking()
-        }
-        .onDisappear {
-            stopActivityTracking()
+
+        // Sidebar overlay
+        if showSidebar {
+            Color.black.opacity(0.3)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    withAnimation {
+                        showSidebar = false
+                    }
+                }
+
+            sidebar
+                .transition(.move(edge: .leading))
         }
     }
+    .animation(.easeInOut(duration: 0.3), value: showSidebar)
+    .onAppear {
+        loadSessions()
+        startActivityTracking()
+    }
+    .onDisappear {
+        stopActivityTracking()
+    }
+}
 
     // MARK: - Header
 
     private var header: some View {
         HStack(spacing: 12) {
+            // Burger menu button
+            Button(action: {
+                withAnimation {
+                    showSidebar.toggle()
+                }
+            }) {
+                Image(systemName: "line.3.horizontal")
+                    .font(.system(size: 20))
+                    .foregroundColor(.primary)
+            }
+            .buttonStyle(.plain)
+
             // Junona icon
             Circle()
                 .fill(
@@ -145,34 +181,134 @@ struct JunonaView: View {
         }
     }
 
+    // MARK: - Sidebar
+
+    private var sidebar: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Sidebar header
+            HStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.0, green: 0.83, blue: 1.0),
+                                Color(red: 0.48, green: 0.18, blue: 1.0)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 32, height: 32)
+                    .overlay(
+                        Text("Ю")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
+                    )
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Junona")
+                        .font(.headline)
+                    Text("Montana Protocol")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+
+                Spacer()
+
+                Button(action: {
+                    withAnimation {
+                        showSidebar = false
+                    }
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding()
+
+            Divider()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    // Montana Technologies
+                    montanaNavigation
+
+                    Divider()
+
+                    // Junona Sessions
+                    junonaSessions
+                }
+                .padding()
+            }
+        }
+        .frame(width: 280)
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.95))
+        .shadow(radius: 10)
+    }
+
+    private var montanaNavigation: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Montana")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundColor(.secondary)
+
+            VStack(spacing: 4) {
+                NavItem(icon: "banknote", label: "Кошелёк", tag: 1)
+                NavItem(icon: "at", label: "Домены", tag: 2)
+                NavItem(icon: "phone", label: "Номера", tag: 3)
+                NavItem(icon: "phone.fill", label: "Звонки", tag: 4)
+                NavItem(icon: "globe", label: "Сайты", tag: 5)
+                NavItem(icon: "play.circle", label: "Видео", tag: 6)
+                NavItem(icon: "clock.arrow.circlepath", label: "История", tag: 7)
+                NavItem(icon: "pentagon", label: "Цепочка", tag: 8)
+                NavItem(icon: "gear", label: "Настройки", tag: 9)
+            }
+        }
+    }
+
+    private var junonaSessions: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Чаты с Юноной")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.secondary)
+
+                Spacer()
+
+                Button(action: newSession) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 12))
+                        .foregroundColor(Color(red: 0.0, green: 0.83, blue: 1.0))
+                }
+                .buttonStyle(.plain)
+            }
+
+            if sessions.isEmpty {
+                Text("Начни новый чат")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.vertical, 8)
+            } else {
+                VStack(spacing: 4) {
+                    ForEach(sessions) { session in
+                        SessionItem(session: session, isCurrent: session.id == currentSessionId) {
+                            loadSession(session)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: - Welcome Message
 
     private var welcomeMessage: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("👋 Привет! Я — Junona")
-                .font(.title2)
-                .fontWeight(.semibold)
-
-            Text("Я помогу тебе разобраться с Montana Protocol:")
-                .foregroundColor(.secondary)
-
-            VStack(alignment: .leading, spacing: 8) {
-                FeatureRow(icon: "💰", text: "Управление кошельком и балансом")
-                FeatureRow(icon: "📞", text: "Регистрация доменов и номеров")
-                FeatureRow(icon: "🔐", text: "Безопасность и криптография")
-                FeatureRow(icon: "⚡", text: "Майнинг и датчики присутствия")
-                FeatureRow(icon: "🌐", text: "Аукционы и экономическая модель")
-            }
-            .padding(.vertical, 8)
-
-            Text("Просто задай любой вопрос!")
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-        .padding()
-        .background(Color.blue.opacity(0.05))
-        .cornerRadius(12)
-        .padding(.horizontal)
+        // Empty - just blank chat interface
+        EmptyView()
     }
 
     // MARK: - Input Area
@@ -449,6 +585,35 @@ struct JunonaView: View {
         return key
     }
 
+    // MARK: - Session Management
+
+    private func loadSessions() {
+        // TODO: Load from UserDefaults or file
+        sessions = []
+    }
+
+    private func newSession() {
+        let session = JunonaSession(
+            title: "Новый чат",
+            timestamp: Date(),
+            messages: []
+        )
+        sessions.insert(session, at: 0)
+        currentSessionId = session.id
+        messages = []
+        withAnimation {
+            showSidebar = false
+        }
+    }
+
+    private func loadSession(_ session: JunonaSession) {
+        currentSessionId = session.id
+        messages = session.messages
+        withAnimation {
+            showSidebar = false
+        }
+    }
+
     // MARK: - Activity Tracking
 
     private func startActivityTracking() {
@@ -479,6 +644,87 @@ struct JunonaView: View {
 }
 
 // MARK: - Supporting Views
+
+struct NavItem: View {
+    let icon: String
+    let label: String
+    let tag: Int
+
+    var body: some View {
+        Button(action: {
+            NotificationCenter.default.post(
+                name: .switchToTab,
+                object: nil,
+                userInfo: ["tab": tag]
+            )
+        }) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 14))
+                    .foregroundColor(Color(red: 0.0, green: 0.83, blue: 1.0))
+                    .frame(width: 20)
+
+                Text(label)
+                    .font(.callout)
+                    .foregroundColor(.primary)
+
+                Spacer()
+            }
+            .padding(.vertical, 6)
+            .padding(.horizontal, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color.gray.opacity(0.0))
+        )
+        .onHover { hovering in
+            if hovering {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
+    }
+}
+
+struct SessionItem: View {
+    let session: JunonaSession
+    let isCurrent: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: "message.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(isCurrent ? Color(red: 0.0, green: 0.83, blue: 1.0) : .secondary)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(session.title)
+                        .font(.caption)
+                        .fontWeight(isCurrent ? .semibold : .regular)
+                        .foregroundColor(isCurrent ? .primary : .secondary)
+                        .lineLimit(1)
+
+                    Text(session.timestamp, style: .relative)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+
+                Spacer()
+            }
+            .padding(.vertical, 6)
+            .padding(.horizontal, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(isCurrent ? Color(red: 0.0, green: 0.83, blue: 1.0).opacity(0.1) : Color.clear)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
 
 struct MessageBubble: View {
     let message: ChatMessage
@@ -559,6 +805,13 @@ struct ChatMessage: Identifiable {
         case user
         case assistant
     }
+}
+
+struct JunonaSession: Identifiable {
+    let id = UUID()
+    var title: String
+    let timestamp: Date
+    var messages: [ChatMessage]
 }
 
 // MARK: - Preview
