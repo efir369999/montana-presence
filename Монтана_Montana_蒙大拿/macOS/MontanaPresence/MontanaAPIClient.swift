@@ -392,6 +392,47 @@ class MontanaAPIClient: NSObject, URLSessionDelegate {
         }
     }
 
+    func fetchAddressBalance(query: String) async throws -> [String: Any] {
+        return try await tryAllEndpoints { endpoint in
+            let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? query
+            guard let url = URL(string: "\(endpoint)/api/address/\(encoded)") else {
+                throw URLError(.badURL)
+            }
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 10
+
+            let session = endpoint.hasPrefix("https://") ? secureSession : URLSession.shared
+            let (data, response) = try await session.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                throw URLError(.cannotParseResponse)
+            }
+            return json
+        }
+    }
+
+    func fetchAddressTransactions(query: String) async throws -> [[String: Any]] {
+        return try await tryAllEndpoints { endpoint in
+            let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? query
+            guard let url = URL(string: "\(endpoint)/api/address/\(encoded)/transactions") else {
+                throw URLError(.badURL)
+            }
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 10
+
+            let session = endpoint.hasPrefix("https://") ? secureSession : URLSession.shared
+            let (data, response) = try await session.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let transactions = json["transactions"] as? [[String: Any]] else {
+                throw URLError(.cannotParseResponse)
+            }
+            return transactions
+        }
+    }
+
     private func tryAllEndpoints<T>(_ operation: (String) async throws -> T) async throws -> T {
         var lastError: Error = URLError(.cannotConnectToHost)
         for endpoint in endpoints {

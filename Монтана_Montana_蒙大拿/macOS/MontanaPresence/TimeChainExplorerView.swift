@@ -14,6 +14,14 @@ struct TimeChainExplorerView: View {
     @State private var refreshTimer: Timer?
     @State private var eventCount = 100
     @State private var copiedText: String?
+    @State private var searchAddress = ""
+    @State private var searchResult: [String: Any]?
+    @State private var searchTransactions: [[String: Any]] = []
+    @State private var isSearching = false
+    @State private var searchError = ""
+
+    // Fund address Ɉ-369 (burn address)
+    private let fundAlias = "Ɉ-369"
 
     private let cyan = Color(red: 0, green: 0.83, blue: 1)
     private let gold = Color(red: 0.85, green: 0.68, blue: 0.25)
@@ -74,6 +82,7 @@ struct TimeChainExplorerView: View {
             HStack(spacing: 0) {
                 tabButton("Транзакции (\(events.count))", tab: 0)
                 tabButton("Адреса (\(addresses.count))", tab: 1)
+                tabButton("Поиск", tab: 2)
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
@@ -117,8 +126,10 @@ struct TimeChainExplorerView: View {
             } else {
                 if selectedTab == 0 {
                     eventsTab
-                } else {
+                } else if selectedTab == 1 {
                     addressesTab
+                } else {
+                    searchTab
                 }
             }
         }
@@ -378,6 +389,259 @@ struct TimeChainExplorerView: View {
                 .lineLimit(2)
                 .textSelection(.enabled)
         }
+    }
+
+    // MARK: - Search Tab
+
+    private var searchTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                // Fund Ɉ-369 card (always visible)
+                fundCard
+
+                Divider()
+
+                // Search input
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Поиск по адресу")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.secondary)
+
+                    HStack(spacing: 8) {
+                        TextField("Введи адрес или алиас (alice@montana.network, Ɉ-42, mt...)", text: $searchAddress)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 11, design: .monospaced))
+                            .padding(8)
+                            .background(cardBg)
+                            .cornerRadius(6)
+                            .onSubmit { searchForAddress() }
+
+                        Button(action: searchForAddress) {
+                            HStack(spacing: 4) {
+                                if isSearching {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                        .scaleEffect(0.7)
+                                } else {
+                                    Image(systemName: "magnifyingglass")
+                                        .font(.system(size: 11))
+                                }
+                                Text("Искать")
+                                    .font(.system(size: 11, weight: .semibold))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(cyan)
+                            .cornerRadius(6)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(searchAddress.isEmpty || isSearching)
+                    }
+                }
+
+                // Search error
+                if !searchError.isEmpty {
+                    Text(searchError)
+                        .font(.system(size: 10))
+                        .foregroundColor(.red)
+                        .padding(8)
+                        .background(Color.red.opacity(0.1))
+                        .cornerRadius(6)
+                }
+
+                // Search result
+                if let result = searchResult {
+                    searchResultCard(result)
+                }
+
+                // Search transactions
+                if !searchTransactions.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Транзакции (\(searchTransactions.count))")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.secondary)
+
+                        ForEach(Array(searchTransactions.enumerated()), id: \.offset) { idx, tx in
+                            searchTransactionRow(tx)
+                        }
+                    }
+                }
+            }
+            .padding(12)
+        }
+    }
+
+    private var fundCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "building.columns.fill")
+                    .foregroundColor(gold)
+                    .font(.system(size: 16))
+                Text("Фонд благосостояния")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(gold)
+                Spacer()
+            }
+
+            Text(fundAlias)
+                .font(.system(size: 20, weight: .bold, design: .monospaced))
+                .foregroundColor(cyan)
+
+            Text("Burn Address — монеты навсегда locked")
+                .font(.system(size: 9))
+                .foregroundColor(.secondary)
+
+            Divider()
+
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("БАЛАНС")
+                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        .foregroundColor(.secondary)
+                    if let fund = addresses.first(where: { $0["alias"] as? String == fundAlias }) {
+                        Text(formatAmount(fund["balance"] as? Int ?? 0))
+                            .font(.system(size: 16, weight: .bold, design: .monospaced))
+                            .foregroundColor(gold)
+                    } else {
+                        Text("Загрузка...")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("ДОСТУП")
+                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        .foregroundColor(.secondary)
+                    HStack(spacing: 4) {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(.red)
+                        Text("НЕТ КЛЮЧЕЙ")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.red)
+                    }
+                }
+            }
+
+            Text("💰 Все платежи за сервисы Montana (домены, номера, звонки, сайты, видео) идут в этот фонд.")
+                .font(.system(size: 9))
+                .foregroundColor(.secondary)
+                .lineSpacing(2)
+        }
+        .padding(12)
+        .background(gold.opacity(0.08))
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(gold.opacity(0.3), lineWidth: 1)
+        )
+    }
+
+    private func searchResultCard(_ result: [String: Any]) -> some View {
+        let address = result["address"] as? String ?? ""
+        let balance = result["balance"] as? Int ?? 0
+        let alias = result["alias"] as? String ?? ""
+        let walletType = result["type"] as? String ?? ""
+
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: walletType.contains("agent") ? "cpu" : "person.fill")
+                    .foregroundColor(walletType.contains("agent") ? .purple : cyan)
+                    .font(.system(size: 14))
+                if !alias.isEmpty {
+                    Text(alias)
+                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                        .foregroundColor(gold)
+                } else {
+                    Text("Адрес найден")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(cyan)
+                }
+                Spacer()
+            }
+
+            Text(address)
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundColor(.secondary)
+                .textSelection(.enabled)
+
+            Divider()
+
+            HStack {
+                Text("БАЛАНС")
+                    .font(.system(size: 8, weight: .bold, design: .monospaced))
+                    .foregroundColor(.secondary)
+                Spacer()
+                Text(formatAmount(balance))
+                    .font(.system(size: 14, weight: .bold, design: .monospaced))
+                    .foregroundColor(gold)
+            }
+        }
+        .padding(12)
+        .background(cyan.opacity(0.08))
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(cyan.opacity(0.3), lineWidth: 1)
+        )
+    }
+
+    private func searchTransactionRow(_ tx: [String: Any]) -> some View {
+        let eventType = tx["event_type"] as? String ?? ""
+        let amount = tx["amount"] as? Int ?? 0
+        let timestamp = tx["timestamp_iso"] as? String ?? ""
+        let fromAddr = tx["from_addr"] as? String ?? ""
+        let toAddr = tx["to_addr"] as? String ?? ""
+        let fromAlias = tx["from_alias"] as? String ?? ""
+        let toAlias = tx["to_alias"] as? String ?? ""
+
+        let color: Color = {
+            switch eventType {
+            case "EMISSION": return .green
+            case "TRANSFER": return cyan
+            case "ESCROW": return .orange
+            default: return .secondary
+            }
+        }()
+
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(eventType)
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundColor(color)
+                Spacer()
+                Text(formatAmount(amount))
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundColor(gold)
+            }
+
+            HStack(spacing: 4) {
+                if eventType == "EMISSION" {
+                    Text("Ɉ-0")
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundColor(.green.opacity(0.7))
+                } else {
+                    Text(fromAlias.isEmpty ? String(fromAddr.prefix(10)) + "..." : fromAlias)
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundColor(.secondary)
+                }
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 7))
+                    .foregroundColor(.secondary.opacity(0.5))
+                Text(toAlias.isEmpty ? String(toAddr.prefix(10)) + "..." : toAlias)
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundColor(.secondary)
+                Spacer()
+                Text(formatTimestampShort(timestamp))
+                    .font(.system(size: 8, design: .monospaced))
+                    .foregroundColor(.secondary.opacity(0.6))
+            }
+        }
+        .padding(8)
+        .background(cardBg)
+        .cornerRadius(6)
     }
 
     // MARK: - Addresses Tab
@@ -647,6 +911,30 @@ struct TimeChainExplorerView: View {
                     errorText = "Ошибка загрузки. Попробуйте позже"
                 }
                 isLoading = false
+            }
+        }
+    }
+
+    private func searchForAddress() {
+        guard !searchAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        isSearching = true
+        searchError = ""
+        searchResult = nil
+        searchTransactions = []
+
+        Task { @MainActor in
+            do {
+                let query = searchAddress.trimmingCharacters(in: .whitespacesAndNewlines)
+                async let addrData = engine.api.fetchAddressBalance(query: query)
+                async let txData = engine.api.fetchAddressTransactions(query: query)
+
+                searchResult = try await addrData
+                searchTransactions = try await txData
+
+                isSearching = false
+            } catch {
+                searchError = "Адрес не найден или ошибка сети"
+                isSearching = false
             }
         }
     }

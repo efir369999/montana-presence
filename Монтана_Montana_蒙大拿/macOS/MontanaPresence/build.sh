@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build Montana v3.2.7 — Sidebar Apps + Exchange + BTC Sensor
+# Build Montana v3.2.8 — Blockchain Explorer + Fund Ɉ-369 + Address Search
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
