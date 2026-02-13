@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build Montana v3.6.0 — Coin minting animation
+# Build Montana v3.6.1 — Fix 3D coin flip (reverse side now visible)
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"

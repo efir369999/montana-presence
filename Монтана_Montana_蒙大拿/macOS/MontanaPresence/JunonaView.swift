@@ -446,7 +446,7 @@ struct JunonaView: View {
 
                 // Spinning Junona coin (main)
             ZStack {
-                // Front side: Junona goddess (visible 0-90°, 270-360°)
+                // Front side: Junona goddess (visible when facing forward)
                 if let junonaPath = Bundle.main.path(forResource: "JunonaLogo", ofType: "jpg"),
                    let junonaImage = NSImage(contentsOfFile: junonaPath) {
                     Image(nsImage: junonaImage)
@@ -468,11 +468,10 @@ struct JunonaView: View {
                                     lineWidth: 3
                                 )
                         )
-                        .opacity(abs(cos(coinRotation * .pi / 180)))
-                        .rotation3DEffect(.degrees(coinRotation), axis: (x: 0, y: 1, z: 0))
+                        .opacity(cos(coinRotation * .pi / 180) > 0 ? 1 : 0)
                 }
 
-                // Back side: МЫ ПОВСЮДУ (visible 90-270°)
+                // Back side: МЫ ПОВСЮДУ (visible when facing backward)
                 if let reversePath = Bundle.main.path(forResource: "JunonaReverse", ofType: "jpg"),
                    let reverseImage = NSImage(contentsOfFile: reversePath) {
                     Image(nsImage: reverseImage)
@@ -494,11 +493,11 @@ struct JunonaView: View {
                                     lineWidth: 3
                                 )
                         )
-                        .scaleEffect(x: -1, y: 1)  // Flip horizontally
-                        .opacity(abs(sin(coinRotation * .pi / 180)))
-                        .rotation3DEffect(.degrees(coinRotation), axis: (x: 0, y: 1, z: 0))
+                        .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))  // Pre-rotate back side
+                        .opacity(cos(coinRotation * .pi / 180) < 0 ? 1 : 0)
                 }
             }
+            .rotation3DEffect(.degrees(coinRotation), axis: (x: 0, y: 1, z: 0))  // Rotate entire coin
             .shadow(color: Color(red: 0.83, green: 0.69, blue: 0.22).opacity(0.3), radius: 20, x: 0, y: 10)
             .onAppear {
                 // Faster rotation: 1 second per revolution
