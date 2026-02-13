@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Montana v2.30.0 menu bar app — P2P sync + balance consistency fixes
+# Build Montana v3.0.0 — Window-based UI with tabs (Wallet | History | TimeChain | Settings)
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$DIR/Montana.app"
 
-echo "Building Montana v2.30.0..."
+echo "Building Montana v3.0.0..."
 
 # Clean
 rm -rf "$APP"
@@ -34,6 +34,8 @@ swiftc \
     "$DIR/ReceiveView.swift" \
     "$DIR/TimeChainExplorerView.swift" \
     "$DIR/UpdateManager.swift" \
+    "$DIR/MainWindowView.swift" \
+    "$DIR/WalletTabView.swift" \
     "$DIR/MenuBarView.swift" \
     "$DIR/HistoryView.swift" \
     "$DIR/SettingsView.swift" \

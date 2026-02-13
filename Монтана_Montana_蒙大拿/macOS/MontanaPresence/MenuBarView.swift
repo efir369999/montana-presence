@@ -12,6 +12,7 @@ struct MenuBarView: View {
     @State private var showHistory = false
     @State private var showSensorInfo: String? = nil
     @State private var showNetworkNodes = false
+    @State private var showTimeChainWindow = false
 
     // Montana palette — gold coin aesthetic
     private let gold = Color(red: 0.85, green: 0.68, blue: 0.25)
@@ -162,10 +163,7 @@ struct MenuBarView: View {
                         }
 
                         Button(action: {
-                            // Open TimeChain Explorer in separate window
-                            if let appDelegate = NSApp.delegate as? AppDelegate {
-                                appDelegate.openTimeChainExplorer()
-                            }
+                            showTimeChainWindow = true
                         }) {
                             HStack(spacing: 5) {
                                 Image(systemName: "pentagon")

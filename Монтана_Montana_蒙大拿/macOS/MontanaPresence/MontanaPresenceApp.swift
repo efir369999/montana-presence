@@ -7,11 +7,9 @@ struct MontanaPresenceApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
-        Settings {
-            SettingsView()
-                .environmentObject(PresenceEngine.shared)
-                .environmentObject(UpdateManager.shared)
-                .environmentObject(VPNManager.shared)
+        // No Settings scene needed - MainWindow handles all UI
+        WindowGroup {
+            EmptyView()
         }
     }
 }
@@ -19,11 +17,11 @@ struct MontanaPresenceApp: App {
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem!
-    var popover: NSPopover!
+    var mainWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusItem()
-        setupPopover()
+        setupMainWindow()
 
         // Menu bar label syncs directly from tick() — same call stack, zero lag
         PresenceEngine.shared.onTick = { [weak self] in
@@ -49,21 +47,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         updateLabel()
     }
 
-    private func setupPopover() {
-        popover = NSPopover()
-        popover.contentSize = NSSize(width: 320, height: 720)
-        popover.behavior = .transient
-        popover.animates = false
-        popover.appearance = NSAppearance(named: .darkAqua)
-
-        let hostingController = NSHostingController(
-            rootView: MenuBarView()
-                .environmentObject(PresenceEngine.shared)
-                .environmentObject(CameraManager.shared)
-                .environmentObject(UpdateManager.shared)
-                .environmentObject(VPNManager.shared)
+    private func setupMainWindow() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 800, height: 650),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
         )
-        popover.contentViewController = hostingController
+        window.title = "Montana Protocol Ɉ"
+        window.center()
+        window.setFrameAutosaveName("MontanaMainWindow")
+        window.isReleasedWhenClosed = false
+        window.appearance = NSAppearance(named: .darkAqua)
+        window.minSize = NSSize(width: 600, height: 500)
+
+        let contentView = MainWindowView()
+            .environmentObject(PresenceEngine.shared)
+            .environmentObject(CameraManager.shared)
+            .environmentObject(UpdateManager.shared)
+            .environmentObject(VPNManager.shared)
+
+        window.contentViewController = NSHostingController(rootView: contentView)
+        mainWindow = window
     }
 
     @MainActor
@@ -85,22 +90,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.button?.title = parts.joined(separator: " ")
     }
 
-    // Left click → popover, Right click → context menu
+    // Left click → main window, Right click → context menu
     @objc func handleClick(_ sender: NSStatusBarButton) {
         guard let event = NSApp.currentEvent else { return }
         if event.type == .rightMouseUp {
             showContextMenu()
         } else {
-            togglePopover(sender)
+            toggleMainWindow()
         }
     }
 
-    private func togglePopover(_ sender: NSStatusBarButton) {
-        if popover.isShown {
-            popover.performClose(nil)
+    private func toggleMainWindow() {
+        guard let window = mainWindow else { return }
+        if window.isVisible {
+            window.orderOut(nil)
         } else {
-            popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .minY)
-            popover.contentViewController?.view.window?.makeKey()
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
         }
     }
 
@@ -127,12 +133,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func openSettings() {
+        guard let window = mainWindow else { return }
+        window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        if #available(macOS 14.0, *) {
-            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-        } else {
-            NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
-        }
+        // Switch to Settings tab
+        NotificationCenter.default.post(name: .switchToSettingsTab, object: nil)
     }
 
     @objc func showAbout() {
@@ -143,29 +148,5 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func quitApp() {
         PresenceEngine.shared.stopTracking()
         NSApp.terminate(nil)
-    }
-
-    // TimeChain Explorer window
-    func openTimeChainExplorer() {
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 900, height: 700),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
-            backing: .buffered,
-            defer: false
-        )
-        window.title = "TimeChain Explorer — Montana Protocol"
-        window.center()
-        window.setFrameAutosaveName("TimeChainExplorer")
-        window.isReleasedWhenClosed = false
-        window.appearance = NSAppearance(named: .darkAqua)
-
-        let contentView = TimeChainExplorerView()
-            .environmentObject(PresenceEngine.shared)
-            .frame(minWidth: 700, minHeight: 500)
-
-        let hostingController = NSHostingController(rootView: contentView)
-        window.contentViewController = hostingController
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
     }
 }
