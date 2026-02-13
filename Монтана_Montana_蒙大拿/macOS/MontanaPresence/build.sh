@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Montana v3.0.7 — Security Hardening (Phase 1 fixes)
+# Build Montana v3.2.0 — Montana Ecosystem Tabs (Domains, Phones, Calls, Sites, Video)
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$DIR/Montana.app"
 
-echo "Building Montana v3.0.7..."
+echo "Building Montana v3.2.0..."
 
 # Clean
 rm -rf "$APP"
@@ -35,6 +35,11 @@ swiftc \
     "$DIR/TimeChainExplorerView.swift" \
     "$DIR/UpdateManager.swift" \
     "$DIR/JunonaView.swift" \
+    "$DIR/DomainView.swift" \
+    "$DIR/PhoneView.swift" \
+    "$DIR/CallsView.swift" \
+    "$DIR/SitesView.swift" \
+    "$DIR/VideoView.swift" \
     "$DIR/MainWindowView.swift" \
     "$DIR/WalletTabView.swift" \
     "$DIR/MenuBarView.swift" \

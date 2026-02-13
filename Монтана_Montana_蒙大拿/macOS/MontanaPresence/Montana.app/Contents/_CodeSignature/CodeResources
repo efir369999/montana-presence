@@ -11,21 +11,8 @@
 	</dict>
 	<key>files2</key>
 	<dict>
-		<key>MacOS/MontanaPresence</key>
-		<dict>
-			<key>cdhash</key>
-			<data>
-			thXJ0ylHt5/j0OfhmxH9r3fVsMc=
-			</data>
-			<key>requirement</key>
-			<string>cdhash H"b615c9d32947b79fe3d0e7e19b11fdaf77d5b0c7"</string>
-		</dict>
 		<key>Resources/Montana.icns</key>
 		<dict>
-			<key>hash</key>
-			<data>
-			n4zgOG7r9xSZKKQDQnQqtwJXt4Q=
-			</data>
 			<key>hash2</key>
 			<data>
 			qijiv0LY50N4DvVFrmSKEDMTT/eLgduMvcbC7jTWmr0=

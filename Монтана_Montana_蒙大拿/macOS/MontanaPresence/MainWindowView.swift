@@ -9,7 +9,7 @@ struct MainWindowView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            // TAB 0: Junona AI Agent — Montana Protocol Assistant
+            // TAB 0: Junona AI Agent — Montana Protocol Control Center
             JunonaView()
                 .environmentObject(engine)
                 .tabItem {
@@ -28,33 +28,73 @@ struct MainWindowView: View {
                 }
                 .tag(1)
 
-            // TAB 2: History
+            // TAB 2: Domains
+            DomainView()
+                .environmentObject(engine)
+                .tabItem {
+                    Label("Домены", systemImage: "at")
+                }
+                .tag(2)
+
+            // TAB 3: Phone Numbers
+            PhoneView()
+                .environmentObject(engine)
+                .tabItem {
+                    Label("Номера", systemImage: "phone")
+                }
+                .tag(3)
+
+            // TAB 4: Calls
+            CallsView()
+                .environmentObject(engine)
+                .tabItem {
+                    Label("Звонки", systemImage: "phone.fill")
+                }
+                .tag(4)
+
+            // TAB 5: Sites
+            SitesView()
+                .environmentObject(engine)
+                .tabItem {
+                    Label("Сайты", systemImage: "globe")
+                }
+                .tag(5)
+
+            // TAB 6: Video
+            VideoView()
+                .environmentObject(engine)
+                .tabItem {
+                    Label("Видео", systemImage: "play.circle")
+                }
+                .tag(6)
+
+            // TAB 7: History
             HistoryView()
                 .environmentObject(engine)
                 .tabItem {
                     Label("История", systemImage: "clock.arrow.circlepath")
                 }
-                .tag(2)
+                .tag(7)
 
-            // TAB 3: TimeChain Explorer
+            // TAB 8: TimeChain Explorer
             TimeChainExplorerView()
                 .environmentObject(engine)
                 .tabItem {
                     Label("Цепочка", systemImage: "pentagon")
                 }
-                .tag(3)
+                .tag(8)
 
-            // TAB 4: Settings
+            // TAB 9: Settings
             SettingsView()
                 .environmentObject(engine)
                 .tabItem {
                     Label("Настройки", systemImage: "gear")
                 }
-                .tag(4)
+                .tag(9)
         }
         .frame(minWidth: 600, minHeight: 500)
         .onReceive(NotificationCenter.default.publisher(for: .switchToSettingsTab)) { _ in
-            selectedTab = 4  // Settings moved to tab 4
+            selectedTab = 9  // Settings moved to tab 9
         }
     }
 }
