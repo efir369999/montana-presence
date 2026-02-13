@@ -10,6 +10,7 @@ struct WalletTabView: View {
     @State private var showReceive = false
     @State private var showSensorInfo: String? = nil
     @State private var showNetworkNodes = false
+    @State private var coinRotation: Double = 0
 
     // Montana palette — gold coin aesthetic
     private let gold = Color(red: 0.85, green: 0.68, blue: 0.25)
@@ -22,19 +23,69 @@ struct WalletTabView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                // ── LOGO ──
+                // ── SPINNING COIN ──
                 HStack {
                     Spacer()
-                    if let logoPath = Bundle.main.path(forResource: "TimeCoin", ofType: "png"),
-                       let nsImage = NSImage(contentsOfFile: logoPath) {
-                        Image(nsImage: nsImage)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 80, height: 80)
-                            .shadow(color: gold.opacity(0.5), radius: 20, x: 0, y: 10)
+                    ZStack {
+                        // Front side: Junona face
+                        if let junonaPath = Bundle.main.path(forResource: "JunonaLogo", ofType: "jpg"),
+                           let junonaImage = NSImage(contentsOfFile: junonaPath) {
+                            Image(nsImage: junonaImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 80, height: 80)
+                                .clipShape(Circle())
+                                .overlay(
+                                    Circle()
+                                        .stroke(
+                                            LinearGradient(
+                                                colors: [gold, goldLight],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ),
+                                            lineWidth: 2
+                                        )
+                                )
+                                .opacity(cos(coinRotation * .pi / 180) > 0 ? cos(coinRotation * .pi / 180) : 0)
+                        }
+
+                        // Back side: Pyramid (Network logo)
+                        if let pyramidPath = Bundle.main.path(forResource: "NetworkLogo", ofType: "png"),
+                           let pyramidImage = NSImage(contentsOfFile: pyramidPath) {
+                            Image(nsImage: pyramidImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 60, height: 60)
+                                .padding(10)
+                                .background(
+                                    Circle()
+                                        .fill(Color.black)
+                                )
+                                .overlay(
+                                    Circle()
+                                        .stroke(
+                                            LinearGradient(
+                                                colors: [goldDim, gold],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ),
+                                            lineWidth: 2
+                                        )
+                                )
+                                .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
+                                .opacity(cos(coinRotation * .pi / 180) < 0 ? -cos(coinRotation * .pi / 180) : 0)
+                        }
+                    }
+                    .rotation3DEffect(.degrees(coinRotation), axis: (x: 0, y: 1, z: 0))
+                    .shadow(color: gold.opacity(0.5), radius: 20, x: 0, y: 10)
+                    .onAppear {
+                        withAnimation(.linear(duration: 4.0).repeatForever(autoreverses: false)) {
+                            coinRotation = 360
+                        }
                     }
                     Spacer()
                 }
+                .frame(height: 100)
                 .padding(.top, 12)
                 .padding(.bottom, 8)
 
