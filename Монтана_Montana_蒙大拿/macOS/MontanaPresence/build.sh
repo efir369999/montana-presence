@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Montana v3.5.1 — Fix coin reverse visibility
+# Build Montana v3.6.0 — Coin minting animation
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$DIR/Montana.app"
 
-echo "Building Montana v3.5.1..."
+echo "Building Montana v3.6.0..."
 
 # Clean
 rm -rf "$APP"

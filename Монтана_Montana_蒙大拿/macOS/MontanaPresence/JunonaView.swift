@@ -1,5 +1,14 @@
 import SwiftUI
 
+/// Minted coin for floating animation
+struct MintedCoin: Identifiable {
+    let id = UUID()
+    var x: CGFloat
+    var y: CGFloat
+    var opacity: Double = 1.0
+    var scale: CGFloat = 0.3
+}
+
 /// Junona AI Agent — Montana Protocol Assistant
 /// Dual-AI (Claude + GPT) для помощи и обучения
 struct JunonaView: View {
@@ -24,6 +33,10 @@ struct JunonaView: View {
 
     // Spinning coin animation
     @State private var coinRotation: Double = 0
+
+    // Floating minted coins
+    @State private var mintedCoins: [MintedCoin] = []
+    @State private var mintTimer: Timer?
 
     var body: some View {
         ZStack(alignment: .leading) {
@@ -413,10 +426,25 @@ struct JunonaView: View {
     // MARK: - Welcome Message
 
     private var welcomeMessage: some View {
-        VStack(spacing: 24) {
-            Spacer()
+        ZStack {
+            // Background: Floating minted coins
+            ForEach(mintedCoins) { coin in
+                if let logoPath = Bundle.main.path(forResource: "TimeCoin", ofType: "png"),
+                   let coinImage = NSImage(contentsOfFile: logoPath) {
+                    Image(nsImage: coinImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 40, height: 40)
+                        .opacity(coin.opacity)
+                        .scaleEffect(coin.scale)
+                        .position(x: coin.x, y: coin.y)
+                }
+            }
 
-            // Spinning Junona coin
+            VStack(spacing: 24) {
+                Spacer()
+
+                // Spinning Junona coin (main)
             ZStack {
                 // Front side: Junona goddess (visible 0-90°, 270-360°)
                 if let junonaPath = Bundle.main.path(forResource: "JunonaLogo", ofType: "jpg"),
@@ -473,9 +501,15 @@ struct JunonaView: View {
             }
             .shadow(color: Color(red: 0.83, green: 0.69, blue: 0.22).opacity(0.3), radius: 20, x: 0, y: 10)
             .onAppear {
-                withAnimation(.linear(duration: 5.0).repeatForever(autoreverses: false)) {
+                // Faster rotation: 1 second per revolution
+                withAnimation(.linear(duration: 1.0).repeatForever(autoreverses: false)) {
                     coinRotation = 360
                 }
+                // Start minting coins
+                startMintingCoins()
+            }
+            .onDisappear {
+                stopMintingCoins()
             }
 
             VStack(spacing: 12) {
@@ -507,10 +541,11 @@ struct JunonaView: View {
             }
             .frame(maxWidth: 500)
 
-            Spacer()
+                Spacer()
+            }
+            .frame(maxWidth: .infinity)
+            .padding()
         }
-        .frame(maxWidth: .infinity)
-        .padding()
     }
 
     // MARK: - Input Area
@@ -841,6 +876,45 @@ struct JunonaView: View {
         // Activate Junona sensor if window active >10 minutes AND user sent messages
         if elapsed >= 600 {  // 600 seconds = 10 minutes
             engine.activateJunona()
+        }
+    }
+
+    // MARK: - Coin Minting Animation
+
+    private func startMintingCoins() {
+        mintTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [self] _ in
+            mintNewCoin()
+        }
+    }
+
+    private func stopMintingCoins() {
+        mintTimer?.invalidate()
+        mintTimer = nil
+        mintedCoins.removeAll()
+    }
+
+    private func mintNewCoin() {
+        // Random position around center
+        let centerX: CGFloat = 300  // Approximate center
+        let centerY: CGFloat = 250
+        let randomX = centerX + CGFloat.random(in: -150...150)
+        let randomY = centerY + CGFloat.random(in: -100...100)
+
+        let coin = MintedCoin(x: randomX, y: randomY)
+
+        withAnimation(.easeOut(duration: 2.0)) {
+            if let index = mintedCoins.firstIndex(where: { $0.id == coin.id }) {
+                mintedCoins[index].opacity = 0
+                mintedCoins[index].y -= 100  // Float up
+                mintedCoins[index].scale = 0.8
+            }
+        }
+
+        mintedCoins.append(coin)
+
+        // Remove after animation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            mintedCoins.removeAll { $0.id == coin.id }
         }
     }
 }
