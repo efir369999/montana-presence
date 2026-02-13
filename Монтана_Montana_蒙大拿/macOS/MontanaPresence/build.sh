@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Montana v3.0.6 — Fix: Autostart disabled by default (user choice)
+# Build Montana v3.0.7 — Security Hardening (Phase 1 fixes)
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$DIR/Montana.app"
 
-echo "Building Montana v3.0.6..."
+echo "Building Montana v3.0.7..."
 
 # Clean
 rm -rf "$APP"
