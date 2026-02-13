@@ -189,7 +189,7 @@ struct MenuBarView: View {
                 // ── ТАЙЧЕЙН T2 ──
                 VStack(spacing: 4) {
                     HStack(spacing: 6) {
-                        Image(systemName: "cube.fill")
+                        Image(systemName: "square")
                             .font(.system(size: 12))
                             .frame(width: 18)
                             .foregroundColor(gold)

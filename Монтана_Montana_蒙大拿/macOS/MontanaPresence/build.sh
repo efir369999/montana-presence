@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Montana v2.29.0 menu bar app — P2P sync + balance consistency fixes
+# Build Montana v2.29.2 menu bar app — P2P sync + balance consistency fixes
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$DIR/Montana.app"
 
-echo "Building Montana v2.29.0..."
+echo "Building Montana v2.29.2..."
 
 # Clean
 rm -rf "$APP"

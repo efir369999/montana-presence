@@ -291,14 +291,16 @@ class PresenceEngine: ObservableObject {
             sensors[idx].enabled.toggle()
             UserDefaults.standard.set(sensors[idx].enabled, forKey: "sensor_\(id)")
 
-            // Autostart: sync with SMAppService + open Login Items
+            // Autostart: sync with SMAppService
             if id == "autostart" {
                 if sensors[idx].enabled {
                     try? SMAppService.mainApp.register()
+                    // Open System Settings only when enabling
+                    openLoginItemsSettings()
                 } else {
                     try? SMAppService.mainApp.unregister()
+                    // Don't open System Settings when disabling
                 }
-                openLoginItemsSettings()
             }
         }
     }
