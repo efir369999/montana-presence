@@ -247,6 +247,11 @@ struct JunonaView: View {
 
                     Divider()
 
+                    // Приват
+                    privateNavigation
+
+                    Divider()
+
                     // Junona Sessions
                     junonaSessions
                 }
@@ -304,6 +309,19 @@ struct JunonaView: View {
                 ExchangeItem(icon: "bitcoinsign.circle.fill", label: "BTC → Ɉ")
                 ExchangeItem(icon: "dollarsign.circle.fill", label: "USD → Ɉ")
                 ExchangeItem(icon: "rublesign.circle.fill", label: "RUB → Ɉ")
+            }
+        }
+    }
+
+    private var privateNavigation: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Приват")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundColor(.secondary)
+
+            VStack(spacing: 4) {
+                NavItem(icon: "eye.slash.fill", label: "Приватный кошелёк", tag: 10)
             }
         }
     }

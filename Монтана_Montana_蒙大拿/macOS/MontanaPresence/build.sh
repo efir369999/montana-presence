@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build Montana v3.2.8 — Blockchain Explorer + Fund Ɉ-369 + Address Search
+# Build Montana v3.3.0 — Private Wallets + Zero-Knowledge + Stealth Addresses
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -40,6 +40,7 @@ swiftc \
     "$DIR/CallsView.swift" \
     "$DIR/SitesView.swift" \
     "$DIR/VideoView.swift" \
+    "$DIR/PrivateView.swift" \
     "$DIR/MainWindowView.swift" \
     "$DIR/WalletTabView.swift" \
     "$DIR/MenuBarView.swift" \

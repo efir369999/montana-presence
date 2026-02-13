@@ -91,6 +91,14 @@ struct MainWindowView: View {
                     Label("Настройки", systemImage: "gear")
                 }
                 .tag(9)
+
+            // TAB 10: Private
+            PrivateView()
+                .environmentObject(engine)
+                .tabItem {
+                    Label("Приват", systemImage: "eye.slash.fill")
+                }
+                .tag(10)
         }
         .frame(minWidth: 600, minHeight: 500)
         .onReceive(NotificationCenter.default.publisher(for: .switchToSettingsTab)) { _ in
