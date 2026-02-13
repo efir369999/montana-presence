@@ -62,20 +62,6 @@ struct WalletTabView: View {
 
                 sep()
 
-                // ── ВИДИМОСТЬ В МЕНЮ БАРЕ ──
-                VStack(spacing: 2) {
-                    menuBarEyeRow(icon: "number", name: "\u{0411}\u{0430}\u{043b}\u{0430}\u{043d}\u{0441}", enabled: engine.showBalanceInMenuBar) {
-                        engine.toggleMenuBarBalance()
-                    }
-                    menuBarEyeRow(icon: "scalemass", name: "\u{0412}\u{0435}\u{0441}", enabled: engine.showWeightInMenuBar) {
-                        engine.toggleMenuBarWeight()
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 6)
-
-                sep()
-
                 // ── КОШЕЛЁК ──
                 VStack(spacing: 6) {
                     Button(action: { Task { await engine.reportToServer(); await engine.syncBalance() } }) {

@@ -53,6 +53,17 @@ struct SettingsView: View {
                     }
             }
 
+            Section("Menu Bar") {
+                Toggle("\u{041f}\u{043e}\u{043a}\u{0430}\u{0437}\u{044b}\u{0432}\u{0430}\u{0442}\u{044c} \u{0431}\u{0430}\u{043b}\u{0430}\u{043d}\u{0441}", isOn: Binding(
+                    get: { engine.showBalanceInMenuBar },
+                    set: { _ in engine.toggleMenuBarBalance() }
+                ))
+                Toggle("\u{041f}\u{043e}\u{043a}\u{0430}\u{0437}\u{044b}\u{0432}\u{0430}\u{0442}\u{044c} \u{0432}\u{0435}\u{0441}", isOn: Binding(
+                    get: { engine.showWeightInMenuBar },
+                    set: { _ in engine.toggleMenuBarWeight() }
+                ))
+            }
+
             Section("\u{0421}\u{0442}\u{0430}\u{0442}\u{0438}\u{0441}\u{0442}\u{0438}\u{043a}\u{0430}") {
                 LabeledContent("\u{0411}\u{0430}\u{043b}\u{0430}\u{043d}\u{0441} \u{0441}\u{0435}\u{0440}\u{0432}\u{0435}\u{0440}\u{0430}") {
                     Text("\(engine.serverBalance) \u{0248}")
