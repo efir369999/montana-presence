@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Montana v3.0.5 — Fix: Single instance enforcement (auto-kill duplicates)
+# Build Montana v3.0.6 — Fix: Autostart disabled by default (user choice)
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$DIR/Montana.app"
 
-echo "Building Montana v3.0.5..."
+echo "Building Montana v3.0.6..."
 
 # Clean
 rm -rf "$APP"

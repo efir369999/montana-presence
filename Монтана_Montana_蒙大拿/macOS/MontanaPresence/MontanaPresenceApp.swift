@@ -46,10 +46,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self?.updateLabel()
         }
 
-        try? SMAppService.mainApp.register()
         Task { @MainActor in
             UpdateManager.shared.startChecking()
-            PresenceEngine.shared.autoStart()
+            // Tracking disabled by default — user must click START manually
         }
     }
 
