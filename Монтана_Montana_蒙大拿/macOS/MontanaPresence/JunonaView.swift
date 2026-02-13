@@ -17,6 +17,11 @@ struct JunonaView: View {
     @State private var sessions: [JunonaSession] = []
     @State private var currentSessionId: UUID?
 
+    // Presence tracking (10 min activity required)
+    @State private var activeStartTime: Date?
+    @State private var hasMessages = false
+    @State private var activityTimer: Timer?
+
     var body: some View {
         ZStack(alignment: .leading) {
             // Main content
@@ -88,6 +93,10 @@ struct JunonaView: View {
     .animation(.easeInOut(duration: 0.3), value: showSidebar)
     .onAppear {
         loadSessions()
+        startActivityTracking()
+    }
+    .onDisappear {
+        stopActivityTracking()
     }
 }
 
@@ -376,9 +385,10 @@ struct JunonaView: View {
         let question = sanitized
         inputText = ""
         isLoading = true
+        hasMessages = true
 
-        // Activate Junona sensor (conversation = presence)
-        engine.activateJunona()
+        // Check if should activate Junona sensor (>10 min activity + messages)
+        checkAndActivateJunona()
 
         // Get AI response
         Task {
@@ -624,6 +634,34 @@ struct JunonaView: View {
         messages = session.messages
         withAnimation {
             showSidebar = false
+        }
+    }
+
+    // MARK: - Activity Tracking
+
+    private func startActivityTracking() {
+        activeStartTime = Date()
+
+        // Check every minute if 10 minutes passed
+        activityTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { _ in
+            checkAndActivateJunona()
+        }
+    }
+
+    private func stopActivityTracking() {
+        activityTimer?.invalidate()
+        activityTimer = nil
+        activeStartTime = nil
+    }
+
+    private func checkAndActivateJunona() {
+        guard let startTime = activeStartTime, hasMessages else { return }
+
+        let elapsed = Date().timeIntervalSince(startTime)
+
+        // Activate Junona sensor if window active >10 minutes AND user sent messages
+        if elapsed >= 600 {  // 600 seconds = 10 minutes
+            engine.activateJunona()
         }
     }
 }

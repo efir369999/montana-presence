@@ -5,7 +5,7 @@ struct MainWindowView: View {
     @EnvironmentObject var camera: CameraManager
     @EnvironmentObject var updater: UpdateManager
     @EnvironmentObject var vpn: VPNManager
-    @State private var selectedTab = 0
+    @State private var selectedTab = 1  // Default: Wallet (not Junona)
 
     var body: some View {
         TabView(selection: $selectedTab) {
