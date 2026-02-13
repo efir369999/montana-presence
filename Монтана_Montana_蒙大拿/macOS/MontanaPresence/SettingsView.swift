@@ -102,7 +102,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 400, height: updater.updateAvailable ? 440 : 400)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             addressInput = engine.address ?? ""
             launchAtLogin = SMAppService.mainApp.status == .enabled

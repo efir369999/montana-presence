@@ -90,7 +90,7 @@ struct HistoryView: View {
                 }
             }
         }
-        .frame(width: 360, height: 500)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear { loadHistory() }
     }
 

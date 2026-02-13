@@ -122,7 +122,7 @@ struct TimeChainExplorerView: View {
                 }
             }
         }
-        .frame(width: 520, height: 620)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             loadData()
             setupTimer()

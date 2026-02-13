@@ -636,6 +636,7 @@ struct WalletTabView: View {
             }
         }
         .background(bg)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             engine.refreshPermissions()
             engine.updateT2()
