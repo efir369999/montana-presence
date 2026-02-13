@@ -357,13 +357,18 @@ class PresenceEngine: ObservableObject {
             }
             return
         }
+        // Special sensors (activity, wifi, autostart) — user control ONLY, no auto-enable
+        let manualOnlySensors: Set<String> = ["activity", "wifi", "autostart"]
+
         for (id, allowed) in sensorPermissions {
             let wasAllowed = oldPermissions[id] ?? false
             if let idx = sensors.firstIndex(where: { $0.id == id }) {
                 if allowed && !wasAllowed {
-                    // Permission just granted → enable
-                    sensors[idx].enabled = true
-                    UserDefaults.standard.set(true, forKey: "sensor_\(id)")
+                    // Permission just granted → enable (except manual-only sensors)
+                    if !manualOnlySensors.contains(id) {
+                        sensors[idx].enabled = true
+                        UserDefaults.standard.set(true, forKey: "sensor_\(id)")
+                    }
                 } else if !allowed && wasAllowed {
                     // Permission just revoked → disable
                     sensors[idx].enabled = false
