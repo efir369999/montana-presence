@@ -1,14 +1,5 @@
 import SwiftUI
 
-/// Minted coin for floating animation
-struct MintedCoin: Identifiable {
-    let id = UUID()
-    var x: CGFloat
-    var y: CGFloat
-    var opacity: Double = 1.0
-    var scale: CGFloat = 0.3
-}
-
 /// Junona AI Agent — Montana Protocol Assistant
 /// Dual-AI (Claude + GPT) для помощи и обучения
 struct JunonaView: View {
@@ -34,10 +25,6 @@ struct JunonaView: View {
     // Clock seconds hand animation
     @State private var secondsAngle: Double = 0
     @State private var clockTimer: Timer?
-
-    // Floating minted coins
-    @State private var mintedCoins: [MintedCoin] = []
-    @State private var mintTimer: Timer?
 
     var body: some View {
         ZStack(alignment: .leading) {
@@ -427,64 +414,35 @@ struct JunonaView: View {
     // MARK: - Welcome Message
 
     private var welcomeMessage: some View {
-        ZStack {
-            // Background: Floating minted coins
-            ForEach(mintedCoins) { coin in
-                if let logoPath = Bundle.main.path(forResource: "TimeCoin", ofType: "png"),
-                   let coinImage = NSImage(contentsOfFile: logoPath) {
-                    Image(nsImage: coinImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 40, height: 40)
-                        .opacity(coin.opacity)
-                        .scaleEffect(coin.scale)
-                        .position(x: coin.x, y: coin.y)
-                }
+        VStack(spacing: 16) {
+            Spacer()
+
+            // Balance + Weight info (top)
+            HStack(spacing: 12) {
+                // Balance
+                let formatter = NumberFormatter()
+                let _ = {
+                    formatter.numberStyle = .decimal
+                    formatter.groupingSeparator = ","
+                }()
+                let balanceStr = formatter.string(from: NSNumber(value: engine.displayBalance)) ?? "\(engine.displayBalance)"
+
+                Text(balanceStr)
+                    .font(.system(size: 32, weight: .bold, design: .monospaced))
+                    .foregroundColor(Color(red: 0.83, green: 0.69, blue: 0.22))
+
+                Text("Ɉ")
+                    .font(.system(size: 32, weight: .bold))
+                    .foregroundColor(Color(red: 0.94, green: 0.82, blue: 0.38))
+
+                // Weight
+                Text("x\(engine.weight)")
+                    .font(.system(size: 24, weight: .semibold, design: .monospaced))
+                    .foregroundColor(.secondary)
             }
 
-            VStack(spacing: 16) {
-                Spacer()
-
-                // Balance + Weight info (top)
-                HStack(spacing: 12) {
-                    // Balance
-                    let formatter = NumberFormatter()
-                    let _ = {
-                        formatter.numberStyle = .decimal
-                        formatter.groupingSeparator = ","
-                    }()
-                    let balanceStr = formatter.string(from: NSNumber(value: engine.displayBalance)) ?? "\(engine.displayBalance)"
-
-                    Text(balanceStr)
-                        .font(.system(size: 32, weight: .bold, design: .monospaced))
-                        .foregroundColor(Color(red: 0.83, green: 0.69, blue: 0.22))
-
-                    Text("Ɉ")
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(Color(red: 0.94, green: 0.82, blue: 0.38))
-
-                    // Weight
-                    Text("x\(engine.weight)")
-                        .font(.system(size: 24, weight: .semibold, design: .monospaced))
-                        .foregroundColor(.secondary)
-                }
-
-                // Static Junona clock
+            // Static Junona clock
             ZStack {
-                // Floating minted coins (background)
-                ForEach(mintedCoins) { coin in
-                    if let logoPath = Bundle.main.path(forResource: "TimeCoin", ofType: "png"),
-                       let coinImage = NSImage(contentsOfFile: logoPath) {
-                        Image(nsImage: coinImage)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 40, height: 40)
-                            .opacity(coin.opacity)
-                            .scaleEffect(coin.scale)
-                            .position(x: coin.x, y: coin.y)
-                    }
-                }
-
                 // Static Junona logo (center)
                 if let junonaPath = Bundle.main.path(forResource: "JunonaLogo", ofType: "jpg"),
                    let junonaImage = NSImage(contentsOfFile: junonaPath) {
@@ -532,11 +490,9 @@ struct JunonaView: View {
             .frame(width: 220, height: 220)
             .onAppear {
                 startClock()
-                startMintingCoins()
             }
             .onDisappear {
                 stopClock()
-                stopMintingCoins()
             }
 
             VStack(spacing: 12) {
@@ -560,42 +516,45 @@ struct JunonaView: View {
                 .padding()
                 .background(Color(red: 0.83, green: 0.69, blue: 0.22).opacity(0.05))
                 .cornerRadius(16)
-
-                Text("Начни разговор с Junona →")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .padding(.top, 8)
             }
             .frame(maxWidth: 500)
 
-                Spacer()
-            }
-            .frame(maxWidth: .infinity)
-            .padding()
+            Spacer()
         }
+        .frame(maxWidth: .infinity)
+        .padding()
     }
 
     // MARK: - Input Area
 
     private var inputArea: some View {
-        HStack(spacing: 12) {
-            TextField("Спроси Junona...", text: $inputText, axis: .vertical)
-                .textFieldStyle(.plain)
-                .padding(8)
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(8)
-                .lineLimit(1...5)
-                .onSubmit {
-                    sendMessage()
-                }
+        VStack(spacing: 4) {
+            HStack(spacing: 12) {
+                TextField("Спроси Junona...", text: $inputText, axis: .vertical)
+                    .textFieldStyle(.plain)
+                    .padding(8)
+                    .background(Color(NSColor.controlBackgroundColor))
+                    .cornerRadius(8)
+                    .lineLimit(1...5)
+                    .onSubmit {
+                        sendMessage()
+                    }
 
-            Button(action: sendMessage) {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 24))
-                    .foregroundColor(inputText.isEmpty ? .gray : Color(red: 0.0, green: 0.83, blue: 1.0))
+                Button(action: sendMessage) {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(inputText.isEmpty ? .gray : Color(red: 0.0, green: 0.83, blue: 1.0))
+                }
+                .buttonStyle(.plain)
+                .disabled(inputText.isEmpty || isLoading)
             }
-            .buttonStyle(.plain)
-            .disabled(inputText.isEmpty || isLoading)
+
+            // Subtle greeting
+            Text("Управляет всей Montana Protocol")
+                .font(.caption2)
+                .foregroundColor(.secondary.opacity(0.7))
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.top, 2)
         }
         .padding()
     }
@@ -659,50 +618,53 @@ struct JunonaView: View {
     }
 
     private func getAIResponse(for question: String) async throws -> String {
-        // System prompt for Junona
-        let systemPrompt = """
-        Ты — Junona, AI-агент Montana Protocol. Твоя задача — помогать пользователям разобраться с Montana.
+        // Use Montana API (efir.org) instead of direct Claude/GPT calls
+        return try await callMontanaAPI(question: question)
+    }
 
-        Montana Protocol — это протокол идеальных денег (Ideal Money), где:
-        - 1 Ɉ (монета времени) = 1 секунда человеческого присутствия
-        - Genesis Price: 1 Ɉ = $0.1605 USD = 12.04₽ RUB
-        - Постквантовая криптография: ML-DSA-65 (Dilithium)
+    private func callMontanaAPI(question: String) async throws -> String {
+        let url = URL(string: "https://efir.org/api/chat")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 30
 
-        Аукционная модель:
-        - Домены (alice@montana.network): N-й домен = N Ɉ
-        - Виртуальные номера (+montana-000042): N-й номер = N Ɉ
-        - Звонки: фиксированная цена 1 Ɉ/сек для владельцев номеров
-
-        Майнинг:
-        - Базовый вес: 1 (просто запущенное приложение)
-        - Каждый датчик (камера, микрофон, GPS, Bluetooth): +1
-        - VPN: +1
-        - Формула: weight = 1 + активные датчики + VPN
-
-        Датчики НЕ СОБИРАЮТ ДАННЫЕ — это просто якоря (anchors) для proof-of-presence.
-
-        Отвечай кратко, по-русски, с примерами. Будь дружелюбной и помогай разобраться.
-        """
-
-        // Get user's Montana context (NO SENSITIVE DATA)
+        // Get user context
         let userContext = """
-
-        Контекст пользователя:
-        - Кошелёк: \((engine.address ?? "").isEmpty ? "не создан" : "создан ✓")
-        - Вес майнинга: \(engine.weight)x
-        - Майнинг активен: \(engine.isTracking ? "да" : "нет")
+        Контекст: кошелёк \((engine.address ?? "").isEmpty ? "не создан" : "создан"), \
+        вес майнинга x\(engine.weight), \
+        майнинг \(engine.isTracking ? "активен" : "не активен")
         """
 
-        let fullPrompt = systemPrompt + userContext + "\n\nВопрос: \(question)"
+        let body: [String: Any] = [
+            "question": question,
+            "lang": "ru",
+            "context": userContext
+        ]
 
-        // Call AI API based on toggles
-        if claudeEnabled {
-            return try await callClaudeAPI(prompt: fullPrompt)
-        } else if gptEnabled {
-            return try await callGPTAPI(prompt: fullPrompt)
-        } else {
-            return "⚠️ Включи хотя бы один AI (Claude или GPT) в настройках выше"
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 30
+        let session = URLSession(configuration: config)
+
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw NSError(domain: "Junona", code: -1, userInfo: [
+                NSLocalizedDescriptionKey: "Не удалось получить ответ"
+            ])
         }
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let answer = json["answer"] as? String else {
+            throw NSError(domain: "Junona", code: -2, userInfo: [
+                NSLocalizedDescriptionKey: "Не удалось получить ответ"
+            ])
+        }
+
+        return answer
     }
 
     private func sanitizeInput(_ input: String) -> String {
@@ -717,136 +679,6 @@ struct JunonaView: View {
             .union(CharacterSet(charactersIn: "?!.,;:-—–—()[]{}\"'«»№@#$%^&*+=<>/\\"))
 
         return String(limited.unicodeScalars.filter { allowed.contains($0) })
-    }
-
-    private func callClaudeAPI(prompt: String) async throws -> String {
-        // Load API key from keychain
-        guard var apiKey = getAPIKey(service: "ANTHROPIC_API_KEY") else {
-            return "❌ Claude API key не найден в keychain"
-        }
-
-        // Zero API key after use
-        defer {
-            apiKey = String(repeating: "\0", count: apiKey.count)
-        }
-
-        let url = URL(string: "https://api.anthropic.com/v1/messages")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
-        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = 30  // 30s timeout
-
-        let body: [String: Any] = [
-            "model": "claude-sonnet-4-5-20250929",
-            "max_tokens": 1024,
-            "messages": [
-                ["role": "user", "content": prompt]
-            ]
-        ]
-
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        // Use session with timeout
-        let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 30
-        let session = URLSession(configuration: config)
-
-        let (data, response) = try await session.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw NSError(domain: "Junona", code: -1, userInfo: [
-                NSLocalizedDescriptionKey: "Не удалось получить ответ"
-            ])
-        }
-
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let content = json["content"] as? [[String: Any]],
-              let firstContent = content.first,
-              let text = firstContent["text"] as? String else {
-            throw NSError(domain: "Junona", code: -2, userInfo: [
-                NSLocalizedDescriptionKey: "Не удалось получить ответ"
-            ])
-        }
-
-        return text
-    }
-
-    private func callGPTAPI(prompt: String) async throws -> String {
-        // Load API key from keychain
-        guard var apiKey = getAPIKey(service: "OPENAI_API_KEY") else {
-            return "❌ OpenAI API key не найден в keychain"
-        }
-
-        // Zero API key after use
-        defer {
-            apiKey = String(repeating: "\0", count: apiKey.count)
-        }
-
-        let url = URL(string: "https://api.openai.com/v1/chat/completions")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = 30  // 30s timeout
-
-        let body: [String: Any] = [
-            "model": "gpt-4o",
-            "messages": [
-                ["role": "user", "content": prompt]
-            ],
-            "max_tokens": 1024
-        ]
-
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        // Use session with timeout
-        let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 30
-        let session = URLSession(configuration: config)
-
-        let (data, response) = try await session.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw NSError(domain: "Junona", code: -1, userInfo: [
-                NSLocalizedDescriptionKey: "Не удалось получить ответ"
-            ])
-        }
-
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let choices = json["choices"] as? [[String: Any]],
-              let firstChoice = choices.first,
-              let message = firstChoice["message"] as? [String: Any],
-              let content = message["content"] as? String else {
-            throw NSError(domain: "Junona", code: -2, userInfo: [
-                NSLocalizedDescriptionKey: "Не удалось получить ответ"
-            ])
-        }
-
-        return content
-    }
-
-    private func getAPIKey(service: String) -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: "montana",
-            kSecReturnData as String: true
-        ]
-
-        var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-
-        guard status == errSecSuccess,
-              let data = result as? Data,
-              let key = String(data: data, encoding: .utf8) else {
-            return nil
-        }
-
-        return key
     }
 
     // MARK: - Session Management
@@ -919,52 +751,12 @@ struct JunonaView: View {
             withAnimation(.linear(duration: 1.0)) {
                 secondsAngle = Double(second) * 6  // 360° / 60 seconds = 6° per second
             }
-            // Mint a coin every second (synchronized with clock)
-            mintNewCoin()
         }
     }
 
     private func stopClock() {
         clockTimer?.invalidate()
         clockTimer = nil
-    }
-
-    // MARK: - Coin Minting Animation
-
-    private func startMintingCoins() {
-        // Initial coin
-        mintNewCoin()
-    }
-
-    private func stopMintingCoins() {
-        mintTimer?.invalidate()
-        mintTimer = nil
-        mintedCoins.removeAll()
-    }
-
-    private func mintNewCoin() {
-        // Random position around center
-        let centerX: CGFloat = 110  // Center of clock
-        let centerY: CGFloat = 110
-        let randomX = centerX + CGFloat.random(in: -80...80)
-        let randomY = centerY + CGFloat.random(in: -80...80)
-
-        let coin = MintedCoin(x: randomX, y: randomY)
-
-        withAnimation(.easeOut(duration: 2.0)) {
-            if let index = mintedCoins.firstIndex(where: { $0.id == coin.id }) {
-                mintedCoins[index].opacity = 0
-                mintedCoins[index].y -= 100  // Float up
-                mintedCoins[index].scale = 0.8
-            }
-        }
-
-        mintedCoins.append(coin)
-
-        // Remove after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            mintedCoins.removeAll { $0.id == coin.id }
-        }
     }
 }
 

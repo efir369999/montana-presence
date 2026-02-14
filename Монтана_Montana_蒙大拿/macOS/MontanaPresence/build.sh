@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Montana v3.7.1 — Golden dot clock: real-time sync + live balance
+# Build Montana v3.7.2 — Montana API integration (efir.org/api/chat)
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$DIR/Montana.app"
 
-echo "Building Montana v3.6.0..."
+echo "Building Montana v3.7.2..."
 
 # Clean
 rm -rf "$APP"
